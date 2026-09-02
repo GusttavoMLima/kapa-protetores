@@ -1,4 +1,4 @@
-import { colors } from "@/theme/colors";
+import { palette } from "@/theme/colors";
 import { StyleSheet } from "react-native";
 
 export const primaryChipStyles = StyleSheet.create({
@@ -9,22 +9,22 @@ export const primaryChipStyles = StyleSheet.create({
   },
   chip: {
     borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.white,
+    borderColor: palette.line,
+    backgroundColor: palette.white,
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
   chipSelected: {
-    backgroundColor: colors.orange,
-    borderColor: colors.orange,
+    backgroundColor: palette.orange,
+    borderColor: palette.orange,
   },
   label: {
-    color: colors.ink,
+    color: palette.ink,
     fontSize: 14,
     fontWeight: '600',
   },
   labelSelected: {
-    color: colors.white,
+    color: palette.white,
   },
 });

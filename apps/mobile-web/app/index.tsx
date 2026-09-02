@@ -1,5 +1,5 @@
-import { CadastroAnimalScreen } from '../src/screens/CadastroAnimalScreen';
+import { LoginScreen } from '@/screens/login';
 
 export default function IndexScreen() {
-  return <CadastroAnimalScreen />;
+  return <LoginScreen />;
 }

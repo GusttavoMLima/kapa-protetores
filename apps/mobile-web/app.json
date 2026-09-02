@@ -44,7 +44,9 @@
           "photosPermission": "A Kapa precisa acessar suas fotos para cadastrar o animal.",
           "cameraPermission": "A Kapa precisa da câmera para fotografar o animal resgatado."
         }
-      ]
+      ],
+      "expo-font",
+      "expo-splash-screen"
     ]
   }
 }

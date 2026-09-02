@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { colors } from '../theme/colors';
+import { palette } from '@/theme/colors';
 
 type Props = {
   uri?: string;
@@ -33,7 +33,9 @@ export function FotoPicker({ uri, onChange, erro }: Props) {
             : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
         if (!permission.granted) {
-          setAviso('Libere o acesso à câmera ou à galeria para adicionar a foto.');
+          setAviso(
+            'Libere o acesso à câmera ou à galeria para adicionar a foto.',
+          );
           return;
         }
       }
@@ -64,9 +66,14 @@ export function FotoPicker({ uri, onChange, erro }: Props) {
     <View style={styles.block}>
       <Pressable onPress={() => setAberto(true)} style={styles.wrap}>
         {uri ? (
-          <Image source={{ uri }} style={[styles.photo, mensagem && styles.photoErro]} />
+          <Image
+            source={{ uri }}
+            style={[styles.photo, mensagem && styles.photoErro]}
+          />
         ) : (
-          <View style={[styles.placeholder, mensagem && styles.placeholderErro]}>
+          <View
+            style={[styles.placeholder, mensagem && styles.placeholderErro]}
+          >
             <Text style={styles.plus}>+</Text>
             <Text style={styles.caption}>Adicionar foto</Text>
           </View>
@@ -74,19 +81,36 @@ export function FotoPicker({ uri, onChange, erro }: Props) {
       </Pressable>
       {mensagem ? <Text style={styles.erroTexto}>{mensagem}</Text> : null}
 
-      <Modal visible={aberto} transparent animationType="fade" onRequestClose={() => setAberto(false)}>
+      <Modal
+        visible={aberto}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAberto(false)}
+      >
         <View style={styles.overlay}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={() => setAberto(false)} />
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setAberto(false)}
+          />
           <View style={styles.sheet}>
             <Text style={styles.sheetTitle}>Foto do animal</Text>
             <Text style={styles.sheetSub}>Escolha de onde vem a imagem.</Text>
-            <Pressable style={styles.sheetBtn} onPress={() => void escolher('gallery')}>
+            <Pressable
+              style={styles.sheetBtn}
+              onPress={() => void escolher('gallery')}
+            >
               <Text style={styles.sheetBtnText}>Galeria</Text>
             </Pressable>
-            <Pressable style={styles.sheetBtn} onPress={() => void escolher('camera')}>
+            <Pressable
+              style={styles.sheetBtn}
+              onPress={() => void escolher('camera')}
+            >
               <Text style={styles.sheetBtnText}>Câmera</Text>
             </Pressable>
-            <Pressable style={styles.sheetCancel} onPress={() => setAberto(false)}>
+            <Pressable
+              style={styles.sheetCancel}
+              onPress={() => setAberto(false)}
+            >
               <Text style={styles.sheetCancelText}>Cancelar</Text>
             </Pressable>
           </View>
@@ -109,10 +133,10 @@ const styles = StyleSheet.create({
     height: 132,
     borderRadius: 66,
     borderWidth: 3,
-    borderColor: colors.orange,
+    borderColor: palette.orange,
   },
   photoErro: {
-    borderColor: colors.danger,
+    borderColor: palette.danger,
   },
   placeholder: {
     width: 132,
@@ -120,28 +144,28 @@ const styles = StyleSheet.create({
     borderRadius: 66,
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: colors.orange,
-    backgroundColor: colors.white,
+    borderColor: palette.orange,
+    backgroundColor: palette.white,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
   },
   placeholderErro: {
-    borderColor: colors.danger,
+    borderColor: palette.danger,
   },
   plus: {
-    color: colors.orange,
+    color: palette.orange,
     fontSize: 36,
     lineHeight: 40,
     fontWeight: '300',
   },
   caption: {
-    color: colors.orangeDark,
+    color: palette.orangeDark,
     fontSize: 12,
     fontWeight: '700',
   },
   erroTexto: {
-    color: colors.danger,
+    color: palette.danger,
     fontSize: 13,
     fontWeight: '600',
     textAlign: 'center',
@@ -153,29 +177,29 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   sheet: {
-    backgroundColor: colors.white,
+    backgroundColor: palette.white,
     borderRadius: 20,
     padding: 20,
     gap: 10,
   },
   sheetTitle: {
-    color: colors.ink,
+    color: palette.ink,
     fontSize: 18,
     fontWeight: '800',
   },
   sheetSub: {
-    color: colors.inkMuted,
+    color: palette.inkMuted,
     fontSize: 14,
     marginBottom: 6,
   },
   sheetBtn: {
-    backgroundColor: colors.orange,
+    backgroundColor: palette.orange,
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
   },
   sheetBtnText: {
-    color: colors.white,
+    color: palette.white,
     fontSize: 16,
     fontWeight: '800',
   },
@@ -184,7 +208,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sheetCancelText: {
-    color: colors.inkMuted,
+    color: palette.inkMuted,
     fontSize: 15,
     fontWeight: '700',
   },

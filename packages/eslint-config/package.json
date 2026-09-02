@@ -1,0 +1,21 @@
+{
+  "name": "@kapa/eslint-config",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./base": "./index.js",
+    "./node": "./node.js",
+    "./expo": "./expo.js"
+  },
+  "dependencies": {
+    "@eslint/js": "^9.20.0",
+    "eslint-config-expo": "~57.0.1",
+    "globals": "^15.15.0",
+    "typescript-eslint": "^8.24.1"
+  },
+  "peerDependencies": {
+    "eslint": "^9.0.0"
+  }
+}

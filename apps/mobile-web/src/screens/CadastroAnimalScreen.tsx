@@ -9,25 +9,19 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CampoTexto } from '../components/CampoTexto';
-import { PrimaryChipGroup } from '../components/chips/primaryChip';
-import { FotoPicker } from '../components/FotoPicker';
-import { saveAnimal } from '../storage/animals';
-import { colors } from '../theme/colors';
+import { PrimaryInputText } from '@/components/inputText/primary';
+import { PrimaryChipGroup } from '@/components/chips/primaryChip';
+import { FotoPicker } from '@/components/photoPicker/profile';
+import { saveAnimal } from '@/storage/animals';
+import { palette } from '@/theme/colors';
 import type {
   CondicaoChegada,
   Especie,
   Porte,
   Sexo,
   TriState,
-} from '../types/animal';
-
-function hojeBr(): string {
-  const now = new Date();
-  const dia = String(now.getDate()).padStart(2, '0');
-  const mes = String(now.getMonth() + 1).padStart(2, '0');
-  return `${dia}/${mes}/${now.getFullYear()}`;
-}
+} from '@/types/animal';
+import { hojeBr } from '@kapa/shared/utils';
 
 function novoId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -134,11 +128,7 @@ export function CadastroAnimalScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <View style={styles.brandBar}>
-        <Text style={styles.logo}>KAPA</Text>
-        <Text style={styles.brandSub}>Protetores dos Animais</Text>
-      </View>
+    <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
       <KeyboardAvoidingView
         style={styles.body}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -190,7 +180,7 @@ export function CadastroAnimalScreen() {
 
           <View style={styles.card}>
             <Text style={styles.section}>Quem é</Text>
-            <CampoTexto
+            <PrimaryInputText
               label="Nome"
               value={nome}
               onChangeText={(texto) => {
@@ -230,13 +220,13 @@ export function CadastroAnimalScreen() {
                 { value: 'grande', label: 'Grande' },
               ]}
             />
-            <CampoTexto
+            <PrimaryInputText
               label="Idade aproximada"
               value={idadeAproximada}
               onChangeText={setIdadeAproximada}
               placeholder="Ex.: filhote, 2 anos, idoso"
             />
-            <CampoTexto
+            <PrimaryInputText
               label="Cor / pelagem"
               value={corPelagem}
               onChangeText={setCorPelagem}
@@ -246,13 +236,13 @@ export function CadastroAnimalScreen() {
 
           <View style={styles.card}>
             <Text style={styles.section}>Resgate</Text>
-            <CampoTexto
+            <PrimaryInputText
               label="Data do resgate"
               value={dataResgate}
               onChangeText={setDataResgate}
               placeholder="DD/MM/AAAA"
             />
-            <CampoTexto
+            <PrimaryInputText
               label="Local do resgate"
               value={localResgate}
               onChangeText={setLocalResgate}
@@ -306,14 +296,14 @@ export function CadastroAnimalScreen() {
 
           <View style={styles.card}>
             <Text style={styles.section}>Temperamento</Text>
-            <CampoTexto
+            <PrimaryInputText
               label="Como o animal está"
               value={temperamento}
               onChangeText={setTemperamento}
               placeholder="Dócil, medroso, sociável com outros animais..."
               multiline
             />
-            <CampoTexto
+            <PrimaryInputText
               label="Observações"
               value={observacoes}
               onChangeText={setObservacoes}
@@ -340,30 +330,10 @@ export function CadastroAnimalScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colors.orange,
-  },
-  brandBar: {
-    backgroundColor: colors.orange,
-    alignItems: 'center',
-    paddingTop: 6,
-    paddingBottom: 16,
-    gap: 2,
-  },
-  logo: {
-    color: colors.white,
-    fontSize: 28,
-    fontWeight: '900',
-    letterSpacing: 3,
-  },
-  brandSub: {
-    color: colors.white,
-    fontSize: 13,
-    fontWeight: '600',
-    opacity: 0.92,
   },
   body: {
     flex: 1,
-    backgroundColor: colors.cream,
+    backgroundColor: palette.cream,
   },
   content: {
     paddingHorizontal: 20,
@@ -375,35 +345,35 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   title: {
-    color: colors.ink,
+    color: palette.ink,
     fontSize: 26,
     fontWeight: '800',
   },
   subtitle: {
-    color: colors.inkMuted,
+    color: palette.inkMuted,
     fontSize: 15,
     lineHeight: 22,
   },
   card: {
-    backgroundColor: colors.card,
+    backgroundColor: palette.card,
     borderRadius: 20,
     padding: 16,
     gap: 12,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: palette.line,
   },
   section: {
-    color: colors.orangeDark,
+    color: palette.orangeDark,
     fontSize: 16,
     fontWeight: '800',
   },
   fieldLabel: {
-    color: colors.ink,
+    color: palette.ink,
     fontSize: 13,
     fontWeight: '700',
   },
   save: {
-    backgroundColor: colors.orange,
+    backgroundColor: palette.orange,
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
@@ -412,37 +382,37 @@ const styles = StyleSheet.create({
     opacity: 0.55,
   },
   saveText: {
-    color: colors.white,
+    color: palette.white,
     fontSize: 16,
     fontWeight: '800',
   },
   aviso: {
-    backgroundColor: colors.dangerSoft,
+    backgroundColor: palette.dangerSoft,
     borderRadius: 16,
     padding: 14,
     gap: 4,
     borderWidth: 1,
-    borderColor: colors.danger,
+    borderColor: palette.danger,
   },
   avisoTitulo: {
-    color: colors.danger,
+    color: palette.danger,
     fontSize: 15,
     fontWeight: '800',
   },
   avisoItem: {
-    color: colors.danger,
+    color: palette.danger,
     fontSize: 14,
     fontWeight: '600',
   },
   ok: {
-    backgroundColor: colors.successSoft,
+    backgroundColor: palette.success,
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: colors.success,
+    borderColor: palette.success,
   },
   okTexto: {
-    color: colors.success,
+    color: palette.success,
     fontSize: 15,
     fontWeight: '800',
   },
