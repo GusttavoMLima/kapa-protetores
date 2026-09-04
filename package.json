@@ -1,35 +1,30 @@
 {
-  "name": "kapa",
+  "name": "kapa-monorepo",
   "version": "1.0.0",
-  "main": "index.ts",
-  "dependencies": {
-    "@expo/vector-icons": "^15.0.2",
-    "@react-native-async-storage/async-storage": "2.2.0",
-    "@react-navigation/native": "^7.3.17",
-    "@react-navigation/native-stack": "^7.18.9",
-    "expo": "~57.0.15",
-    "expo-image-picker": "~57.0.12",
-    "expo-status-bar": "~57.0.1",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "react-native": "0.86.2",
-    "react-native-gesture-handler": "~2.32.0",
-    "react-native-safe-area-context": "~5.7.0",
-    "react-native-screens": "~4.26.0",
-    "react-native-web": "^0.21.2"
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n \"EXPO,SERVER\" -c \"cyan,green\" \"npm run dev:mobile\" \"npm run dev:server\"",
+    "dev:mobile": "npm run start --workspace=apps/mobile-web",
+    "dev:server": "npm run dev --workspace=apps/server",
+    "start:mobile": "npm run start --workspace=apps/mobile-web",
+    "start:server": "npm run start --workspace=apps/server",
+    "android": "npm run android --workspace=apps/mobile-web",
+    "ios": "npm run ios --workspace=apps/mobile-web",
+    "web": "npm run web --workspace=apps/mobile-web",
+    "build:server": "npm run build --workspace=apps/server",
+    "build:web": "npm run build:web --workspace=apps/mobile-web",
+    "lint": "npm run lint --workspaces --if-present"
   },
   "devDependencies": {
-    "@types/react": "~19.2.2",
-    "eslint": "^9.39.5",
-    "eslint-config-expo": "~57.0.1",
-    "typescript": "~6.0.3"
+    "concurrently": "^9.1.2"
   },
-  "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
-    "lint": "expo lint"
-  },
-  "private": true
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "fsevents@2.3.3": true,
+    "unrs-resolver@1.12.2": true
+  }
 }

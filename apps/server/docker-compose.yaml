@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis:latest
+    container_name: Kapa-readis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    environment:
+      - REDIS_MAXMEMORY=256mb
+
+  database:
+    image: postgres:latest
+    container_name: kapa-database
+    ports:
+      - "5432:5432"
+    volumes:
+      - database_data:/var/lib/postgresql
+    environment:
+      - POSTGRES_PASSWORD=docker
+      - POSTGRES_USER=docker
+      - POSTGRES_DB=kapa
+
+volumes:
+  redis_data:
+  database_data:

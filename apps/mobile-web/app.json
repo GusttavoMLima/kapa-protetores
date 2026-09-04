@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "Kapa Protetores",
+    "slug": "kapa-protetores",
+    "version": "1.0.0",
+    "scheme": "kapa-protetores",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F39200"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#F39200",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/favicon.png",
+      "name": "Kapa Protetores",
+      "shortName": "Kapa",
+      "description": "Plataforma Kapa para protetores de animais",
+      "themeColor": "#F39200",
+      "backgroundColor": "#FFFFFF",
+      "display": "standalone",
+      "startUrl": "/"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "A Kapa precisa acessar suas fotos para cadastrar o animal.",
+          "cameraPermission": "A Kapa precisa da câmera para fotografar o animal resgatado."
+        }
+      ],
+      "expo-font",
+      "expo-splash-screen"
+    ]
+  }
+}
