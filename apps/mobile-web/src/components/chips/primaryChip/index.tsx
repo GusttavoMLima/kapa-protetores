@@ -1,5 +1,4 @@
 import { Pressable, Text, View } from 'react-native';
-import { primaryChipStyles as styles } from './styles';
 
 type Option<T extends string> = {
   value: T;
@@ -7,6 +6,7 @@ type Option<T extends string> = {
 };
 
 type Props<T extends string> = {
+  className?: string;
   options: Option<T>[];
   value: T;
   onChange: (value: T) => void;
@@ -25,9 +25,15 @@ const PrimaryChip = ({ selected, label, onPress }: ChipProps) => {
       accessibilityRole="radio"
       accessibilityLabel={label}
       accessibilityState={{ selected }}
-      style={[styles.chip, selected && styles.chipSelected]}
+      className={`border rounded-full px-3.5 py-2.5 ${
+        selected ? 'bg-orange border-orange' : 'bg-white border-border'
+      }`}
     >
-      <Text style={[styles.label, selected && styles.labelSelected]}>
+      <Text
+        className={`text-sm font-semibold ${
+          selected ? 'text-white' : 'text-ink'
+        }`}
+      >
         {label}
       </Text>
     </Pressable>
@@ -35,12 +41,13 @@ const PrimaryChip = ({ selected, label, onPress }: ChipProps) => {
 };
 
 export function PrimaryChipGroup<T extends string>({
+  className,
   options,
   value,
   onChange,
 }: Props<T>) {
   return (
-    <View style={styles.row}>
+    <View className={`flex-row flex-wrap gap-2 ${className ?? ''}`}>
       {options.map((option) => (
         <PrimaryChip
           key={option.value}

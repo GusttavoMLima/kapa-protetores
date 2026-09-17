@@ -7,10 +7,10 @@ import {
   type TextInputProps,
 } from 'react-native';
 import { Eye, EyeSlash } from 'phosphor-react-native';
-import { secondaryInputTextStyles as styles } from './styles';
 import { colors } from '@/theme/colors';
 
 export type SecondaryInputTextProps = TextInputProps & {
+  className?: string;
   label?: string;
   value: string;
   onChangeText: (text: string) => void;
@@ -22,6 +22,7 @@ export type SecondaryInputTextProps = TextInputProps & {
 
 const SecondaryInputText = memo(
   ({
+    className,
     label,
     value,
     onChangeText,
@@ -29,7 +30,6 @@ const SecondaryInputText = memo(
     error,
     icon,
     isPassword = false,
-    style,
     placeholderTextColor,
     autoCapitalize,
     autoCorrect,
@@ -41,11 +41,17 @@ const SecondaryInputText = memo(
       placeholderTextColor ?? colors.secondaryInpuText.placeholderColor;
 
     return (
-      <View style={styles.wrap}>
-        {label ? <Text style={styles.label}>{label}</Text> : null}
+      <View className={`flex flex-col gap-2 w-full ${className ?? ''}`}>
+        {label ? (
+          <Text className="text-sm font-semibold text-ink-muted">{label}</Text>
+        ) : null}
 
-        <View style={styles.inputContainer}>
-          {icon ? <View style={styles.icon}>{icon}</View> : null}
+        <View className="relative justify-center">
+          {icon ? (
+            <View className="absolute left-3.5 z-10 items-center justify-center">
+              {icon}
+            </View>
+          ) : null}
 
           <TextInput
             value={value}
@@ -58,21 +64,18 @@ const SecondaryInputText = memo(
               isPassword ? (autoCapitalize ?? 'none') : autoCapitalize
             }
             autoCorrect={isPassword ? (autoCorrect ?? false) : autoCorrect}
-            style={[
-              styles.input,
-              multiline && styles.multiline,
-              !!icon && styles.inputWithIcon,
-              isPassword && styles.inputWithRightIcon,
-              hasError && styles.inputError,
-              style,
-            ]}
+            className={`w-full bg-white border rounded-xl px-3.5 py-3 text-base text-ink min-h-[56px] ${
+              icon ? 'pl-12' : ''
+            } ${isPassword ? 'pr-13' : ''} ${
+              hasError ? 'border-danger' : 'border-border'
+            } ${multiline ? 'min-h-[100px] pt-3.5' : ''}`}
             {...rest}
           />
 
           {isPassword ? (
             <Pressable
               onPress={() => setIsSecure((prev) => !prev)}
-              style={styles.rightIcon}
+              className="absolute right-3.5 z-10 items-center justify-center"
               hitSlop={8}
               accessibilityRole="button"
               accessibilityLabel={isSecure ? 'Show password' : 'Hide password'}
@@ -87,7 +90,7 @@ const SecondaryInputText = memo(
         </View>
 
         {error ? (
-          <Text style={styles.error} accessibilityRole="alert">
+          <Text className="text-xs text-danger mt-1" accessibilityRole="alert">
             {error}
           </Text>
         ) : null}

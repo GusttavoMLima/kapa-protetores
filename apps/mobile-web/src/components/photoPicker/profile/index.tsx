@@ -4,20 +4,19 @@ import {
   Modal,
   Platform,
   Pressable,
-  StyleSheet,
   Text,
   View,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { palette } from '@/theme/colors';
 
 type Props = {
+  className?: string;
   uri?: string;
   onChange: (uri: string) => void;
   erro?: string;
 };
 
-export function FotoPicker({ uri, onChange, erro }: Props) {
+export function FotoPicker({ className, uri, onChange, erro }: Props) {
   const [aberto, setAberto] = useState(false);
   const [aviso, setAviso] = useState<string>();
 
@@ -63,23 +62,41 @@ export function FotoPicker({ uri, onChange, erro }: Props) {
   const mensagem = aviso ?? erro;
 
   return (
-    <View style={styles.block}>
-      <Pressable onPress={() => setAberto(true)} style={styles.wrap}>
+    <View className={`items-center gap-2 ${className ?? ''}`}>
+      <Pressable
+        onPress={() => setAberto(true)}
+        className="self-center active:opacity-85"
+        accessibilityRole="button"
+        accessibilityLabel="Adicionar ou alterar foto do animal"
+      >
         {uri ? (
           <Image
             source={{ uri }}
-            style={[styles.photo, mensagem && styles.photoErro]}
+            className={`w-[132px] h-[132px] rounded-full border-[3px] ${
+              mensagem ? 'border-danger' : 'border-orange'
+            }`}
           />
         ) : (
           <View
-            style={[styles.placeholder, mensagem && styles.placeholderErro]}
+            className={`w-[132px] h-[132px] rounded-full border-2 border-dashed bg-white items-center justify-center gap-1 ${
+              mensagem ? 'border-danger' : 'border-orange'
+            }`}
           >
-            <Text style={styles.plus}>+</Text>
-            <Text style={styles.caption}>Adicionar foto</Text>
+            <Text className="text-orange text-4xl leading-10 font-light">+</Text>
+            <Text className="text-orange-dark text-xs font-bold">
+              Adicionar foto
+            </Text>
           </View>
         )}
       </Pressable>
-      {mensagem ? <Text style={styles.erroTexto}>{mensagem}</Text> : null}
+      {mensagem ? (
+        <Text
+          className="text-danger text-[13px] font-semibold text-center"
+          accessibilityRole="alert"
+        >
+          {mensagem}
+        </Text>
+      ) : null}
 
       <Modal
         visible={aberto}
@@ -87,31 +104,42 @@ export function FotoPicker({ uri, onChange, erro }: Props) {
         animationType="fade"
         onRequestClose={() => setAberto(false)}
       >
-        <View style={styles.overlay}>
+        <View className="flex-1 bg-black/45 justify-end p-4">
           <Pressable
-            style={StyleSheet.absoluteFill}
+            className="absolute inset-0"
             onPress={() => setAberto(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Fechar opções de foto"
           />
-          <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>Foto do animal</Text>
-            <Text style={styles.sheetSub}>Escolha de onde vem a imagem.</Text>
+          <View className="bg-white rounded-[20px] p-5 gap-2.5">
+            <Text className="text-ink text-lg font-extrabold">
+              Foto do animal
+            </Text>
+            <Text className="text-ink-muted text-sm mb-1.5">
+              Escolha de onde vem a imagem.
+            </Text>
             <Pressable
-              style={styles.sheetBtn}
+              className="bg-orange rounded-2xl py-3.5 items-center active:opacity-90"
               onPress={() => void escolher('gallery')}
+              accessibilityRole="button"
             >
-              <Text style={styles.sheetBtnText}>Galeria</Text>
+              <Text className="text-white text-base font-extrabold">Galeria</Text>
             </Pressable>
             <Pressable
-              style={styles.sheetBtn}
+              className="bg-orange rounded-2xl py-3.5 items-center active:opacity-90"
               onPress={() => void escolher('camera')}
+              accessibilityRole="button"
             >
-              <Text style={styles.sheetBtnText}>Câmera</Text>
+              <Text className="text-white text-base font-extrabold">Câmera</Text>
             </Pressable>
             <Pressable
-              style={styles.sheetCancel}
+              className="py-3 items-center active:opacity-70"
               onPress={() => setAberto(false)}
+              accessibilityRole="button"
             >
-              <Text style={styles.sheetCancelText}>Cancelar</Text>
+              <Text className="text-ink-muted text-[15px] font-bold">
+                Cancelar
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -119,97 +147,3 @@ export function FotoPicker({ uri, onChange, erro }: Props) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  block: {
-    alignItems: 'center',
-    gap: 8,
-  },
-  wrap: {
-    alignSelf: 'center',
-  },
-  photo: {
-    width: 132,
-    height: 132,
-    borderRadius: 66,
-    borderWidth: 3,
-    borderColor: palette.orange,
-  },
-  photoErro: {
-    borderColor: palette.danger,
-  },
-  placeholder: {
-    width: 132,
-    height: 132,
-    borderRadius: 66,
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: palette.orange,
-    backgroundColor: palette.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  placeholderErro: {
-    borderColor: palette.danger,
-  },
-  plus: {
-    color: palette.orange,
-    fontSize: 36,
-    lineHeight: 40,
-    fontWeight: '300',
-  },
-  caption: {
-    color: palette.orangeDark,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  erroTexto: {
-    color: palette.danger,
-    fontSize: 13,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'flex-end',
-    padding: 16,
-  },
-  sheet: {
-    backgroundColor: palette.white,
-    borderRadius: 20,
-    padding: 20,
-    gap: 10,
-  },
-  sheetTitle: {
-    color: palette.ink,
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  sheetSub: {
-    color: palette.inkMuted,
-    fontSize: 14,
-    marginBottom: 6,
-  },
-  sheetBtn: {
-    backgroundColor: palette.orange,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  sheetBtnText: {
-    color: palette.white,
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  sheetCancel: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  sheetCancelText: {
-    color: palette.inkMuted,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-});

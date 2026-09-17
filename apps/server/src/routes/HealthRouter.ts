@@ -10,5 +10,6 @@ export class HealthRouter {
 
   private initRoutes(): void {
     this.router.get('/', this.controller.check);
+    this.router.get('/redis', this.controller.checkRedis);
   }
 }
