@@ -8,7 +8,20 @@ export type StoredAnimal = Animal | LegacyAnimal;
 export async function listAnimals(): Promise<StoredAnimal[]> {
   const raw = await AsyncStorage.getItem(KEY);
   if (!raw) return [];
-  return JSON.parse(raw) as StoredAnimal[];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item): item is StoredAnimal => {
+      if (!item || typeof item !== 'object') return false;
+      const candidate = item as Record<string, unknown>;
+      return (
+        typeof candidate.id === 'string' &&
+        typeof candidate.createdAt === 'string'
+      );
+    });
+  } catch {
+    return [];
+  }
 }
 
 export async function saveAnimal(animal: StoredAnimal): Promise<void> {

@@ -1,5 +1,11 @@
-import { Text, TextInput, View } from 'react-native';
+import {
+  Text,
+  TextInput,
+  View,
+  type TextInputProps,
+} from 'react-native';
 import { palette } from '@/theme/colors';
+
 
 type Props = {
   className?: string;
@@ -9,6 +15,9 @@ type Props = {
   placeholder?: string;
   multiline?: boolean;
   erro?: string;
+  keyboardType?: TextInputProps['keyboardType'];
+  autoCapitalize?: TextInputProps['autoCapitalize'];
+  maxLength?: number;
 };
 
 export function PrimaryInputText({
@@ -19,6 +28,9 @@ export function PrimaryInputText({
   placeholder,
   multiline,
   erro,
+  keyboardType,
+  autoCapitalize,
+  maxLength,
 }: Props) {
   return (
     <View className={`flex flex-col gap-1.5 ${className ?? ''}`}>
@@ -29,6 +41,11 @@ export function PrimaryInputText({
         placeholder={placeholder}
         placeholderTextColor={palette.inkMuted}
         multiline={multiline}
+        keyboardType={keyboardType}
+        autoCapitalize={autoCapitalize}
+        maxLength={maxLength}
+        accessibilityLabel={label}
+        aria-invalid={Boolean(erro)}
         textAlignVertical={multiline ? 'top' : 'center'}
         className={`w-full bg-white border rounded-xl px-3.5 py-3 text-base text-ink ${
           multiline ? 'min-h-[96px] pt-3' : 'min-h-[48px]'

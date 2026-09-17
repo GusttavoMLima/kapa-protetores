@@ -3,6 +3,8 @@ import type {
   Species,
   Genders,
   TriageStatus,
+  Especie,
+  Sexo,
 } from '../types/animal';
 
 export interface Option<T> {
@@ -19,6 +21,16 @@ export const ESPECIE_OPTIONS: Option<Species>[] = [
 export const SEXO_OPTIONS: Option<Genders>[] = [
   { value: 'male', label: 'Macho' },
   { value: 'female', label: 'Fêmea' },
+];
+
+export const ESPECIE_PT_OPTIONS: Option<Especie>[] = [
+  { value: 'cao', label: 'Cão' },
+  { value: 'gato', label: 'Gato' },
+];
+
+export const SEXO_PT_OPTIONS: Option<Sexo>[] = [
+  { value: 'macho', label: 'Macho' },
+  { value: 'femea', label: 'Fêmea' },
 ];
 
 export const PORTE_OPTIONS: Option<number>[] = [

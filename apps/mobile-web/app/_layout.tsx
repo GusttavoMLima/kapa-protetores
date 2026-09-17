@@ -9,6 +9,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { AuthProvider } from '@/contexts/authProvider';
 
+
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -54,6 +55,20 @@ export default function RootLayout() {
 
             <Stack.Screen
               name="signIn"
+              options={{
+                headerShown: false,
+              }}
+            />
+
+            <Stack.Screen
+              name="cadastro-animal"
+              options={{
+                headerShown: false,
+              }}
+            />
+
+            <Stack.Screen
+              name="cadastro-voluntario"
               options={{
                 headerShown: false,
               }}

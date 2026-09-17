@@ -22,6 +22,9 @@ const PrimaryChip = ({ selected, label, onPress }: ChipProps) => {
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="radio"
+      accessibilityLabel={label}
+      accessibilityState={{ selected }}
       className={`border rounded-full px-3.5 py-2.5 ${
         selected ? 'bg-orange border-orange' : 'bg-white border-border'
       }`}
