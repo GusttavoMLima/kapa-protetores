@@ -3,7 +3,6 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { DefaultHeader } from '@/components/header/default';
 import { palette } from '@/theme/colors';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
@@ -49,14 +48,7 @@ export default function RootLayout() {
             <Stack.Screen
               name="(protected)"
               options={{
-                headerShown: true,
-                header: DefaultHeader,
-                headerStyle: {
-                  backgroundColor: palette.cream,
-                },
-                contentStyle: {
-                  backgroundColor: palette.cream,
-                },
+                headerShown: false,
               }}
             />
 

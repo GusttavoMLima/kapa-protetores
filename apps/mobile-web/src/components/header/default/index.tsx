@@ -14,7 +14,7 @@ export const DefaultHeader = () => {
       <Logo width={120} height={40} />
       <Pressable className="flex-row items-center justify-center relative w-10 h-10 rounded-full active:bg-peach">
         <BellIcon size={26} color="#1C1C19" />
-        <Text className="text-center absolute -top-0.5 -right-0.5 bg-orange text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full overflow-hidden leading-4">
+        <Text className="text-center absolute -top-0.5 -right-0.5 bg-orange text-white text-[10px] font-bold p-0.5 size-5 rounded-full overflow-hidden leading-4">
           1
         </Text>
       </Pressable>
