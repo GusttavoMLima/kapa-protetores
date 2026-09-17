@@ -7,17 +7,12 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#F39200"
-    },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#F39200",
+        "backgroundColor": "#F18322",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -31,7 +26,7 @@
       "name": "Kapa Protetores",
       "shortName": "Kapa",
       "description": "Plataforma Kapa para protetores de animais",
-      "themeColor": "#F39200",
+      "themeColor": "#F18322",
       "backgroundColor": "#FFFFFF",
       "display": "standalone",
       "startUrl": "/"
@@ -46,7 +41,15 @@
         }
       ],
       "expo-font",
-      "expo-splash-screen"
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F18322",
+          "image": "./assets/SplashScreen.png",
+          "imageWidth": 300,
+          "resizeMode": "contain"
+        }
+      ]
     ]
   }
 }

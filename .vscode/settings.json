@@ -1,0 +1,20 @@
+{
+  "tailwindCSS.experimental.configFile": "apps/mobile-web/tailwind.config.js",
+  "tailwindCSS.includeLanguages": {
+    "typescript": "javascript",
+    "typescriptreact": "javascript"
+  },
+  "editor.quickSuggestions": {
+    "strings": "on"
+  },
+  "tailwindCSS.classAttributes": [
+    "class",
+    "className",
+    "contentContainerClassName",
+    "headerClassName"
+  ],
+  "files.associations": {
+    "*.css": "tailwindcss"
+  }
+}
+

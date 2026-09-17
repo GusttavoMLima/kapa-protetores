@@ -1,0 +1,8 @@
+{
+  "android": {
+    "package": "com.anonymous.kapamonorepo"
+  },
+  "ios": {
+    "bundleIdentifier": "com.anonymous.kapamonorepo"
+  }
+}

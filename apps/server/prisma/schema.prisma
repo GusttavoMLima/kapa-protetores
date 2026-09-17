@@ -1,0 +1,204 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id         String                     @id @default(uuid())
+  role       UserRole                   @default(adopter)
+  rules      String[]
+  username   String
+  email      String                     @unique
+  latitude   Decimal?
+  longitude  Decimal?
+  avatar     String?
+  password   String?
+  created_at DateTime                   @default(now()) @map("createdAt")
+  adoptions  Adoptions[]
+  favorites  Favorites[]
+  events     Events[]
+  volunteers CommunityEventVolunteers[]
+
+  @@index([username])
+  @@map("tb_users")
+}
+
+model Animal {
+  id                 String         @id @default(cuid())
+  name               String
+  breed              String
+  species            Species
+  gender             Genders
+  weight_kg          Decimal        @map("weightKg")
+  age                Int
+  age_stage          Int            @map("ageStage")
+  size               Int
+  energy_level       Int            @map("energyLevel")
+  kid_friendly       Int            @map("kidFriendly")
+  noise_level        Int            @map("noiseLevel")
+  apartment_friendly Boolean        @map("apartmentFriendly")
+  other_pet_friendly Boolean        @map("otherPetFriendly")
+  health_condition   Conditions     @map("healthCondition")
+  castrated          TriageStatus
+  vaccinated         Boolean
+  dewormed           TriageStatus
+  rescued_at         DateTime       @map("rescuedAt")
+  place              String
+  mood               String
+  observations       String?
+  status             AnimalStatus
+  created_at         DateTime       @default(now()) @map("createdAt")
+  photos             AnimalPhotos[]
+  adoptions          Adoptions[]
+  animalPosts        AnimalPost[]
+  favorites          Favorites[]
+  events             Events[]
+
+  @@index([status])
+  @@index([species])
+  @@index([species, status])
+  @@map("tb_animals")
+}
+
+model AnimalPhotos {
+  id          String   @id @default(cuid())
+  photo_url   String   @map("photoUrl")
+  uploaded_at DateTime @default(now()) @map("uploadedAt")
+  animal_id   String?  @map("animalId")
+  animal      Animal?  @relation(fields: [animal_id], references: [id], onDelete: Cascade)
+
+  @@index([animal_id])
+  @@map("tb_animal_photos")
+}
+
+model Favorites {
+  user_id    String   @map("userId")
+  animal_id  String   @map("animalId")
+  created_at DateTime @default(now()) @map("createdAt")
+
+  user   User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  animal Animal @relation(fields: [animal_id], references: [id], onDelete: Cascade)
+
+  @@id([user_id, animal_id])
+  @@index([user_id])
+  @@index([animal_id])
+  @@map("tb_favorites")
+}
+
+model Adoptions {
+  id         String         @id @default(cuid())
+  adopter_id String         @map("adopterId")
+  animal_id  String         @map("animalId")
+  status     AdoptionStatus @default(pending)
+  applied_at DateTime       @default(now()) @map("appliedAt")
+  updated_at DateTime       @updatedAt @map("updatedAt")
+
+  animal  Animal @relation(fields: [animal_id], references: [id])
+  adopter User   @relation(fields: [adopter_id], references: [id])
+
+  @@index([adopter_id])
+  @@index([animal_id])
+  @@index([status])
+  @@map("tb_adoptions")
+}
+
+model Events {
+  id         String   @id @default(cuid())
+  type       String
+  user_id    String?  @map("userId")
+  animal_id  String?  @map("animalId")
+  payload    Json?
+  emitted_at DateTime @default(now()) @map("emittedAt")
+
+  user   User?   @relation(fields: [user_id], references: [id])
+  animal Animal? @relation(fields: [animal_id], references: [id])
+
+  @@index([type])
+  @@index([user_id])
+  @@map("tb_events")
+}
+
+model AnimalPost {
+  id          String   @id @default(cuid())
+  animal_id   String   @map("animalId")
+  description String
+  created_at  DateTime @default(now()) @map("createdAt")
+
+  animal Animal @relation(fields: [animal_id], references: [id], onDelete: Cascade)
+
+  @@index([animal_id])
+  @@map("tb_animal_post")
+}
+
+model CommunityEvents {
+  id          String                     @id @default(cuid())
+  title       String
+  description String
+  cep         Int
+  start_at    DateTime                   @map("startAt")
+  created_at  DateTime                   @default(now()) @map("createdAt")
+  volunteers  CommunityEventVolunteers[]
+
+  @@map("tb_community_events")
+}
+
+model CommunityEventVolunteers {
+  volunteer_id       String @map("volunteerId")
+  community_event_id String @map("communityEventId")
+
+  user            User            @relation(fields: [volunteer_id], references: [id], onDelete: Cascade)
+  community_event CommunityEvents @relation(fields: [community_event_id], references: [id], onDelete: Cascade)
+
+  @@id([volunteer_id, community_event_id])
+  @@index([volunteer_id])
+  @@index([community_event_id])
+  @@map("tb_community_event_volunteers")
+}
+
+enum AdoptionStatus {
+  pending
+  interviewing
+  approved
+  rejected
+  canceled
+}
+
+enum UserRole {
+  adopter
+  protector
+  admin
+  volunteer
+}
+
+enum Conditions {
+  healthy
+  injured
+  debilitated
+}
+
+enum Species {
+  dog
+  cat
+  other
+}
+
+enum Genders {
+  male
+  female
+}
+
+enum AnimalStatus {
+  rescued
+  treating
+  available
+  adopted
+}
+
+enum TriageStatus {
+  yes
+  no
+  unknown
+}

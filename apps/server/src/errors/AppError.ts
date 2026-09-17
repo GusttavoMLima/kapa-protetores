@@ -1,12 +1,19 @@
-export class AppError extends Error {
+import { BaseError } from './BaseError';
+
+export class AppError extends BaseError {
+  public readonly details?: unknown;
+
   constructor(
-    public readonly message: string,
-    public readonly statusCode: number = 400,
-    public readonly details?: unknown
+    message: string,
+    statusCode: number = 400,
+    details?: unknown,
   ) {
-    super(message);
-    this.name = 'AppError';
-    Object.setPrototypeOf(this, new.target.prototype);
+    super({
+      message,
+      name: 'AppError',
+      statusCode,
+    });
+    this.details = details;
   }
 
   public static badRequest(message: string, details?: unknown): AppError {

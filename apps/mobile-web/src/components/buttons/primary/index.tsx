@@ -1,4 +1,5 @@
 import { memo, type ReactNode } from 'react';
+
 import {
   ActivityIndicator,
   Pressable,
@@ -9,12 +10,14 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
+
+import { cn } from '@/utils/cn';
 import { palette } from '@/theme';
-import { primaryButtonStyles as styles } from './styles';
 
 export type PrimaryButtonSize = 'sm' | 'md' | 'lg';
 
 export type PrimaryButtonProps = Omit<PressableProps, 'style' | 'children'> & {
+  className?: string;
   title?: string;
   children?: ReactNode;
   color?: string;
@@ -29,11 +32,15 @@ export type PrimaryButtonProps = Omit<PressableProps, 'style' | 'children'> & {
   fullWidth?: boolean;
   style?:
     | StyleProp<ViewStyle>
-    | ((state: { pressed: boolean; hovered?: boolean }) => StyleProp<ViewStyle>);
+    | ((state: {
+        pressed: boolean;
+        hovered?: boolean;
+      }) => StyleProp<ViewStyle>);
 };
 
 export const PrimaryButton = memo(
   ({
+    className,
     title,
     children,
     color,
@@ -53,46 +60,44 @@ export const PrimaryButton = memo(
     ...rest
   }: PrimaryButtonProps) => {
     const isInteractive = !disabled && !loading;
-    const backgroundColor = color ?? palette.orange;
-    const pressedBackgroundColor = pressedColor ?? palette.orangeDark;
+
+    const pressedBackgroundColor =
+      pressedColor ?? (color ? undefined : palette.orangeDark);
+
     const hasIcon = Boolean(icon) && !loading;
 
-    const sizeStyle =
-      size === 'sm'
-        ? styles.sizeSm
-        : size === 'lg'
-          ? styles.sizeLg
-          : styles.sizeMd;
+    const sizeClasses = {
+      sm: 'py-2.5 px-4 min-h-[40px]',
+      md: 'py-4 px-5 min-h-[52px]',
+      lg: 'py-[18px] px-6 min-h-[58px]',
+    }[size];
 
-    const textSizeStyle =
-      size === 'sm'
-        ? styles.textSm
-        : size === 'lg'
-          ? styles.textLg
-          : undefined;
+    const textSizeClasses = {
+      sm: 'text-sm leading-[18px]',
+      md: 'text-base leading-5',
+      lg: 'text-lg leading-[22px]',
+    }[size];
 
-    const getIconPositionStyle = () => {
-      if (iconPosition === 'right') {
-        return size === 'sm'
-          ? styles.iconRightSm
-          : size === 'lg'
-            ? styles.iconRightLg
-            : styles.iconRightMd;
-      }
-      return size === 'sm'
-        ? styles.iconLeftSm
-        : size === 'lg'
-          ? styles.iconLeftLg
-          : styles.iconLeftMd;
-    };
+    const iconPositionClasses =
+      iconPosition === 'right'
+        ? {
+            sm: 'right-3.5',
+            md: 'right-[18px]',
+            lg: 'right-[22px]',
+          }[size]
+        : {
+            sm: 'left-3.5',
+            md: 'left-[18px]',
+            lg: 'left-[22px]',
+          }[size];
 
-    const iconPaddingStyle = hasIcon
-      ? size === 'sm'
-        ? { paddingHorizontal: 38 }
-        : size === 'lg'
-          ? { paddingHorizontal: 54 }
-          : { paddingHorizontal: 46 }
-      : undefined;
+    const iconPaddingClasses = hasIcon
+      ? {
+          sm: 'px-[38px]',
+          md: 'px-[46px]',
+          lg: 'px-[54px]',
+        }[size]
+      : '';
 
     const renderContent = () => {
       if (loading) {
@@ -107,12 +112,8 @@ export const PrimaryButton = memo(
       if (typeof children === 'string' || title) {
         return (
           <Text
-            style={[
-              styles.text,
-              textSizeStyle,
-              { color: textColor },
-              textStyle,
-            ]}
+            className={cn('font-bold text-center', textSizeClasses)}
+            style={[{ color: textColor }, textStyle]}
           >
             {title ?? children}
           </Text>
@@ -123,11 +124,25 @@ export const PrimaryButton = memo(
     };
 
     const label =
-      accessibilityLabel ??
-      (typeof children === 'string' ? children : title);
+      accessibilityLabel ?? (typeof children === 'string' ? children : title);
+
+    const defaultStyles =
+      'flex-row items-center justify-center rounded-lg relative';
+
+    const buttonClassName = cn(
+      defaultStyles,
+      sizeClasses,
+      fullWidth ? 'w-full' : 'w-auto self-start',
+      iconPaddingClasses,
+      !isInteractive ? 'opacity-55' : 'active:scale-[0.99]',
+      !color && 'bg-orange active:bg-orange-dark',
+      className,
+    );
 
     return (
       <Pressable
+        {...rest}
+        className={buttonClassName}
         disabled={!isInteractive}
         accessibilityRole={accessibilityRole}
         accessibilityLabel={label}
@@ -136,28 +151,25 @@ export const PrimaryButton = memo(
           busy: loading,
         }}
         style={(state) => [
-          styles.button,
-          sizeStyle,
-          fullWidth ? styles.fullWidth : styles.autoWidth,
-          iconPaddingStyle,
-          { backgroundColor },
-          state.pressed && isInteractive && {
-            backgroundColor: pressedBackgroundColor,
-            ...styles.pressed,
-          },
-          !isInteractive && styles.disabled,
+          color ? { backgroundColor: color } : null,
+          pressedBackgroundColor && state.pressed && isInteractive
+            ? { backgroundColor: pressedBackgroundColor }
+            : null,
           typeof style === 'function' ? style(state) : style,
         ]}
-        {...rest}
       >
         {hasIcon && (
           <View
-            style={[styles.iconContainer, getIconPositionStyle()]}
+            className={cn(
+              'absolute top-0 bottom-0 justify-center items-center',
+              iconPositionClasses,
+            )}
             pointerEvents="none"
           >
             {icon}
           </View>
         )}
+
         {renderContent()}
       </Pressable>
     );

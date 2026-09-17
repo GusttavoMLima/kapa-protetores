@@ -4,10 +4,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Text, View } from 'react-native';
 import { SecondaryInputText } from '@/components/inputText/secondary';
 import { EnvelopeSimpleIcon, LockIcon } from 'phosphor-react-native';
-import { loginFormStyles as styles } from './styles';
 import { PrimaryButton } from '@/components/buttons/primary';
-import { palette } from '@/theme';
 import GoogleSvg from '@/../assets/google.svg';
+
+import { useAuth } from '@/hooks/useAuth';
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -17,7 +17,8 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
-  const { control } = useForm<LoginFormData>({
+  const { signIn } = useAuth();
+  const { control, handleSubmit } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
@@ -25,9 +26,14 @@ export function LoginForm() {
     },
   });
 
+  const onSubmit = () => {
+    signIn();
+  };
+
+
   return (
-    <View style={styles.container}>
-      <View style={styles.form}>
+    <View className="px-4">
+      <View className="flex flex-col items-center gap-5 w-full">
         <Controller
           control={control}
           name="email"
@@ -56,14 +62,22 @@ export function LoginForm() {
             />
           )}
         />
-        <Text style={styles.forget}>Esqueceu a senha?</Text>
-        <PrimaryButton title="Entrar" />
+        <Text className="w-full text-sm font-semibold text-right text-orange cursor-pointer">
+          Esqueceu a senha?
+        </Text>
+        <PrimaryButton
+          title="Entrar"
+          className="mt-1"
+          onPress={handleSubmit(onSubmit)}
+        />
       </View>
 
-      <View style={styles.horizontalRuleWrapper}>
-        <View style={styles.horizontalRule} />
-        <Text style={styles.horizontalRuleText}>ou continue com</Text>
-        <View style={styles.horizontalRule} />
+      <View className="flex-row items-center w-full px-5 my-5">
+        <View className="flex-1 h-[1px] bg-border my-3" />
+        <Text className="text-sm font-semibold text-ink-muted mx-4">
+          ou continue com
+        </Text>
+        <View className="flex-1 h-[1px] bg-border my-3" />
       </View>
 
       <PrimaryButton
@@ -71,16 +85,13 @@ export function LoginForm() {
         color="#ffffff"
         pressedColor="#f7f7f7"
         textColor="#1C1C19"
-        style={{
-          borderWidth: 3,
-          borderColor: '#E5E2DD',
-        }}
+        className="border-2 border-border"
         icon={<GoogleSvg width={24} height={24} />}
       />
 
-      <Text style={styles.signUpText}>
+      <Text className="text-center my-6 text-sm text-ink-muted">
         Não tenho uma conta?{' '}
-        <Text style={{ color: palette.orange }}>Cadastre-se</Text>
+        <Text className="text-orange font-bold">Cadastre-se</Text>
       </Text>
     </View>
   );

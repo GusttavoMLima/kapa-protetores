@@ -10,6 +10,7 @@ services:
       - redis_data:/data
     environment:
       - REDIS_MAXMEMORY=256mb
+      - REDIS_PASSWORD=kapa
 
   database:
     image: postgres:latest

@@ -17,14 +17,22 @@
     "web": "npm run web --workspace=apps/mobile-web",
     "build:server": "npm run build --workspace=apps/server",
     "build:web": "npm run build:web --workspace=apps/mobile-web",
-    "lint": "npm run lint --workspaces --if-present"
+    "lint": "npm run lint --workspaces --if-present",
+    "prisma:generate": "prisma generate",
+    "prisma:studio": "npm run prisma:studio --workspace=apps/server"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "prisma": "^7.10.0"
   },
   "allowScripts": {
     "esbuild@0.28.2": true,
     "fsevents@2.3.3": true,
     "unrs-resolver@1.12.2": true
+  },
+  "dependencies": {
+    "expo": "~57.0.15",
+    "react": "19.2.3",
+    "react-native": "0.86.2"
   }
 }

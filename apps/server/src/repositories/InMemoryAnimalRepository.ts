@@ -1,7 +1,7 @@
-import { AnimalRepositoryInterface } from '../interfaces/AnimalRepositoryInterface';
+import { IAnimalRepository } from '../interfaces/AnimalRepositoryInterface';
 import { Animal } from '../models/Animal';
 
-export class InMemoryAnimalRepository implements AnimalRepositoryInterface {
+export class InMemoryAnimalRepository implements IAnimalRepository {
   private readonly animals: Animal[] = [];
 
   public async findAll(): Promise<Animal[]> {
@@ -9,7 +9,7 @@ export class InMemoryAnimalRepository implements AnimalRepositoryInterface {
   }
 
   public async findById(id: string): Promise<Animal | null> {
-    const animal = this.animals.find((a) => a.id === id);
+    const animal = this.animals.find((a) => a.getId()?.getValue() === id);
     return animal ?? null;
   }
 
