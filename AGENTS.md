@@ -18,6 +18,10 @@ The repository is a monorepo.
 
 The mobile and web applications share React Native components and business logic whenever practical.
 
+### Contribution workflow
+
+The branch, commit, review, and release workflow is defined in [`CONTRIBUTING.md`](./CONTRIBUTING.md). Read it before starting any task. In short: branches follow `{prefix}/{issue-number}` from `development`, commits follow Conventional Commits with a workspace scope, and PRs target `development` (Squash and merge) with `development` promoted to `main` only at milestones.
+
 ---
 
 # 2. General Rules
