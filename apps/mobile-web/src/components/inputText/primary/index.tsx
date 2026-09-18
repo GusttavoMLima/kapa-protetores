@@ -18,6 +18,7 @@ type Props = {
   keyboardType?: TextInputProps['keyboardType'];
   autoCapitalize?: TextInputProps['autoCapitalize'];
   maxLength?: number;
+  secureTextEntry?: boolean;
 };
 
 export function PrimaryInputText({
@@ -31,6 +32,7 @@ export function PrimaryInputText({
   keyboardType,
   autoCapitalize,
   maxLength,
+  secureTextEntry,
 }: Props) {
   return (
     <View className={`flex flex-col gap-1.5 ${className ?? ''}`}>
@@ -44,6 +46,7 @@ export function PrimaryInputText({
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize}
         maxLength={maxLength}
+        secureTextEntry={secureTextEntry}
         accessibilityLabel={label}
         aria-invalid={Boolean(erro)}
         textAlignVertical={multiline ? 'top' : 'center'}

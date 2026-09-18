@@ -93,6 +93,6 @@ export class UserService {
 
   public async updatePassword(id: string, password: string) {
     const safeId = UUID.create(id);
-    
+    return this.repository.updatePassword(safeId, password);
   }
 }

@@ -3,7 +3,6 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { palette } from '@/theme/colors';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
@@ -37,12 +36,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: palette.cream,
-          }}
-        >
+        <View className="flex-1 bg-cream">
           <StatusBar style="light" />
 
           <Stack>
@@ -69,6 +63,13 @@ export default function RootLayout() {
 
             <Stack.Screen
               name="cadastro-voluntario"
+              options={{
+                headerShown: false,
+              }}
+            />
+
+            <Stack.Screen
+              name="cadastro-usuario"
               options={{
                 headerShown: false,
               }}

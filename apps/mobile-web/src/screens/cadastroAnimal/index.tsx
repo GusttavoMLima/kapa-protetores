@@ -11,10 +11,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryInputText } from '@/components/inputText/primary';
 import { PrimaryChipGroup } from '@/components/chips/primaryChip';
 import { FotoPicker } from '@/components/photoPicker/profile';
-import { saveAnimal } from '@/storage/animals';
+import { saveAnimal, uploadAnimalPhoto } from '@/storage/animals';
 import { PrimaryButton } from '@/components/buttons/primary';
 import { palette } from '@/theme';
-import { styles } from './styles';
 import type {
   CondicaoChegada,
   Especie,
@@ -29,6 +28,7 @@ import type {
   DoseStatus,
 } from '@/types/animal';
 import { hojeBr } from '@kapa/shared/utils';
+import { ApiError } from '@/services/api';
 
 function novoId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -44,18 +44,17 @@ type DoseFieldProps = {
 
 function DoseField({ label, dose, erro, onChange, onRemove }: DoseFieldProps) {
   return (
-    <View className="gap-2 py-1" style={styles.doseGroup}>
-      <View className="flex-row items-center justify-between gap-3" style={styles.doseHeader}>
-        <Text className="font-body-medium text-sm leading-4 text-ink" style={styles.fieldLabel}>{label}</Text>
+    <View className="gap-2 py-1">
+      <View className="flex-row items-center justify-between gap-3">
+        <Text className="font-body-medium text-sm leading-4 text-ink">{label}</Text>
         {onRemove ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Remover ${label}`}
             onPress={onRemove}
             className="rounded-lg px-2 py-2 active:bg-danger-soft"
-            style={styles.removeDose}
           >
-            <Text className="font-body-medium text-xs leading-[14px] text-danger" style={styles.removeDoseText}>
+            <Text className="font-body-medium text-xs leading-[14px] text-danger">
               Remover
             </Text>
           </Pressable>
@@ -122,8 +121,6 @@ export function CadastroAnimalScreen() {
   const [erroSalvar, setErroSalvar] = useState<string>();
   const scrollRef = useRef<ScrollView>(null);
 
-  const fotoErro =
-    tentouSalvar && !fotoUri ? 'Adicione uma foto do animal.' : undefined;
   const nomeErro =
     tentouSalvar && !nome.trim() ? 'Preencha o nome do animal.' : undefined;
   const datasPendentes = [
@@ -144,7 +141,6 @@ export function CadastroAnimalScreen() {
     ),
   ];
   const pendentes = [
-    ...(fotoErro ? ['foto do animal'] : []),
     ...(nomeErro ? ['nome'] : []),
     ...(tentouSalvar ? datasPendentes : []),
   ];
@@ -180,7 +176,6 @@ export function CadastroAnimalScreen() {
 
   async function onSalvar() {
     const pendentesAgora = [
-      ...(!fotoUri ? ['foto do animal'] : []),
       ...(!nome.trim() ? ['nome'] : []),
       ...datasPendentes,
     ];
@@ -195,7 +190,7 @@ export function CadastroAnimalScreen() {
 
     setSalvando(true);
     try {
-      await saveAnimal({
+      const animalSalvo = await saveAnimal({
         id: novoId(),
         nome: nome.trim() || 'Sem nome',
         raca: raca.trim(),
@@ -245,12 +240,28 @@ export function CadastroAnimalScreen() {
         createdAt: new Date().toISOString(),
       });
 
+      let fotoEnviada = false;
+      if (fotoUri) {
+        try {
+          await uploadAnimalPhoto(animalSalvo.id, fotoUri);
+          fotoEnviada = true;
+        } catch {
+          setErroSalvar('O animal foi cadastrado, mas não foi possível enviar a foto.');
+        }
+      }
+
       const nomeSalvo = nome.trim() || 'O animal';
       limpar();
-      setSucesso(`${nomeSalvo} foi cadastrado.`);
+      setSucesso(`${nomeSalvo} foi cadastrado${fotoEnviada ? ' com a foto' : ''}.`);
       scrollRef.current?.scrollTo({ y: 0, animated: true });
-    } catch {
-      setErroSalvar('Não deu para salvar. Tente novamente em instantes.');
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        setErroSalvar('Sua sessão expirou. Entre novamente para cadastrar o animal.');
+      } else if (error instanceof ApiError) {
+        setErroSalvar(error.message);
+      } else {
+        setErroSalvar('Não foi possível conectar à API. Confirme que o servidor está em execução.');
+      }
       scrollRef.current?.scrollTo({ y: 0, animated: true });
     } finally {
       setSalvando(false);
@@ -258,36 +269,34 @@ export function CadastroAnimalScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1" style={styles.safe} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-cream" edges={['left', 'right', 'bottom']}>
       <KeyboardAvoidingView
         className="flex-1 bg-cream"
-        style={styles.body}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
           ref={scrollRef}
           className="flex-1"
-          style={styles.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View className="w-full max-w-form self-center gap-5 px-5 pb-8 pt-6" style={styles.content}>
-          <View className="gap-1.5 pt-[18px]" style={styles.header}>
-            <Text className="font-heading-bold text-2xl leading-[30px] text-ink" style={styles.title}>
+          <View className="w-full max-w-form self-center gap-5 px-5 pb-8 pt-6">
+          <View className="gap-1.5 pt-[18px]">
+            <Text className="font-heading-bold text-2xl leading-[30px] text-ink">
               Cadastro de animal
             </Text>
-            <Text className="font-body text-base leading-6 text-ink-muted" style={styles.subtitle}>
+            <Text className="font-body text-base leading-6 text-ink-muted">
               Registre um resgate agora, ainda no campo ou no abrigo.
             </Text>
           </View>
 
           {pendentes.length > 0 ? (
-            <View className="gap-1 rounded-2xl border border-danger bg-danger-soft p-3.5" style={[styles.feedback, styles.feedbackError]}>
-              <Text className="font-body-medium text-[15px] leading-5 text-danger" style={styles.feedbackErrorText}>
+            <View className="gap-1 rounded-2xl border border-danger bg-danger-soft p-3.5">
+              <Text className="font-body-medium text-[15px] leading-5 text-danger">
                 Falta preencher
               </Text>
               {pendentes.map((item) => (
-                <Text key={item} className="font-body-medium text-sm leading-5 text-danger" style={styles.feedbackErrorText}>
+                <Text key={item} className="font-body-medium text-sm leading-5 text-danger">
                   • {item}
                 </Text>
               ))}
@@ -295,16 +304,16 @@ export function CadastroAnimalScreen() {
           ) : null}
 
           {sucesso ? (
-            <View className="rounded-2xl border border-success bg-success-soft p-3.5" style={[styles.feedback, styles.feedbackSuccess]}>
-              <Text className="font-body-medium text-[15px] leading-5 text-success" style={styles.feedbackSuccessText}>
+            <View className="rounded-2xl border border-success bg-[#E8F3EE] p-3.5">
+              <Text className="font-body-medium text-[15px] leading-5 text-success">
                 {sucesso}
               </Text>
             </View>
           ) : null}
 
           {erroSalvar ? (
-            <View className="rounded-2xl border border-danger bg-danger-soft p-3.5" style={[styles.feedback, styles.feedbackError]}>
-              <Text className="font-body-medium text-[15px] leading-5 text-danger" style={styles.feedbackErrorText}>
+            <View className="rounded-2xl border border-danger bg-danger-soft p-3.5">
+              <Text className="font-body-medium text-[15px] leading-5 text-danger">
                 {erroSalvar}
               </Text>
             </View>
@@ -312,15 +321,14 @@ export function CadastroAnimalScreen() {
 
           <FotoPicker
             uri={fotoUri}
-            erro={fotoErro}
             onChange={(uri) => {
               setFotoUri(uri);
               setSucesso(undefined);
             }}
           />
 
-          <View className="gap-3 rounded-2xl border border-line bg-card p-4 shadow-sm" style={styles.card}>
-            <Text className="font-heading-medium text-xl leading-7 text-orange-dark" style={styles.section}>Quem é</Text>
+          <View className="gap-3 rounded-2xl border border-line bg-card p-4 shadow-card">
+            <Text className="font-heading-medium text-xl leading-7 text-orange-dark">Quem é</Text>
             <PrimaryInputText
               label="Nome"
               value={nome}
@@ -337,7 +345,7 @@ export function CadastroAnimalScreen() {
               onChangeText={setRaca}
               placeholder="Ex.: sem raça definida"
             />
-            <Text className="font-body-medium text-sm leading-4 text-ink" style={styles.fieldLabel}>Espécie</Text>
+            <Text className="font-body-medium text-sm leading-4 text-ink">Espécie</Text>
             <PrimaryChipGroup
               value={especie}
               onChange={setEspecie}
@@ -346,7 +354,7 @@ export function CadastroAnimalScreen() {
                 { value: 'gato', label: 'Gato' },
               ]}
             />
-            <Text className="font-body-medium text-sm leading-4 text-ink" style={styles.fieldLabel}>Sexo</Text>
+            <Text className="font-body-medium text-sm leading-4 text-ink">Sexo</Text>
             <PrimaryChipGroup
               value={sexo}
               onChange={setSexo}
@@ -355,7 +363,7 @@ export function CadastroAnimalScreen() {
                 { value: 'femea', label: 'Fêmea' },
               ]}
             />
-            <Text className="font-body-medium text-sm leading-4 text-ink" style={styles.fieldLabel}>Porte</Text>
+            <Text className="font-body-medium text-sm leading-4 text-ink">Porte</Text>
             <PrimaryChipGroup
               value={porte}
               onChange={setPorte}
@@ -386,8 +394,8 @@ export function CadastroAnimalScreen() {
             />
           </View>
 
-          <View className="gap-3 rounded-2xl border border-line bg-card p-4 shadow-sm" style={styles.card}>
-            <Text className="font-heading-medium text-xl leading-7 text-orange-dark" style={styles.section}>Resgate</Text>
+          <View className="gap-3 rounded-2xl border border-line bg-card p-4 shadow-card">
+            <Text className="font-heading-medium text-xl leading-7 text-orange-dark">Resgate</Text>
             <PrimaryInputText
               label="Data do resgate"
               value={dataResgate}
@@ -400,7 +408,7 @@ export function CadastroAnimalScreen() {
               onChangeText={setLocalResgate}
               placeholder="Rua, bairro ou ponto de referência"
             />
-            <Text className="font-body-medium text-sm leading-4 text-ink" style={styles.fieldLabel}>Condição na chegada</Text>
+            <Text className="font-body-medium text-sm leading-4 text-ink">Condição na chegada</Text>
             <PrimaryChipGroup
               value={condicaoChegada}
               onChange={setCondicaoChegada}
@@ -412,9 +420,9 @@ export function CadastroAnimalScreen() {
             />
           </View>
 
-          <View className="gap-3 rounded-2xl border border-line bg-card p-4 shadow-sm" style={styles.card}>
-            <Text className="font-heading-medium text-xl leading-7 text-orange-dark" style={styles.section}>Saúde</Text>
-            <Text className="font-body-medium text-sm leading-4 text-ink" style={styles.fieldLabel}>Castrado</Text>
+          <View className="gap-3 rounded-2xl border border-line bg-card p-4 shadow-card">
+            <Text className="font-heading-medium text-xl leading-7 text-orange-dark">Saúde</Text>
+            <Text className="font-body-medium text-sm leading-4 text-ink">Castrado</Text>
             <PrimaryChipGroup
               value={castrado}
               onChange={setCastrado}
@@ -543,9 +551,9 @@ export function CadastroAnimalScreen() {
             />
           </View>
 
-          <View className="gap-3 rounded-2xl border border-line bg-card p-4 shadow-sm" style={styles.card}>
-            <Text className="font-heading-medium text-xl leading-7 text-orange-dark" style={styles.section}>Temperamento</Text>
-            <Text className="font-body-medium text-sm leading-4 text-ink" style={styles.fieldLabel}>Como o animal está</Text>
+          <View className="gap-3 rounded-2xl border border-line bg-card p-4 shadow-card">
+            <Text className="font-heading-medium text-xl leading-7 text-orange-dark">Temperamento</Text>
+            <Text className="font-body-medium text-sm leading-4 text-ink">Como o animal está</Text>
             <PrimaryChipGroup
               value={temperamento}
               onChange={setTemperamento}
@@ -556,7 +564,7 @@ export function CadastroAnimalScreen() {
                 { value: 'agressivo', label: 'Agressivo' },
               ]}
             />
-            <Text className="font-body-medium text-sm leading-4 text-ink" style={styles.fieldLabel}>Nível de energia</Text>
+            <Text className="font-body-medium text-sm leading-4 text-ink">Nível de energia</Text>
             <PrimaryChipGroup
               value={nivelEnergia}
               onChange={setNivelEnergia}
@@ -566,7 +574,7 @@ export function CadastroAnimalScreen() {
                 { value: 'alto', label: 'Alto' },
               ]}
             />
-            <Text className="font-body-medium text-sm leading-4 text-ink" style={styles.fieldLabel}>Humor</Text>
+            <Text className="font-body-medium text-sm leading-4 text-ink">Humor</Text>
             <PrimaryChipGroup
               value={humor}
               onChange={setHumor}
@@ -578,19 +586,19 @@ export function CadastroAnimalScreen() {
             />
           </View>
 
-          <View className="gap-3 rounded-2xl border border-line bg-card p-4 shadow-sm" style={styles.card}>
-            <Text className="font-heading-medium text-xl leading-7 text-orange-dark" style={styles.section}>Compatibilidade</Text>
-            <Text className="font-body-medium text-sm leading-4 text-ink" style={styles.fieldLabel}>Com crianças</Text>
+          <View className="gap-3 rounded-2xl border border-line bg-card p-4 shadow-card">
+            <Text className="font-heading-medium text-xl leading-7 text-orange-dark">Compatibilidade</Text>
+            <Text className="font-body-medium text-sm leading-4 text-ink">Com crianças</Text>
             <PrimaryChipGroup value={compativelCriancas} onChange={setCompativelCriancas} options={triStateOptions} />
-            <Text className="font-body-medium text-sm leading-4 text-ink" style={styles.fieldLabel}>Com outros animais</Text>
+            <Text className="font-body-medium text-sm leading-4 text-ink">Com outros animais</Text>
             <PrimaryChipGroup value={compativelAnimais} onChange={setCompativelAnimais} options={triStateOptions} />
-            <Text className="font-body-medium text-sm leading-4 text-ink" style={styles.fieldLabel}>Para apartamento</Text>
+            <Text className="font-body-medium text-sm leading-4 text-ink">Para apartamento</Text>
             <PrimaryChipGroup value={compativelApartamento} onChange={setCompativelApartamento} options={triStateOptions} />
           </View>
 
-          <View className="gap-3 rounded-2xl border border-line bg-card p-4 shadow-sm" style={styles.card}>
-            <Text className="font-heading-medium text-xl leading-7 text-orange-dark" style={styles.section}>Acompanhamento</Text>
-            <Text className="font-body-medium text-sm leading-4 text-ink" style={styles.fieldLabel}>Status do animal</Text>
+          <View className="gap-3 rounded-2xl border border-line bg-card p-4 shadow-card">
+            <Text className="font-heading-medium text-xl leading-7 text-orange-dark">Acompanhamento</Text>
+            <Text className="font-body-medium text-sm leading-4 text-ink">Status do animal</Text>
             <PrimaryChipGroup
               value={status}
               onChange={setStatus}

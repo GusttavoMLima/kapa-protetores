@@ -83,8 +83,8 @@ export function FotoPicker({ className, uri, onChange, erro }: Props) {
             }`}
           >
             <Text className="text-orange text-4xl leading-10 font-light">+</Text>
-            <Text className="text-orange-dark text-xs font-bold">
-              Adicionar foto
+            <Text className="w-full px-3 text-center text-orange-dark text-xs leading-4 font-bold">
+              Adicionar foto (opcional)
             </Text>
           </View>
         )}

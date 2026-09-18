@@ -47,8 +47,9 @@ export class App {
       })
     );
 
-    this.app.use(express.json());
-    this.app.use(express.urlencoded({ extended: true }));
+    this.app.disable('x-powered-by');
+    this.app.use(express.json({ limit: '1mb' }));
+    this.app.use(express.urlencoded({ extended: true, limit: '1mb' }));
   }
 
   private setupRoutes(): void {

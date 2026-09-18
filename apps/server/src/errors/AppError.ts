@@ -24,6 +24,18 @@ export class AppError extends BaseError {
     return new AppError(message, 404);
   }
 
+  public static unauthorized(message: string = 'Não autorizado'): AppError {
+    return new AppError(message, 401);
+  }
+
+  public static forbidden(message: string = 'Acesso negado'): AppError {
+    return new AppError(message, 403);
+  }
+
+  public static conflict(message: string): AppError {
+    return new AppError(message, 409);
+  }
+
   public static internal(message: string = 'Erro interno do servidor'): AppError {
     return new AppError(message, 500);
   }

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { Controller, useForm } from 'react-hook-form';
+import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Text, View } from 'react-native';
 import { SecondaryInputText } from '@/components/inputText/secondary';
@@ -11,13 +12,15 @@ import { useAuth } from '@/hooks/useAuth';
 
 const loginSchema = z.object({
   email: z.string().email(),
-  password: z.string(),
+  password: z.string().min(1, 'Informe a senha.'),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
   const { signIn } = useAuth();
+  const [submitError, setSubmitError] = useState<string>();
+  const [submitting, setSubmitting] = useState(false);
   const { control, handleSubmit } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -26,8 +29,16 @@ export function LoginForm() {
     },
   });
 
-  const onSubmit = () => {
-    signIn();
+  const onSubmit = async (data: LoginFormData) => {
+    setSubmitError(undefined);
+    setSubmitting(true);
+    try {
+      await signIn(data);
+    } catch {
+      setSubmitError('E-mail ou senha inválidos.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
 
@@ -68,8 +79,14 @@ export function LoginForm() {
         <PrimaryButton
           title="Entrar"
           className="mt-1"
-          onPress={handleSubmit(onSubmit)}
+          loading={submitting}
+          onPress={handleSubmit((data) => void onSubmit(data))}
         />
+        {submitError ? (
+          <Text className="w-full text-sm text-danger" accessibilityRole="alert">
+            {submitError}
+          </Text>
+        ) : null}
       </View>
 
       <View className="flex-row items-center w-full px-5 my-5">

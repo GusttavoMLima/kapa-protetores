@@ -103,6 +103,8 @@ Certifique-se de ter instalado em seu ambiente:
 
 ## 📦 Instalação e Configuração
 
+Para a configuração completa do PostgreSQL, Redis e MinIO com Docker, consulte [Integração e ambiente de desenvolvimento](./INTEGRACAO_DESENVOLVIMENTO.md).
+
 1. **Clone o repositório**:
    ```bash
    git clone https://github.com/GusttavoMLima/kapa-protetores.git
@@ -179,6 +181,7 @@ Com o servidor rodando em `http://localhost:4000`:
 | `GET` | `/api/health` | Health check com tempo de atividade (*uptime*) |
 | `GET` | `/api/animals` | Listagem dos animais resgatados |
 | `POST` | `/api/animals` | Cadastro de um novo animal |
+| `POST` | `/api/auth/users` | Cadastro de usuário por administrador |
 
 ---
 

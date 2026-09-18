@@ -13,14 +13,14 @@ export class UserRepository implements IUserRepository {
   private mapToDomain(record: PrismaUser) {
     const user = new User();
     user.setId(record.id);
-    user.setUsername(record.id);
-    user.setEmail(record.id);
+    user.setUsername(record.username);
+    user.setEmail(record.email);
     user.setPassword(record.password);
     user.setAvatar(record.avatar);
     user.setRole(record.role);
     user.setRules(record.rules);
-    user.setLatitude(Number(record.latitude));
-    user.setLongitude(Number(record.longitude));
+    user.setLatitude(record.latitude === null ? null : Number(record.latitude));
+    user.setLongitude(record.longitude === null ? null : Number(record.longitude));
     user.setCreatedAt(record.created_at.toISOString());
 
     return user;
@@ -45,6 +45,11 @@ export class UserRepository implements IUserRepository {
     const user = this.mapToDomain(data);
 
     return user;
+  }
+
+  async findByIdValue(id: string): Promise<User | null> {
+    const data = await this.prisma.user.findUnique({ where: { id } });
+    return data ? this.mapToDomain(data) : null;
   }
 
   async findByEmail(email: Email): Promise<User | null> {

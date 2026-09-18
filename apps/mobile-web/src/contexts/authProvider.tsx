@@ -1,15 +1,21 @@
-import { genericStorage } from '@/storage/genericStorage';
 import { router } from 'expo-router';
-import { createContext, ReactNode, useEffect, useState } from 'react';
+import { createContext, ReactNode, useState } from 'react';
+import type { AuthResponse, User } from '@kapa/shared';
+import { apiRequest, setAccessToken } from '@/services/api';
 
 interface AuthContextProps {
   isLogged: boolean;
   isReady: boolean;
-  signIn: () => void;
+  user?: User;
+  signIn: (credentials: { email: string; password: string }) => Promise<void>;
+  register: (input: {
+    username: string;
+    email: string;
+    password: string;
+    role: 'adopter' | 'volunteer';
+  }) => Promise<void>;
   signOut: () => void;
 }
-
-const AUTH_STORAGE_KEY = '@kapa:auth-state';
 
 export const AuthContext = createContext<AuthContextProps>(
   {} as AuthContextProps,
@@ -20,54 +26,48 @@ interface AuthProviderProp {
 }
 
 export function AuthProvider({ children }: AuthProviderProp) {
-  const [isLogged, setIsLogged] = useState<boolean>(true);
-  const [isReady, setIsReady] = useState<boolean>(false);
+  const [user, setUser] = useState<User>();
 
-  const storageState = async (newState: boolean) => {
-    try {
-      await genericStorage.set<boolean>(AUTH_STORAGE_KEY, newState);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const signIn = () => {
-    setIsLogged(true);
-    storageState(true);
+  const signIn = async (credentials: { email: string; password: string }) => {
+    const auth = await apiRequest<AuthResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
+    setAccessToken(auth.token);
+    setUser(auth.user);
     router.replace('/');
   };
 
   const signOut = () => {
-    setIsLogged(false);
-    storageState(false);
+    setAccessToken(undefined);
+    setUser(undefined);
     router.replace('/signIn');
   };
 
-  useEffect(() => {
-    async function loadStorageState() {
-      try {
-        const storagedState =
-          await genericStorage.get<boolean>(AUTH_STORAGE_KEY);
-
-        setIsLogged(storagedState ?? false);
-      } catch (err) {
-        console.error(err);
-        setIsLogged(false);
-      } finally {
-        setIsReady(true);
-      }
-    }
-
-    loadStorageState();
-  }, []);
+  const register = async (input: {
+    username: string;
+    email: string;
+    password: string;
+    role: 'adopter' | 'volunteer';
+  }) => {
+    const auth = await apiRequest<AuthResponse>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+    setAccessToken(auth.token);
+    setUser(auth.user);
+    router.replace('/');
+  };
 
   return (
     <AuthContext.Provider
       value={{
-        isLogged,
+        isLogged: Boolean(user),
+        isReady: true,
+        user,
         signIn,
+        register,
         signOut,
-        isReady,
       }}
     >
       {children}

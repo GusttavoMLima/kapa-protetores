@@ -1,7 +1,6 @@
 import '@/../global.css';
 import { Redirect, Stack } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
-import { palette } from '@/theme/colors';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function ProtectedLayout() {
@@ -9,14 +8,7 @@ export default function ProtectedLayout() {
 
   if (!isReady) {
     return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: palette.cream,
-        }}
-      >
+      <View className="flex-1 items-center justify-center bg-cream">
         <ActivityIndicator size="large" color="#F18322" />
       </View>
     );
