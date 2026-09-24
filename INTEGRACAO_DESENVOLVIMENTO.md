@@ -257,4 +257,28 @@ npm run build:web
   * Casos de uso do `UserService` (atualização de perfil, troca de papel, exclusão e contadores de relações).
   * `UserController` e integridade das 11 rotas mapeadas no `UserRouter`.
 
+### 6.2 Testes de Carga e Performance com Grafana k6 (Docker)
+
+O backend possui suporte a testes de carga e estresse utilizando o **Grafana k6** encapsulado em Docker (imagem oficial `grafana/k6`), sem dependências extras:
+
+* **Configuração no Docker Compose (`apps/server/docker-compose.yaml`)**:
+  * Serviço `k6` sob o perfil `test` (não inicializa automaticamente com `docker compose up -d`).
+  * Configurado com `network_mode: host` para comunicação direta de baixa latência com a API local (`http://localhost:4000`).
+  * Volume montado em `./k6:/scripts`.
+
+* **Scripts Disponíveis (`apps/server/k6/`)**:
+  * `smoke-test.js`: Validação rápida (1 VU por 10s) dos endpoints `/health`, `/health/redis` e `/users/count`.
+  * `load-test.js`: Teste em estágios (rampa até 20 VUs, sustentação e desaceleração ao longo de 60s) com limiares rígidos (`p(95) < 500ms`, taxa de erro `< 5%`).
+
+* **Comandos de Execução**:
+  ```bash
+  # Na raiz do monorepo:
+  npm run test:k6        # Executa o smoke test do servidor via Docker Compose
+  npm run test:k6:load   # Executa o teste de carga estagiado
+
+  # Diretamente em apps/server:
+  npm run test:k6:smoke
+  npm run test:k6:load
+  ```
+
 > **Aviso de Governança (`AGENTS.md`):** Nunca execute alterações diretas no esquema do banco de dados (`schema.prisma`) ou crie migrações sem alinhamento e autorização prévia da equipe.

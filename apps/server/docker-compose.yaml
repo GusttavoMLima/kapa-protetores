@@ -22,6 +22,17 @@ services:
       - POSTGRES_USER=docker
       - POSTGRES_DB=kapa
 
+  k6:
+    image: grafana/k6:latest
+    container_name: kapa-k6
+    profiles:
+      - test
+    network_mode: host
+    volumes:
+      - ./k6:/scripts
+    environment:
+      - BASE_URL=http://localhost:4000
+
 volumes:
   redis_data:
   database_data:
