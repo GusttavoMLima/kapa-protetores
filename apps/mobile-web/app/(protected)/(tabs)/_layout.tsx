@@ -4,12 +4,15 @@ import {
   PawPrintIcon,
   UserIcon,
   HeartIcon,
+  CalendarBlankIcon,
 } from 'phosphor-react-native';
 import { palette } from '@/theme/colors';
 import { DefaultHeader } from '@/components/header/default';
 import { Platform } from 'react-native';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function TabLayout() {
+  const { user } = useAuth();
   return (
     <Tabs
       screenOptions={{
@@ -82,6 +85,21 @@ export default function TabLayout() {
           title: 'Apoiar',
           tabBarIcon: ({ color, size, focused }) => (
             <HeartIcon
+              size={size}
+              color={color.toString()}
+              weight={focused ? 'fill' : 'regular'}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="activities"
+        options={{
+          title: 'Atividades',
+          tabBarButton: user?.role === 'volunteer' ? undefined : () => null,
+          tabBarIcon: ({ color, size, focused }) => (
+            <CalendarBlankIcon
               size={size}
               color={color.toString()}
               weight={focused ? 'fill' : 'regular'}

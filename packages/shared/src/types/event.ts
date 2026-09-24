@@ -16,6 +16,11 @@ export interface CommunityEvent {
   volunteers?: CommunityEventVolunteer[];
 }
 
+export interface CommunityEventListItem extends CommunityEvent {
+  isSignedUp: boolean;
+  volunteerCount: number;
+}
+
 export interface CreateCommunityEventInput {
   title: string;
   description: string;

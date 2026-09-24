@@ -3,6 +3,7 @@ import { AnimalsRouter } from './AnimalsRouter';
 import { HealthRouter } from './HealthRouter';
 import { AuthRouter } from './AuthRouter';
 import { UserRouter } from './UserRouter';
+import { CommunityEventRouter } from './CommunityEventRouter';
 
 export class ApiRouter {
   public readonly router: Router = Router();
@@ -12,6 +13,7 @@ export class ApiRouter {
     private readonly animalsRouter: AnimalsRouter,
     private readonly authRouter: AuthRouter,
     private readonly userRouter: UserRouter,
+    private readonly communityEventRouter: CommunityEventRouter,
   ) {
     this.initRoutes();
   }
@@ -21,6 +23,7 @@ export class ApiRouter {
     this.router.use('/animals', this.animalsRouter.router);
     this.router.use('/auth', this.authRouter.router);
     this.router.use('/users', this.userRouter.router);
+    this.router.use('/community-events', this.communityEventRouter.router);
   }
 }
 
