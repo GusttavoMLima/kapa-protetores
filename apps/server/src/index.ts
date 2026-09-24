@@ -1,8 +1,6 @@
-import dotenv from 'dotenv';
+import './config/env';
 import { App } from './App';
 import { apiRouter } from './routes';
-
-dotenv.config();
 
 const port = Number(process.env.PORT) || 4000;
 const clientUrl = process.env.CLIENT_URL || 'http://localhost:8081';

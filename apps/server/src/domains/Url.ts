@@ -9,7 +9,7 @@ export class Url {
   }
 
   public static create(url: string): Url {
-    const trimmed = url.trim().toLowerCase();
+    const trimmed = url.trim();
 
     if (
       !z.string().url().safeParse(trimmed).success ||

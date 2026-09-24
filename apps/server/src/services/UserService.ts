@@ -1,13 +1,142 @@
-import { CreateUserInput, UserRole } from '@kapa/shared';
+import {
+  CreateUserInput,
+  UserRole,
+  UserWithRelationsCount,
+} from '@kapa/shared';
+import { OAuth2Client } from 'google-auth-library';
+import { AppError, ServiceError } from '../errors';
+import { User } from '../models';
+import { UserRepository } from '../repositories/UserRepository';
 import { Email } from '../domains/Email';
 import { UUID } from '../domains/UUID';
-import { AppError } from '../errors';
-import { UserRepository } from '../repositories/UserRepository';
-import { User } from '../models';
 import { Url } from '../domains/Url';
+import { DEFAULT_USER_ADOPTER_RULES } from '@kapa/shared';
+import { Encrypt } from '../utils/Encypt';
+
+const googleClient = new OAuth2Client();
 
 export class UserService {
   constructor(private readonly repository: UserRepository) {}
+
+  public async authenticateWithGoogle(idToken: string) {
+    const audiences = [
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_WEB_CLIENT_ID,
+      process.env.GOOGLE_IOS_CLIENT_ID,
+      process.env.GOOGLE_ANDROID_CLIENT_ID,
+    ].filter((id): id is string => Boolean(id));
+
+    let email: string | undefined;
+    let name: string | undefined;
+    let picture: string | undefined;
+
+    const isJwt = idToken.split('.').length === 3;
+
+    if (isJwt) {
+      let ticket;
+
+      try {
+        ticket = await googleClient.verifyIdToken({
+          idToken,
+          audience: audiences.length > 0 ? audiences : undefined,
+        });
+      } catch {
+        throw AppError.unauthorized('Token do Google inválido ou expirado');
+      }
+
+      const payload = ticket.getPayload();
+
+      if (!payload || !payload.email || !payload.email_verified) {
+        throw AppError.unauthorized('Email do Google não verificado');
+      }
+
+      email = payload.email;
+      name = payload.name;
+      picture = payload.picture;
+    } else {
+      try {
+        const tokenInfo = await googleClient.getTokenInfo(idToken);
+        if (audiences.length > 0 && !audiences.includes(tokenInfo.aud)) {
+          throw AppError.unauthorized('Audience do token Google inválida');
+        }
+
+        const userInfoResponse = await fetch(
+          'https://www.googleapis.com/oauth2/v3/userinfo',
+          {
+            headers: { Authorization: `Bearer ${idToken}` },
+          },
+        );
+
+        if (!userInfoResponse.ok) {
+          throw AppError.unauthorized('Token do Google inválido ou expirado');
+        }
+
+        const userInfo = (await userInfoResponse.json()) as {
+          email?: string;
+          email_verified?: boolean;
+          name?: string;
+          picture?: string;
+        };
+
+        if (!userInfo.email || !userInfo.email_verified) {
+          throw AppError.unauthorized('Email do Google não verificado');
+        }
+
+        email = userInfo.email;
+        name = userInfo.name;
+        picture = userInfo.picture;
+      } catch (error) {
+        if (error instanceof AppError) {
+          throw error;
+        }
+        throw AppError.unauthorized('Token do Google inválido ou expirado');
+      }
+    }
+
+    if (!email) {
+      throw new ServiceError('Email não encontrado no payload do Google.');
+    }
+
+    const safeEmail = Email.create(email);
+    let user = await this.repository.findByEmail(safeEmail);
+
+    if (user) {
+      if (picture && user.getAvatar()?.toString() !== picture) {
+        user = await this.updateAvatar(user.getId().toString(), picture);
+      }
+      return user;
+    }
+
+    const username = name || email.split('@')[0];
+
+    user = await this.create({
+      username,
+      email,
+      avatar: picture ?? undefined,
+      role: 'adopter',
+      rules: Array.from(DEFAULT_USER_ADOPTER_RULES),
+    });
+
+    return user;
+  }
+
+  public async getByIdWithRelationsCount(
+    id: string,
+  ): Promise<UserWithRelationsCount> {
+    const safeId = UUID.create(id);
+
+    const user = await this.repository.findByIdCountingRelations(safeId);
+
+    if (!user) {
+      throw AppError.notFound(`User with ID: ${id} not found`);
+    }
+
+    return user;
+  }
+
+  public async countAll(): Promise<number> {
+    return this.repository.countAll();
+  }
 
   public async getAll() {
     return this.repository.findAll();
@@ -66,11 +195,15 @@ export class UserService {
       throw AppError.badRequest('Username is required.');
     }
 
+    const hasedPassword = input.password
+      ? Encrypt.saltHash(input.password).toString('hex')
+      : undefined;
+
     const user = new User();
     user.setUsername(input.username);
     user.setEmail(input.email);
     user.setAvatar(input.avatar);
-    user.setPassword(input.password);
+    user.setPassword(hasedPassword);
     if (input.role) user.setRole(input.role satisfies UserRole);
     if (input.rules) user.setRules(input.rules);
     user.setLatitude(input.latitude);
@@ -91,8 +224,115 @@ export class UserService {
     return user;
   }
 
-  public async updatePassword(id: string, password: string) {
+  public async updatePassword(
+    id: string,
+    currentPasswordPlainText: string,
+    newPasswordPlainText: string,
+  ): Promise<void> {
     const safeId = UUID.create(id);
-    
+
+    const user = await this.repository.findById(safeId);
+
+    if (!user) {
+      throw AppError.notFound(`Usuário não encontrado`);
+    }
+
+    const storedHash = user.getPassword();
+
+    if (!storedHash) {
+      throw AppError.badRequest(
+        'Esta conta foi criada com o Google e não possui senha definida.',
+      );
+    }
+
+    const isCurrentPasswordValid = Encrypt.verifySaltHash(
+      currentPasswordPlainText,
+      storedHash,
+    );
+
+    if (!isCurrentPasswordValid) {
+      throw AppError.unauthorized('Senha atual incorreta');
+    }
+
+    if (Encrypt.verifySaltHash(newPasswordPlainText, storedHash)) {
+      throw AppError.badRequest('A nova senha deve ser diferente da senha atual');
+    }
+
+    const newHashedPassword = Encrypt.saltHash(newPasswordPlainText).toString('hex');
+    const updatedUser = await this.repository.updatePassword(safeId, newHashedPassword);
+
+    if (!updatedUser) {
+      throw AppError.internal('Erro ao atualizar a senha do usuário');
+    }
+  }
+
+  public async updateProfile(
+    id: string,
+    input: {
+      username?: string;
+      avatar?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
+    },
+  ): Promise<User> {
+    const safeId = UUID.create(id);
+    const user = await this.repository.findById(safeId);
+
+    if (!user) {
+      throw AppError.notFound(`Usuário não encontrado`);
+    }
+
+    if (input.username !== undefined) {
+      user.setUsername(input.username);
+    }
+
+    if (input.avatar !== undefined) {
+      user.setAvatar(input.avatar);
+    }
+
+    if (input.latitude !== undefined) {
+      user.setLatitude(input.latitude);
+    }
+
+    if (input.longitude !== undefined) {
+      user.setLongitude(input.longitude);
+    }
+
+    const updatedUser = await this.repository.update(user);
+
+    if (!updatedUser) {
+      throw AppError.internal('Erro ao atualizar dados do usuário');
+    }
+
+    return updatedUser;
+  }
+
+  public async updateRole(id: string, role: UserRole): Promise<User> {
+    const safeId = UUID.create(id);
+    const user = await this.repository.findById(safeId);
+
+    if (!user) {
+      throw AppError.notFound(`Usuário não encontrado`);
+    }
+
+    user.setRole(role);
+    const updatedUser = await this.repository.update(user);
+
+    if (!updatedUser) {
+      throw AppError.internal('Erro ao atualizar papel do usuário');
+    }
+
+    return updatedUser;
+  }
+
+  public async deleteById(id: string): Promise<User> {
+    const safeId = UUID.create(id);
+    const user = await this.repository.findById(safeId);
+
+    if (!user) {
+      throw AppError.notFound(`Usuário não encontrado`);
+    }
+
+    return this.repository.deleteById(safeId);
   }
 }

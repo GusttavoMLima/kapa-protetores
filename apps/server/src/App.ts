@@ -17,7 +17,7 @@ export class App {
 
   constructor(
     private readonly apiRouter: ApiRouter,
-    config: AppConfig
+    config: AppConfig,
   ) {
     this.app = express();
     this.port = config.port;
@@ -29,11 +29,7 @@ export class App {
   }
 
   private setupMiddlewares(): void {
-    const allowedOrigins = [
-      this.clientUrl,
-      'http://localhost:19006',
-      'http://localhost:8081',
-    ];
+    const allowedOrigins = [this.clientUrl, 'http://localhost:8081'];
 
     this.app.use(
       cors({
@@ -44,7 +40,7 @@ export class App {
           return callback(new Error(`Origin ${origin} not allowed by CORS`));
         },
         credentials: true,
-      })
+      }),
     );
 
     this.app.use(express.json());
@@ -71,7 +67,9 @@ export class App {
   public listen(): HttpServer {
     this.server = this.app.listen(this.port, () => {
       console.log(`🚀 Server running on http://localhost:${this.port}`);
-      console.log(`🏥 Health check at http://localhost:${this.port}/api/health`);
+      console.log(
+        `🏥 Health check at http://localhost:${this.port}/api/health`,
+      );
     });
     return this.server;
   }

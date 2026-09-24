@@ -61,6 +61,13 @@ export default function RootLayout() {
             />
 
             <Stack.Screen
+              name="signUp"
+              options={{
+                headerShown: false,
+              }}
+            />
+
+            <Stack.Screen
               name="cadastro-animal"
               options={{
                 headerShown: false,

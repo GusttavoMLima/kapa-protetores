@@ -11,7 +11,10 @@ import { LoginForm } from '@/components/forms/login';
 
 export function LoginScreen() {
   return (
-    <SafeAreaView edges={['left', 'right', 'bottom']} className="flex-1 bg-cream">
+    <SafeAreaView
+      edges={['left', 'right', 'bottom']}
+      className="flex-1 bg-cream"
+    >
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
