@@ -118,7 +118,7 @@ describe('authTokenHandler Middleware', () => {
 
   it('should call next and attach user when token is valid', () => {
     const userJwt: UserJwt = {
-      sub: 'user-uuid-1',
+      sub: '123e4567-e89b-12d3-a456-426614174000',
       email: 'valid@example.com',
       username: 'Valid User',
       role: 'adopter',

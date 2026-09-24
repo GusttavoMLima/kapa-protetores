@@ -90,7 +90,7 @@ export function AuthProvider({ children }: AuthProviderProp) {
   const signUp = useCallback(
     async (data: SignUpData) => {
       try {
-        const response = await kapaService.post('/api/users/register', data);
+        const response = await kapaService.post('/api/users/create', data);
 
         if (!response.data?.data) {
           throw new Error('Falha no cadastro.');
