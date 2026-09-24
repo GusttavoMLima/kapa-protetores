@@ -1,4 +1,8 @@
-import { CreateUserInput, UserRole } from '@kapa/shared';
+import {
+  CreateUserInput,
+  UserRole,
+  UserWithRelationsCount,
+} from '@kapa/shared';
 import { OAuth2Client } from 'google-auth-library';
 import { AppError, ServiceError } from '../errors';
 import { User } from '../models';
@@ -116,6 +120,24 @@ export class UserService {
     return user;
   }
 
+  public async getByIdWithRelationsCount(
+    id: string,
+  ): Promise<UserWithRelationsCount> {
+    const safeId = UUID.create(id);
+
+    const user = await this.repository.findByIdCountingRelations(safeId);
+
+    if (!user) {
+      throw AppError.notFound(`User with ID: ${id} not found`);
+    }
+
+    return user;
+  }
+
+  public async countAll(): Promise<number> {
+    return this.repository.countAll();
+  }
+
   public async getAll() {
     return this.repository.findAll();
   }
@@ -202,32 +224,115 @@ export class UserService {
     return user;
   }
 
-  public async updatePassword(id: string, newPassword: string) {
+  public async updatePassword(
+    id: string,
+    currentPasswordPlainText: string,
+    newPasswordPlainText: string,
+  ): Promise<void> {
     const safeId = UUID.create(id);
 
-    let user = await this.repository.findById(safeId);
+    const user = await this.repository.findById(safeId);
 
     if (!user) {
-      throw AppError.notFound('User not found with id: ' + safeId);
+      throw AppError.notFound(`Usuário não encontrado`);
     }
 
-    const hashedPassord = Encrypt.saltHash(newPassword).toString('hex');
-    const currentPassword = user.getPassword();
+    const storedHash = user.getPassword();
 
-    // if the passwords are the same, return the user
-    if (
-      currentPassword &&
-      Encrypt.verifySaltHash(currentPassword, hashedPassord)
-    ) {
-      return user;
+    if (!storedHash) {
+      throw AppError.badRequest(
+        'Esta conta foi criada com o Google e não possui senha definida.',
+      );
     }
 
-    user = await this.repository.updatePassword(safeId, hashedPassord);
+    const isCurrentPasswordValid = Encrypt.verifySaltHash(
+      currentPasswordPlainText,
+      storedHash,
+    );
+
+    if (!isCurrentPasswordValid) {
+      throw AppError.unauthorized('Senha atual incorreta');
+    }
+
+    if (Encrypt.verifySaltHash(newPasswordPlainText, storedHash)) {
+      throw AppError.badRequest('A nova senha deve ser diferente da senha atual');
+    }
+
+    const newHashedPassword = Encrypt.saltHash(newPasswordPlainText).toString('hex');
+    const updatedUser = await this.repository.updatePassword(safeId, newHashedPassword);
+
+    if (!updatedUser) {
+      throw AppError.internal('Erro ao atualizar a senha do usuário');
+    }
+  }
+
+  public async updateProfile(
+    id: string,
+    input: {
+      username?: string;
+      avatar?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
+    },
+  ): Promise<User> {
+    const safeId = UUID.create(id);
+    const user = await this.repository.findById(safeId);
 
     if (!user) {
-      throw AppError.internal('Error on updating user password.');
+      throw AppError.notFound(`Usuário não encontrado`);
     }
 
-    return user;
+    if (input.username !== undefined) {
+      user.setUsername(input.username);
+    }
+
+    if (input.avatar !== undefined) {
+      user.setAvatar(input.avatar);
+    }
+
+    if (input.latitude !== undefined) {
+      user.setLatitude(input.latitude);
+    }
+
+    if (input.longitude !== undefined) {
+      user.setLongitude(input.longitude);
+    }
+
+    const updatedUser = await this.repository.update(user);
+
+    if (!updatedUser) {
+      throw AppError.internal('Erro ao atualizar dados do usuário');
+    }
+
+    return updatedUser;
+  }
+
+  public async updateRole(id: string, role: UserRole): Promise<User> {
+    const safeId = UUID.create(id);
+    const user = await this.repository.findById(safeId);
+
+    if (!user) {
+      throw AppError.notFound(`Usuário não encontrado`);
+    }
+
+    user.setRole(role);
+    const updatedUser = await this.repository.update(user);
+
+    if (!updatedUser) {
+      throw AppError.internal('Erro ao atualizar papel do usuário');
+    }
+
+    return updatedUser;
+  }
+
+  public async deleteById(id: string): Promise<User> {
+    const safeId = UUID.create(id);
+    const user = await this.repository.findById(safeId);
+
+    if (!user) {
+      throw AppError.notFound(`Usuário não encontrado`);
+    }
+
+    return this.repository.deleteById(safeId);
   }
 }

@@ -71,6 +71,38 @@ A sessão é gerenciada pelo `AuthProvider` e mantida no armazenamento do dispos
 
 ---
 
+### 1.4 Módulo Completo de Gestão de Usuários (`/api/users`)
+
+O módulo de usuários conta com um conjunto completo de endpoints RESTful, com autorização granular via middleware [`rulesHandler`](apps/server/src/middlewares/rulesHandler.ts) e proteção estrita contra **IDOR/BOLA**:
+
+| Método | Endpoint | Proteção / Regra | Descrição |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/users/count` | Público | Quantidade total de usuários cadastrados |
+| `GET` | `/api/users/all` | `authTokenHandler` + `admin:*` | Listagem geral de usuários (suporta filtro `?role=adopter`) |
+| `POST` | `/api/users/create` | Público | Cadastro / registro de novos usuários |
+| `POST` | `/api/users/signin` | Público | Autenticação local (e-mail e senha) |
+| `GET` | `/api/users/me` | `authTokenHandler` + `user:read:own` | Dados do usuário logado agregados com contadores (`_count`) |
+| `PATCH` | `/api/users/me` | `authTokenHandler` + `user:update:own` | Atualização do próprio perfil (`username`, `avatar`, localização) |
+| `PATCH` | `/api/users/me/password` | `authTokenHandler` + `user:update:own` | Alteração da própria senha com confirmação da senha atual |
+| `DELETE` | `/api/users/me` | `authTokenHandler` + `user:delete:own` | Autoexclusão da conta pelo próprio usuário |
+| `GET` | `/api/users/:id` | `authTokenHandler` + `user:read:other` | Consulta de perfil público por ID de usuário |
+| `PATCH` | `/api/users/:id/role` | `authTokenHandler` + `admin:*` | Alteração administrativa de papel (`role`) do usuário |
+| `DELETE` | `/api/users/:id` | `authTokenHandler` + `admin:*` | Exclusão administrativa de usuário por ID |
+
+* **Validação de Entrada (`user.schema.ts`)**:
+  * **`updateProfileSchema`**: Validação de `username` (3-50 caracteres), `avatar` (URL válida ou string vazia convertida para `null`) e limites de geolocalização (`latitude` `[-90, 90]` e `longitude` `[-180, 180]`).
+  * **`updateUserPasswordSchema`**: Validação de `currentPassword` obrigatória e `newPassword` entre 6 e 128 caracteres.
+  * **`updateRoleSchema`**: Restrição estrita aos enums válidos (`adopter`, `protector`, `admin`, `volunteer`).
+  * **`userIdParams`**: Validação de identificador do usuário em parâmetros de rota.
+
+* **Regras de Segurança na Troca de Senha (`UserService.updatePassword`)**:
+  * Contas criadas via Google OAuth (sem senha definida) são impedidas de trocar senha via endpoint local (`400 Bad Request`).
+  * A senha atual informada é conferida criptograficamente via [`Encrypt.verifySaltHash`](apps/server/src/utils/Encypt.ts) contra o hash salvo no banco (`401 Unauthorized` se incorreta).
+  * A nova senha não pode ser idêntica à senha atual (`400 Bad Request`).
+  * A resposta da API omite qualquer dado sensível, retornando apenas confirmação de sucesso.
+
+---
+
 ## 2. Correções Críticas Realizadas no Projeto
 
 1. **Persistência de Sessão Multiplataforma**:
@@ -96,6 +128,18 @@ A sessão é gerenciada pelo `AuthProvider` e mantida no armazenamento do dispos
 6. **Limpeza de Permissões Desnecessárias no Android (`app.json`)**:
    * **Causa**: A permissão `android.permission.RECORD_AUDIO` foi incluída indevidamente na configuração do Expo.
    * **Solução**: Removida do manifesto Android para evitar alertas invasivos ao usuário e rejeição na Google Play Store.
+
+7. **Proteção contra Vazamento de Hash de Senha em Dados do Usuário (`UserRepository.ts`)**:
+   * **Causa**: No método `findByIdCountingRelations`, a consulta Prisma retornava o registro completo do usuário incluindo a coluna `password`. Ao repassar o objeto até a resposta da API (`GET /users/me`), o hash da senha era exposto ao cliente.
+   * **Solução**: Aplicação de `select` explícito no Prisma omitindo o campo `password`, com mapeamento para o tipo seguro `UserWithRelationsCount` exportado em `@kapa/shared`.
+
+8. **Tratamento de Exceções e Associação de Handlers em Rotas (`UserRouter.ts` e `UserController.ts`)**:
+   * **Causa**: O uso de `catch { next() }` sem argumentos engolia exceções da aplicação, impedindo o [`ErrorHandler`](apps/server/src/middlewares/ErrorHandler.ts) de responder adequadamente. Além disso, a rota `GET /users/:id` chamava incorretamente `userInfo` (ignorando o parâmetro `:id`), e `getAll` não aguardava a Promise do banco com `await`.
+   * **Solução**: Padronização com `catch (err) { next(err) }`, associação de `/:id` com `this.controller.getById`, adição de `await` e proteção da listagem geral `/all` com `rulesHandler('admin:*')`.
+
+9. **Remoção de Avatar e Dados Nulos no Perfil (`UserRepository.ts`)**:
+   * **Causa**: Na atualização do usuário, `avatar: user.getAvatar()?.toString() ?? undefined` impedia que um usuário removesse sua foto de perfil (`null`), pois campos `undefined` são ignorados no `update` do Prisma.
+   * **Solução**: Diferenciação explícita entre valor não informado (`undefined`) e intenção de limpeza (`null`).
 
 ---
 
@@ -189,7 +233,7 @@ O projeto conta com verificações automatizadas de qualidade através do **Husk
 # 1. Executar os hooks do pre-commit manualmente
 ./.husky/pre-commit
 
-# 2. Bateria de testes unitários do backend (20 testes em 9 suítes)
+# 2. Bateria completa de testes automatizados do backend (60 testes em 17 suítes)
 npm test
 
 # 3. Verificação de tipos TypeScript em todos os workspaces
@@ -204,5 +248,13 @@ npm run build:server
 # 6. Build de exportação web do Expo
 npm run build:web
 ```
+
+### 6.1 Estrutura das Suítes de Teste
+* **`apps/server/src/tests/auth.test.ts`**: Validação de schemas de autenticação Google, geração/verificação criptográfica de tokens JWT, middlewares de proteção de rota e controlador de login/registro.
+* **`apps/server/src/tests/user.test.ts`**: Suíte dedicada ao ciclo de vida do usuário:
+  * Entidade de domínio `User` (regras de negócio, setters, validação de regras de papel e DTOs seguros).
+  * Schemas Zod (`updateProfileSchema`, `updateRoleSchema`, `updateUserPasswordSchema`, `userIdParams`).
+  * Casos de uso do `UserService` (atualização de perfil, troca de papel, exclusão e contadores de relações).
+  * `UserController` e integridade das 11 rotas mapeadas no `UserRouter`.
 
 > **Aviso de Governança (`AGENTS.md`):** Nunca execute alterações diretas no esquema do banco de dados (`schema.prisma`) ou crie migrações sem alinhamento e autorização prévia da equipe.

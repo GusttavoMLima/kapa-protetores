@@ -40,6 +40,7 @@ These rules apply to ALL development tasks.
 10. Do not expose secrets, credentials, tokens, or sensitive user data in source code, logs, errors, or commits.
 11. Do not disable security mechanisms to make development easier.
 12. Do not make assumptions about security-sensitive behavior. Verify it.
+13. Always keep `INTEGRACAO_DESENVOLVIMENTO.md` updated after implementing or modifying features, routes, schemas, security mechanisms, or infrastructure.
 
 ---
 
@@ -401,4 +402,5 @@ Before considering a task complete:
 7. Verify no secrets were introduced.
 8. Verify no database changes were made without approval.
 9. Verify the implementation follows `DESIGN.md` when UI was changed.
-10. Report any checks that could not be executed.
+10. Update `INTEGRACAO_DESENVOLVIMENTO.md` documenting any architectural, endpoint, schema, security, or infrastructural changes made.
+11. Report any checks that could not be executed.

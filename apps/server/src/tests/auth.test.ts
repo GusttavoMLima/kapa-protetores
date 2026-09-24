@@ -503,5 +503,591 @@ describe('UserController', () => {
     const appErr = forwardedError as { statusCode?: number };
     assert.strictEqual(appErr.statusCode, 409);
   });
+
+  it('should reject userInfo request when user is not authenticated', async () => {
+    const { UserController } = await import('../controllers/UserController');
+    const mockUserService = {} as unknown as import('../services/UserService').UserService;
+    const controller = new UserController(mockUserService);
+
+    const req = {} as unknown as Request;
+    const res = {} as unknown as Response;
+
+    let forwardedError: unknown;
+    const next = (err?: unknown) => {
+      forwardedError = err;
+    };
+
+    await controller.userInfo(req, res, next);
+    assert.ok(forwardedError);
+    const appErr = forwardedError as { statusCode?: number };
+    assert.strictEqual(appErr.statusCode, 401);
+  });
+
+  it('should return 200 with sanitized user info and counts without password hash', async () => {
+    const { UserController } = await import('../controllers/UserController');
+    const mockUserInfo = {
+      id: '123e4567-e89b-12d3-a456-426614174000',
+      username: 'Test User',
+      email: 'user@example.com',
+      role: 'adopter' as const,
+      rules: ['adopter:read'],
+      avatar: null,
+      latitude: null,
+      longitude: null,
+      createdAt: new Date().toISOString(),
+      counts: {
+        adoptions: 2,
+        events: 5,
+        favorites: 8,
+      },
+    };
+
+    const mockUserService = {
+      getByIdWithRelationsCount: async () => mockUserInfo,
+    } as unknown as import('../services/UserService').UserService;
+
+    const controller = new UserController(mockUserService);
+
+    const req = {
+      user: {
+        sub: '123e4567-e89b-12d3-a456-426614174000',
+        email: 'user@example.com',
+        role: 'adopter',
+        rules: ['adopter:read'],
+        username: 'Test User',
+      },
+    } as unknown as Request;
+
+    let statusCode: number | undefined;
+    let responseBody: unknown;
+    const res = {
+      status(code: number) {
+        statusCode = code;
+        return this;
+      },
+      json(data: unknown) {
+        responseBody = data;
+        return this;
+      },
+    } as unknown as Response;
+
+    const next = () => {};
+
+    await controller.userInfo(req, res, next);
+    assert.strictEqual(statusCode, 200);
+    const typedBody = responseBody as {
+      success: boolean;
+      data: typeof mockUserInfo & { password?: unknown };
+    };
+    assert.strictEqual(typedBody.success, true);
+    assert.strictEqual(typedBody.data.id, '123e4567-e89b-12d3-a456-426614174000');
+    assert.strictEqual(typedBody.data.counts.adoptions, 2);
+    assert.strictEqual(typedBody.data.password, undefined);
+  });
+
+  it('should return all users mapped to DTO via getAll', async () => {
+    const { User } = await import('../models/User');
+    const { UserController } = await import('../controllers/UserController');
+
+    const user = new User();
+    user.setId('123e4567-e89b-12d3-a456-426614174000');
+    user.setUsername('Test User');
+    user.setEmail('user@example.com');
+    user.setRole('adopter');
+    user.setCreatedAt(new Date().toISOString());
+
+    const mockUserService = {
+      getAll: async () => [user],
+    } as unknown as import('../services/UserService').UserService;
+
+    const controller = new UserController(mockUserService);
+
+    const req = {} as unknown as Request;
+    let statusCode: number | undefined;
+    let responseBody: unknown;
+    const res = {
+      status(code: number) {
+        statusCode = code;
+        return this;
+      },
+      json(data: unknown) {
+        responseBody = data;
+        return this;
+      },
+    } as unknown as Response;
+
+    const next = () => {};
+
+    await controller.getAll(req, res, next);
+    assert.strictEqual(statusCode, 200);
+    const typedBody = responseBody as {
+      success: boolean;
+      data: Array<{ id: string; email: string }>;
+    };
+    assert.strictEqual(typedBody.success, true);
+    assert.strictEqual(typedBody.data.length, 1);
+    assert.strictEqual(typedBody.data[0].email, 'user@example.com');
+  });
+
+  it('should return user by id via getById', async () => {
+    const { User } = await import('../models/User');
+    const { UserController } = await import('../controllers/UserController');
+
+    const user = new User();
+    user.setId('123e4567-e89b-12d3-a456-426614174000');
+    user.setUsername('Test User');
+    user.setEmail('user@example.com');
+    user.setRole('adopter');
+    user.setCreatedAt(new Date().toISOString());
+
+    const mockUserService = {
+      getById: async () => user,
+    } as unknown as import('../services/UserService').UserService;
+
+    const controller = new UserController(mockUserService);
+
+    const req = {
+      params: { id: '123e4567-e89b-12d3-a456-426614174000' },
+    } as unknown as Request;
+
+    let statusCode: number | undefined;
+    let responseBody: unknown;
+    const res = {
+      status(code: number) {
+        statusCode = code;
+        return this;
+      },
+      json(data: unknown) {
+        responseBody = data;
+        return this;
+      },
+    } as unknown as Response;
+
+    const next = () => {};
+
+    await controller.getById(req, res, next);
+    assert.strictEqual(statusCode, 200);
+    const typedBody = responseBody as {
+      success: boolean;
+      data: { id: string; email: string };
+    };
+    assert.strictEqual(typedBody.success, true);
+    assert.strictEqual(typedBody.data.email, 'user@example.com');
+  });
+
+  it('should reject updatePassword when user is not authenticated', async () => {
+    const { UserController } = await import('../controllers/UserController');
+    const mockUserService = {} as unknown as import('../services/UserService').UserService;
+    const controller = new UserController(mockUserService);
+
+    const req = { body: {} } as unknown as Request;
+    const res = {} as unknown as Response;
+
+    let forwardedError: unknown;
+    const next = (err?: unknown) => {
+      forwardedError = err;
+    };
+
+    await controller.updatePassword(req, res, next);
+    assert.ok(forwardedError);
+    const appErr = forwardedError as { statusCode?: number };
+    assert.strictEqual(appErr.statusCode, 401);
+  });
+
+  it('should reject updatePassword with invalid body schema', async () => {
+    const { UserController } = await import('../controllers/UserController');
+    const mockUserService = {} as unknown as import('../services/UserService').UserService;
+    const controller = new UserController(mockUserService);
+
+    const req = {
+      user: { sub: '123e4567-e89b-12d3-a456-426614174000' },
+      body: { currentPassword: '', newPassword: '123' },
+    } as unknown as Request;
+    const res = {} as unknown as Response;
+
+    let forwardedError: unknown;
+    const next = (err?: unknown) => {
+      forwardedError = err;
+    };
+
+    await controller.updatePassword(req, res, next);
+    assert.ok(forwardedError);
+    const appErr = forwardedError as { statusCode?: number };
+    assert.strictEqual(appErr.statusCode, 400);
+  });
+
+  it('should successfully update password and return 200', async () => {
+    const { UserController } = await import('../controllers/UserController');
+    let calledWith: unknown[] = [];
+    const mockUserService = {
+      updatePassword: async (id: string, current: string, newPass: string) => {
+        calledWith = [id, current, newPass];
+      },
+    } as unknown as import('../services/UserService').UserService;
+    const controller = new UserController(mockUserService);
+
+    const req = {
+      user: { sub: '123e4567-e89b-12d3-a456-426614174000' },
+      body: { currentPassword: 'oldPassword123', newPassword: 'newPassword123' },
+    } as unknown as Request;
+
+    let statusCode: number | undefined;
+    let responseBody: unknown;
+    const res = {
+      status(code: number) {
+        statusCode = code;
+        return this;
+      },
+      json(data: unknown) {
+        responseBody = data;
+        return this;
+      },
+    } as unknown as Response;
+
+    const next = () => {};
+
+    await controller.updatePassword(req, res, next);
+    assert.strictEqual(statusCode, 200);
+    const typedBody = responseBody as { success: boolean; message: string };
+    assert.strictEqual(typedBody.success, true);
+    assert.deepStrictEqual(calledWith, [
+      '123e4567-e89b-12d3-a456-426614174000',
+      'oldPassword123',
+      'newPassword123',
+    ]);
+  });
+});
+
+describe('UserService updatePassword', () => {
+  it('should throw 400 when user has no password (e.g. Google-created account)', async () => {
+    const { User } = await import('../models/User');
+    const { UserService } = await import('../services/UserService');
+
+    const user = new User();
+    user.setId('123e4567-e89b-12d3-a456-426614174000');
+    user.setEmail('google@example.com');
+    // No password set
+
+    const mockRepo = {
+      findById: async () => user,
+    } as unknown as import('../repositories/UserRepository').UserRepository;
+
+    const service = new UserService(mockRepo);
+
+    await assert.rejects(
+      async () => {
+        await service.updatePassword(
+          '123e4567-e89b-12d3-a456-426614174000',
+          'anyPass',
+          'newPass123',
+        );
+      },
+      (err: { statusCode?: number }) => {
+        assert.strictEqual(err.statusCode, 400);
+        return true;
+      },
+    );
+  });
+
+  it('should throw 401 when current password does not match', async () => {
+    const { User } = await import('../models/User');
+    const { Encrypt } = await import('../utils/Encypt');
+    const { UserService } = await import('../services/UserService');
+
+    const user = new User();
+    user.setId('123e4567-e89b-12d3-a456-426614174000');
+    user.setEmail('user@example.com');
+    user.setPassword(Encrypt.saltHash('correctCurrentPassword').toString('hex'));
+
+    const mockRepo = {
+      findById: async () => user,
+    } as unknown as import('../repositories/UserRepository').UserRepository;
+
+    const service = new UserService(mockRepo);
+
+    await assert.rejects(
+      async () => {
+        await service.updatePassword(
+          '123e4567-e89b-12d3-a456-426614174000',
+          'wrongCurrentPassword',
+          'newPass123',
+        );
+      },
+      (err: { statusCode?: number }) => {
+        assert.strictEqual(err.statusCode, 401);
+        return true;
+      },
+    );
+  });
+
+  it('should throw 400 when new password is the same as current password', async () => {
+    const { User } = await import('../models/User');
+    const { Encrypt } = await import('../utils/Encypt');
+    const { UserService } = await import('../services/UserService');
+
+    const user = new User();
+    user.setId('123e4567-e89b-12d3-a456-426614174000');
+    user.setEmail('user@example.com');
+    user.setPassword(Encrypt.saltHash('samePassword123').toString('hex'));
+
+    const mockRepo = {
+      findById: async () => user,
+    } as unknown as import('../repositories/UserRepository').UserRepository;
+
+    const service = new UserService(mockRepo);
+
+    await assert.rejects(
+      async () => {
+        await service.updatePassword(
+          '123e4567-e89b-12d3-a456-426614174000',
+          'samePassword123',
+          'samePassword123',
+        );
+      },
+      (err: { statusCode?: number }) => {
+        assert.strictEqual(err.statusCode, 400);
+        return true;
+      },
+    );
+  });
+
+  it('should successfully update password when inputs are valid', async () => {
+    const { User } = await import('../models/User');
+    const { Encrypt } = await import('../utils/Encypt');
+    const { UserService } = await import('../services/UserService');
+
+    const user = new User();
+    user.setId('123e4567-e89b-12d3-a456-426614174000');
+    user.setEmail('user@example.com');
+    user.setPassword(Encrypt.saltHash('oldPassword123').toString('hex'));
+
+    let savedHash: string | undefined;
+    const mockRepo = {
+      findById: async () => user,
+      updatePassword: async (_id: unknown, hash: string) => {
+        savedHash = hash;
+        user.setPassword(hash);
+        return user;
+      },
+    } as unknown as import('../repositories/UserRepository').UserRepository;
+
+    const service = new UserService(mockRepo);
+
+    await service.updatePassword(
+      '123e4567-e89b-12d3-a456-426614174000',
+      'oldPassword123',
+      'brandNewPassword123',
+    );
+
+    assert.ok(savedHash);
+    assert.strictEqual(
+      Encrypt.verifySaltHash('brandNewPassword123', savedHash),
+      true,
+    );
+  });
+});
+
+describe('UserController remaining methods', () => {
+  it('should successfully update profile and return 200', async () => {
+    const { User } = await import('../models/User');
+    const { UserController } = await import('../controllers/UserController');
+
+    const user = new User();
+    user.setId('123e4567-e89b-12d3-a456-426614174000');
+    user.setUsername('Updated Name');
+    user.setEmail('user@example.com');
+    user.setRole('adopter');
+    user.setCreatedAt(new Date().toISOString());
+
+    const mockUserService = {
+      updateProfile: async () => user,
+    } as unknown as import('../services/UserService').UserService;
+
+    const controller = new UserController(mockUserService);
+
+    const req = {
+      user: { sub: '123e4567-e89b-12d3-a456-426614174000' },
+      body: { username: 'Updated Name' },
+    } as unknown as Request;
+
+    let statusCode: number | undefined;
+    let responseBody: unknown;
+    const res = {
+      status(code: number) {
+        statusCode = code;
+        return this;
+      },
+      json(data: unknown) {
+        responseBody = data;
+        return this;
+      },
+    } as unknown as Response;
+
+    const next = () => {};
+
+    await controller.updateProfile(req, res, next);
+    assert.strictEqual(statusCode, 200);
+    const typedBody = responseBody as { success: boolean; data: { username: string } };
+    assert.strictEqual(typedBody.success, true);
+    assert.strictEqual(typedBody.data.username, 'Updated Name');
+  });
+
+  it('should successfully delete own account via deleteMe and return 200', async () => {
+    const { UserController } = await import('../controllers/UserController');
+
+    let deletedId: string | undefined;
+    const mockUserService = {
+      deleteById: async (id: string) => {
+        deletedId = id;
+      },
+    } as unknown as import('../services/UserService').UserService;
+
+    const controller = new UserController(mockUserService);
+
+    const req = {
+      user: { sub: '123e4567-e89b-12d3-a456-426614174000' },
+    } as unknown as Request;
+
+    let statusCode: number | undefined;
+    let responseBody: unknown;
+    const res = {
+      status(code: number) {
+        statusCode = code;
+        return this;
+      },
+      json(data: unknown) {
+        responseBody = data;
+        return this;
+      },
+    } as unknown as Response;
+
+    const next = () => {};
+
+    await controller.deleteMe(req, res, next);
+    assert.strictEqual(statusCode, 200);
+    assert.strictEqual(deletedId, '123e4567-e89b-12d3-a456-426614174000');
+    const typedBody = responseBody as { success: boolean };
+    assert.strictEqual(typedBody.success, true);
+  });
+
+  it('should successfully update user role via updateRole and return 200', async () => {
+    const { User } = await import('../models/User');
+    const { UserController } = await import('../controllers/UserController');
+
+    const user = new User();
+    user.setId('123e4567-e89b-12d3-a456-426614174000');
+    user.setUsername('Role User');
+    user.setEmail('role@example.com');
+    user.setRole('volunteer');
+    user.setCreatedAt(new Date().toISOString());
+
+    const mockUserService = {
+      updateRole: async () => user,
+    } as unknown as import('../services/UserService').UserService;
+
+    const controller = new UserController(mockUserService);
+
+    const req = {
+      params: { id: '123e4567-e89b-12d3-a456-426614174000' },
+      body: { role: 'volunteer' },
+    } as unknown as Request;
+
+    let statusCode: number | undefined;
+    let responseBody: unknown;
+    const res = {
+      status(code: number) {
+        statusCode = code;
+        return this;
+      },
+      json(data: unknown) {
+        responseBody = data;
+        return this;
+      },
+    } as unknown as Response;
+
+    const next = () => {};
+
+    await controller.updateRole(req, res, next);
+    assert.strictEqual(statusCode, 200);
+    const typedBody = responseBody as { success: boolean; data: { role: string } };
+    assert.strictEqual(typedBody.success, true);
+    assert.strictEqual(typedBody.data.role, 'volunteer');
+  });
+
+  it('should successfully delete user by id and return 200', async () => {
+    const { UserController } = await import('../controllers/UserController');
+
+    let deletedId: string | undefined;
+    const mockUserService = {
+      deleteById: async (id: string) => {
+        deletedId = id;
+      },
+    } as unknown as import('../services/UserService').UserService;
+
+    const controller = new UserController(mockUserService);
+
+    const req = {
+      params: { id: '123e4567-e89b-12d3-a456-426614174000' },
+    } as unknown as Request;
+
+    let statusCode: number | undefined;
+    let responseBody: unknown;
+    const res = {
+      status(code: number) {
+        statusCode = code;
+        return this;
+      },
+      json(data: unknown) {
+        responseBody = data;
+        return this;
+      },
+    } as unknown as Response;
+
+    const next = () => {};
+
+    await controller.deleteById(req, res, next);
+    assert.strictEqual(statusCode, 200);
+    assert.strictEqual(deletedId, '123e4567-e89b-12d3-a456-426614174000');
+    const typedBody = responseBody as { success: boolean };
+    assert.strictEqual(typedBody.success, true);
+  });
+});
+
+describe('UserRouter', () => {
+  it('should register all user routes correctly', async () => {
+    const { UserRouter } = await import('../routes/UserRouter');
+    const mockController = {
+      register: () => {},
+      signIn: () => {},
+      userInfo: () => {},
+      getAll: () => {},
+      getById: () => {},
+      countAll: () => {},
+      updatePassword: () => {},
+      updateProfile: () => {},
+      deleteMe: () => {},
+      updateRole: () => {},
+      deleteById: () => {},
+    } as unknown as import('../controllers/UserController').UserController;
+
+    const userRouter = new UserRouter(mockController);
+    const routes = userRouter.router.stack.map((layer) => ({
+      path: layer.route?.path,
+      methods: (layer.route as { methods?: Record<string, boolean> } | undefined)
+        ?.methods,
+    }));
+
+    assert.ok(routes.some((r) => r.path === '/count'));
+    assert.ok(routes.some((r) => r.path === '/all'));
+    assert.ok(routes.some((r) => r.path === '/create'));
+    assert.ok(routes.some((r) => r.path === '/signin'));
+    assert.ok(routes.some((r) => r.path === '/me' && r.methods?.get));
+    assert.ok(routes.some((r) => r.path === '/me' && r.methods?.patch));
+    assert.ok(routes.some((r) => r.path === '/me' && r.methods?.delete));
+    assert.ok(routes.some((r) => r.path === '/me/password' && r.methods?.patch));
+    assert.ok(routes.some((r) => r.path === '/:id' && r.methods?.get));
+    assert.ok(routes.some((r) => r.path === '/:id/role' && r.methods?.patch));
+    assert.ok(routes.some((r) => r.path === '/:id' && r.methods?.delete));
+  });
 });
 

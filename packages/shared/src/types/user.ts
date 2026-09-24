@@ -25,6 +25,14 @@ export type CreateUserInput = {
 
 export type UpdateUserInput = Partial<Omit<CreateUserInput, 'email'>>;
 
+export interface UserWithRelationsCount extends User {
+  counts: {
+    adoptions: number;
+    events: number;
+    favorites: number;
+  };
+}
+
 export interface UserProfile {
   id: string;
   username: string;
@@ -41,3 +49,4 @@ export interface UserJwt {
   username: string;
   email: string;
 }
+
