@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { randomUUID } from 'expo-crypto';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -47,7 +48,7 @@ const activityTypeLabels: Record<ActivityType, string> = {
 };
 
 function createId(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return randomUUID();
 }
 
 function formatDate(value: string): string {
