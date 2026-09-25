@@ -291,3 +291,11 @@ A aplicação mobile/web possui a tela protegida `/(protected)/activities`, disp
 Nesta etapa, as atividades são persistidas apenas no `AsyncStorage` do dispositivo pela chave `@kapa/weekly-activities`, seguindo o padrão do cadastro local de voluntários. Não foram criados endpoints, tabelas, migrações ou alterações de autorização no servidor. A sincronização real e a autorização no backend deverão ser implementadas e revisadas em uma etapa posterior.
 
 ---
+
+## 8. População de dados de desenvolvimento
+
+O backend possui um comando de população explícito do Prisma (`npm run prisma:seed` em `apps/server`). Ele cria ou atualiza uma conta administrativa local com o papel `admin` e a regra `admin:*`, sem alterar o esquema ou criar migrações.
+
+As credenciais são lidas somente de `SEED_ADMIN_EMAIL` e `SEED_ADMIN_PASSWORD` no arquivo local `apps/server/.env`, que é ignorado pelo Git. O comando é bloqueado quando `NODE_ENV=production`.
+
+---
