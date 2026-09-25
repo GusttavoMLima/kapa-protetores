@@ -2,8 +2,9 @@ import {
   SecondaryCard,
   SecondaryCardProps,
 } from '@/components/cards/secondary';
+import { useAuth } from '@/hooks/useAuth';
 import { palette } from '@/theme';
-import { HandHeartIcon, PawPrintIcon } from 'phosphor-react-native';
+import { CalendarIcon, HandHeartIcon, PawPrintIcon } from 'phosphor-react-native';
 import { ScrollView } from 'react-native';
 
 const secondaryHomeCards: SecondaryCardProps[] = [
@@ -20,7 +21,7 @@ const secondaryHomeCards: SecondaryCardProps[] = [
       color: palette.orange,
     },
   },
-   {
+  {
     icon: {
       component: <HandHeartIcon size={24} color="#615FFF" weight="fill" />,
       backgroundColor: '#A3B3FF',
@@ -36,6 +37,27 @@ const secondaryHomeCards: SecondaryCardProps[] = [
 ];
 
 export function HomeScreen() {
+  const { user } = useAuth();
+  const canManageActivities = user?.role === 'admin' || user?.role === 'protector';
+  const cards: SecondaryCardProps[] = canManageActivities
+    ? [
+        ...secondaryHomeCards,
+        {
+          icon: {
+            component: <CalendarIcon size={24} color={palette.denim} weight="fill" />,
+            backgroundColor: palette.peach,
+          },
+          title: 'Organizar atividades',
+          description: 'Cadastre as ações da semana para os voluntários.',
+          link: {
+            label: 'Gerenciar semana',
+            href: '/(protected)/activities',
+            color: palette.denim,
+          },
+        },
+      ]
+    : secondaryHomeCards;
+
   return (
     <ScrollView
       className="flex-1 p-4 gap-4"
@@ -47,7 +69,7 @@ export function HomeScreen() {
         contentContainerStyle={{ gap: 16 }}
         className="flex-row"
       >
-        {secondaryHomeCards.map((card, index) => (
+        {cards.map((card, index) => (
           <SecondaryCard key={index} {...card} />
         ))}
       </ScrollView>

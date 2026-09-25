@@ -13,6 +13,7 @@
     "test:k6:load": "docker compose run --rm k6 run /scripts/load-test.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "prisma db seed",
     "prisma:studio": "prisma studio"
   },
   "dependencies": {

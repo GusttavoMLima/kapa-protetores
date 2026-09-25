@@ -282,3 +282,20 @@ O backend possui suporte a testes de carga e estresse utilizando o **Grafana k6*
   ```
 
 > **Aviso de Governança (`AGENTS.md`):** Nunca execute alterações diretas no esquema do banco de dados (`schema.prisma`) ou crie migrações sem alinhamento e autorização prévia da equipe.
+---
+
+## 7. Gestão semanal de atividades — Interface mobile/web
+
+A aplicação mobile/web possui a tela protegida `/(protected)/activities`, disponível na Home para os papéis `admin` e `protector`. Ela permite listar e cadastrar atividades semanais com título, descrição, tipo, data, horário, local e número de vagas. Data e horários são selecionados pelos controles nativos do navegador ou do celular, sem digitação manual.
+
+Nesta etapa, as atividades são persistidas apenas no `AsyncStorage` do dispositivo pela chave `@kapa/weekly-activities`, seguindo o padrão do cadastro local de voluntários. Não foram criados endpoints, tabelas, migrações ou alterações de autorização no servidor. A sincronização real e a autorização no backend deverão ser implementadas e revisadas em uma etapa posterior.
+
+---
+
+## 8. População de dados de desenvolvimento
+
+O backend possui um comando de população explícito do Prisma (`npm run prisma:seed` em `apps/server`). Ele cria ou atualiza uma conta administrativa local com o papel `admin` e a regra `admin:*`, sem alterar o esquema ou criar migrações.
+
+As credenciais são lidas somente de `SEED_ADMIN_EMAIL` e `SEED_ADMIN_PASSWORD` no arquivo local `apps/server/.env`, que é ignorado pelo Git. O comando é bloqueado quando `NODE_ENV=production`.
+
+---
