@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useGoogleAuth } from '@/hooks/useGoogleAuth';
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { isAxiosError } from 'axios';
 
 const loginSchema = z.object({
   email: z.string().email('Formato de e-mail inválido'),
@@ -43,18 +44,18 @@ export function LoginForm() {
       clearGoogleError();
       await signIn(data.email, data.password);
     } catch (err: unknown) {
-      const axiosError = err as {
-        response?: {
-          data?: {
-            message?: string;
-            error?: string;
-          };
-        };
-      };
+      const axiosError = isAxiosError<{
+        message?: string;
+        error?: string;
+      }>(err)
+        ? err
+        : null;
       setErrorMessage(
-        axiosError?.response?.data?.message ||
-          axiosError?.response?.data?.error ||
-          'E-mail ou senha incorretos. Verifique suas credenciais.',
+        !axiosError?.response
+          ? 'Não foi possível conectar à API. Verifique se o servidor está ligado.'
+          : axiosError.response.data?.message ||
+              axiosError.response.data?.error ||
+              'E-mail ou senha incorretos. Verifique suas credenciais.',
       );
     }
   };

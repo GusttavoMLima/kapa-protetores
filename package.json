@@ -21,7 +21,8 @@
     "prisma:generate": "prisma generate",
     "prisma:studio": "npm run prisma:studio --workspace=apps/server",
     "type-check": "tsc --noEmit --project apps/server/tsconfig.json && tsc --noEmit --project apps/mobile-web/tsconfig.json",
-    "test": "npm run test --workspace=@kapa/server",
+    "test": "npm run test --workspace=@kapa/server && npm run test:animal-model",
+    "test:animal-model": "node --import tsx --test apps/mobile-web/tests/animal-management-model.test.mjs",
     "test:k6": "npm run test:k6 --workspace=@kapa/server",
     "test:k6:load": "npm run test:k6:load --workspace=@kapa/server",
     "prepare": "husky"

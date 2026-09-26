@@ -29,6 +29,8 @@ import type {
 } from '@/types/animal';
 import { hojeBr } from '@kapa/shared/utils';
 import { ApiError } from '@/services/api';
+import { BackLink } from '@/screens/animalManagement/components';
+import { router } from 'expo-router';
 
 function novoId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -281,6 +283,7 @@ export function CadastroAnimalScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View className="w-full max-w-form self-center gap-5 px-5 pb-8 pt-6">
+            <BackLink label="Animais do abrigo" onPress={() => { if (!salvando) { if (router.canGoBack()) router.back(); else router.replace('/gestao/animais'); } }} />
           <View className="gap-1.5 pt-[18px]">
             <Text className="font-heading-bold text-2xl leading-[30px] text-ink">
               Cadastro de animal

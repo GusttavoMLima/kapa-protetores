@@ -2,6 +2,47 @@
 
 Este documento consolida a arquitetura de autenticação (**Google OAuth** e **E-mail/Senha**), persistência de sessão, integração entre React Native/Expo e a API Express, infraestrutura local com Docker e procedimentos para resolução de problemas e garantia de qualidade.
 
+## Gestão dos animais do abrigo
+
+### Interface e permissões
+
+- Entrada na home: **Animais do abrigo → Gerenciar animais**, para `admin`, `protector` e `volunteer`.
+- `/gestao/animais`: listagem interna com busca por nome/raça, espécie, status, ordenação e paginação de 12 registros. Os contadores representam todo o abrigo, independentemente dos filtros.
+- `/gestao/animais/[id]`: edição de identificação, porte, acompanhamento, saúde, temperamento, local e observações. Validação no cliente e na API; falhas ao salvar preservam o formulário. Retornar à lista mantém os filtros enquanto a tela permanece na pilha e recarrega os dados.
+- `/cadastro-animal`: formulário existente, agora protegido pelos mesmos perfis e com retorno à listagem.
+- `/adopet` permanece reservado ao catálogo de adoção. Adotantes não recebem ações de gestão.
+- Estilo em Tailwind/NativeWind, com os tokens existentes, fontes do projeto, limite de 1140px do `DESIGN.md`, linhas no desktop e cartões no celular. Seletores possuem estados acessíveis, alvos mínimos de 48px e os status incluem texto.
+
+### Contrato da API
+
+| Método / caminho | Uso |
+| --- | --- |
+| `GET /api/animals/management` | Listagem interna paginada, todos os status |
+| `GET /api/animals/management/:id` | Cadastro completo, incluindo fotos |
+| `PATCH /api/animals/management/:id` | Atualiza apenas os campos enviados; campos desconhecidos e corpo vazio são rejeitados |
+| `POST /api/animals` | Cadastro existente, restrito à equipe |
+| `POST /api/animals/:id/photos` | Upload existente, restrito à equipe |
+| `GET /api/animals` | Consulta pública: apenas `available` |
+| `GET /api/animals/:id` | Consulta pública: retorna 404 se o animal não estiver disponível |
+
+A listagem interna aceita `page` (padrão 1), `pageSize` (padrão 12, máximo 50), `search` (até 120 caracteres), `species` (`dog/cat/other`), `status` (`rescued/treating/available/adopted`) e `sort` (`recent/name`). Retorna `{ success: true, data: { items, total, page, pageSize, counts } }`. `counts` contém as quatro contagens globais. A pesquisa e paginação são executadas no PostgreSQL; a listagem inclui a foto mais recente de cada animal.
+
+As rotas de gestão, criação e upload validam o JWT e consultam o **papel atual do usuário no banco**, para que remoção de conta ou revogação de papel não dependam da expiração do token. `adopter` recebe 403; sessão ausente, inválida, expirada ou conta removida recebe 401. IDs e entradas são validados. O cadastro público `POST /api/auth/register` aceita somente `adopter`: equipe é atribuída pela administração, evitando autoatribuição de acesso. O fluxo público `/api/users/create` já força `adopter`.
+
+**Integração com o catálogo do colega:** respostas públicas usam uma projeção própria com identificação, características de adoção, status e fotos. Não retornam `place`, `observations`, `rescuedAt`, `healthCondition` nem `createdAt`. Para informações internas, usar os endpoints de gestão autenticados. A tela de interesses/adoção não foi implementada nesta entrega.
+
+### Persistência e limites
+
+Não houve mudança no schema, migrations ou índices. São usadas `tb_animals`, `tb_animal_photos` e a coluna `role` de `tb_users`. O modelo atual representa um único abrigo; não possui vínculo por ONG ou responsável para limitar registros por instituição.
+
+O editor envia PATCH apenas dos campos exibidos, preservando `ageStage`, escores de comportamento, compatibilidades, data de resgate e fotos. A foto existente é apresentada; troca de foto e histórico veterinário não fazem parte deste editor. Os campos extras do cadastro legado (pelagem e histórico individual de doses, por exemplo) não têm colunas próprias: esta entrega não cria persistência para eles nem altera silenciosamente o schema.
+
+### Verificações da funcionalidade
+
+- `npm run type-check` e `npm run lint`.
+- `npm test`: testes da API mais testes do modelo de edição; cobre perfis, revogação, token inválido/expirado, filtros, paginação, PATCH parcial, campos privados e autoelevação no cadastro público.
+- Teste de navegador: iniciar Expo em `localhost:8081` e executar `node apps/mobile-web/tests/animal-management-browser.cjs` com Playwright disponível (ou `PLAYWRIGHT_MODULE_PATH` apontando para uma instalação existente) e Microsoft Edge instalado. `ANIMAL_UI_URL` permite outro endereço. O teste intercepta a API com fixtures isoladas, não altera o banco e grava capturas em `apps/mobile-web/.expo/animal-management-qa/` (ignorado pelo Git). Verifica desktop/celular, busca, filtros, paginação, edição, validação, erros, estado vazio e bloqueio de adotantes.
+
 ---
 
 ## 1. Arquitetura de Autenticação e Sessão
@@ -213,7 +254,7 @@ Os serviços de banco, cache e armazenamento de arquivos são executados via Doc
 | `DATABASE_URL` | Backend | String de conexão com o PostgreSQL |
 | `JWT_SECRET` | Backend | Chave secreta para assinatura dos tokens JWT |
 | `SALT_SECRET` | Backend | Segredo utilizado na derivação PBKDF2 de senhas |
-| `CLIENT_URL` | Backend | URL do cliente autorizada no CORS (padrão: `http://localhost:8081`) |
+| `CLIENT_URL` | Backend | Lista exata de origens web autorizadas pelo CORS, separadas por vírgula (desenvolvimento: portas 8081 e 8082) |
 | `GOOGLE_CLIENT_ID` | Backend | Client ID principal da aplicação Google |
 | `GOOGLE_WEB_CLIENT_ID` | Backend | Client ID web para verificação de audiência |
 | `GOOGLE_IOS_CLIENT_ID` | Backend | Client ID iOS para verificação de audiência |
@@ -221,6 +262,32 @@ Os serviços de banco, cache e armazenamento de arquivos são executados via Doc
 | `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | Mobile/Web | Client ID Google injetado no navegador pelo Expo |
 | `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | Mobile/Web | Client ID nativo para dispositivos iOS |
 | `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` | Mobile/Web | Client ID nativo para dispositivos Android |
+
+Se o Client ID correspondente à plataforma estiver vazio, a aplicação continua
+disponível para autenticação por e-mail e senha e mantém o botão Google
+desabilitado. O hook usa um identificador interno apenas para satisfazer a
+inicialização do `expo-auth-session`; ele nunca inicia o OAuth enquanto a
+variável pública real não estiver configurada. Depois de alterar uma variável
+`EXPO_PUBLIC_*`, reinicie o Metro para que o valor seja incorporado ao bundle.
+
+O Expo SDK 57 resolve workspaces do monorepo automaticamente. O
+`metro.config.js` não define `watchFolders` nem `resolver.nodeModulesPaths`;
+isso evita a varredura manual de todo o repositório e o erro `EMFILE: too many
+open files` no Windows. Após alterar essa configuração, execute o Expo uma vez
+com `npm run web --workspace=apps/mobile-web -- --clear` para remover o cache
+antigo. O script `web` limita o Metro a um worker para reduzir o número de
+arquivos abertos simultaneamente no Windows.
+
+O destino web usa `output: "single"` (SPA). As telas dependem da sessão
+persistida no navegador e não usam carregadores ou API Routes do Expo; nesse
+modo o desenvolvimento gera somente o bundle do cliente, evitando a segunda
+compilação usada pela renderização estática e reduzindo o consumo de arquivos
+no Windows. A API Express continua sendo executada separadamente na porta
+4000.
+
+O Tailwind usa `darkMode: "class"`. Além de deixar a troca de tema explícita,
+isso evita que o `react-native-css-interop` tente alterar manualmente um tema
+configurado como `media` quando o CSS é injetado pelo Metro no navegador.
 | `EXPO_PUBLIC_API_URL` | Mobile/Web | URL base da API (padrão: `http://localhost:4000/api`) |
 
 ---

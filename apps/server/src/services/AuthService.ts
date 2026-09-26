@@ -18,7 +18,7 @@ export class AuthService {
     username: string;
     email: string;
     password: string;
-    role: Extract<UserRole, 'adopter' | 'volunteer'>;
+    role: Extract<UserRole, 'adopter'>;
   }): Promise<AuthResponse> {
     const email = Email.create(input.email);
     if (await this.repository.findByEmail(email)) {
@@ -28,7 +28,7 @@ export class AuthService {
     const user = new User();
     user.setUsername(input.username);
     user.setEmail(email);
-    user.setRole(input.role);
+    user.setRole('adopter');
     user.setRules(Array.from(DEFAULT_USER_ADOPTER_RULES));
     user.setPassword(await this.passwordHasher.hash(input.password));
     const created = await this.repository.create(user);

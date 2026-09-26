@@ -16,6 +16,7 @@ import { JwtService } from '../security/JwtService';
 import { AuthMiddleware } from '../middlewares/AuthMiddleware';
 import { AnimalPhotosController } from '../controllers/AnimalPhotosController';
 import { AnimalPhotoService } from '../services/AnimalPhotoService';
+import { animalManagementAccess } from '../middlewares/AnimalManagementMiddleware';
 
 const jwtService = new JwtService(
   process.env.JWT_SECRET ?? '',
@@ -24,6 +25,7 @@ const jwtService = new JwtService(
   Number(process.env.ACCESS_TOKEN_TTL_SECONDS) || 900,
 );
 const authMiddleware = new AuthMiddleware(jwtService);
+const userRepository = new UserRepository(prisma);
 
 const animalRepository = new PostgresAnimalRepository(prisma);
 const animalService = new AnimalService(animalRepository);
@@ -40,9 +42,9 @@ const animalsRouter = new AnimalsRouter(
   new AnimalsController(animalService),
   new AnimalPhotosController(animalPhotoService),
   authMiddleware,
+  animalManagementAccess(userRepository),
 );
 
-const userRepository = new UserRepository(prisma);
 const authService = new AuthService(
   userRepository,
   new PasswordHasher(),

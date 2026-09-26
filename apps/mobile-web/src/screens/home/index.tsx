@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { palette } from '@/theme';
 import { CalendarIcon, HandHeartIcon, PawPrintIcon } from 'phosphor-react-native';
 import { ScrollView } from 'react-native';
+import { canManageAnimals } from '@kapa/shared';
 
 const secondaryHomeCards: SecondaryCardProps[] = [
   {
@@ -58,6 +59,13 @@ export function HomeScreen() {
       ]
     : secondaryHomeCards;
 
+  const visibleCards = canManageAnimals(user?.role) ? [{
+    icon: { component: <PawPrintIcon size={24} color={palette.denim} weight="fill" />, backgroundColor: palette.peach },
+    title: 'Animais do abrigo',
+    description: 'Acompanhe os resgates e atualize os cuidados de cada animal.',
+    link: { label: 'Gerenciar animais', href: '/gestao/animais' as const, color: palette.denim },
+  }, ...cards] : cards;
+
   return (
     <ScrollView
       className="flex-1 p-4 gap-4"
@@ -69,7 +77,7 @@ export function HomeScreen() {
         contentContainerStyle={{ gap: 16 }}
         className="flex-row"
       >
-        {cards.map((card, index) => (
+        {visibleCards.map((card, index) => (
           <SecondaryCard key={index} {...card} />
         ))}
       </ScrollView>

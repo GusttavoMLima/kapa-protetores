@@ -59,6 +59,23 @@ export type CreateAnimalInput = Omit<Animal, 'id' | 'createdAt' | 'photos'>;
 
 export type UpdateAnimalInput = Partial<CreateAnimalInput>;
 
+export interface AnimalManagementQuery {
+  page: number;
+  pageSize: number;
+  search?: string;
+  species?: Species;
+  status?: AnimalStatus;
+  sort: 'recent' | 'name';
+}
+
+export interface AnimalManagementPage {
+  items: Animal[];
+  total: number;
+  page: number;
+  pageSize: number;
+  counts: Record<AnimalStatus, number>;
+}
+
 export interface AnimalFilterParams {
   species?: Species;
   gender?: Genders;

@@ -3,6 +3,7 @@ import cors from 'cors';
 import { Server as HttpServer } from 'http';
 import { ApiRouter } from './routes/ApiRouter';
 import { ErrorHandler } from './middlewares/ErrorHandler';
+import { AppError } from './errors';
 
 export interface AppConfig {
   port: number;
@@ -12,16 +13,21 @@ export interface AppConfig {
 export class App {
   public readonly app: Application;
   private readonly port: number;
-  private readonly clientUrl: string;
+  private readonly allowedOrigins: ReadonlySet<string>;
   private server?: HttpServer;
 
   constructor(
-    private readonly apiRouter: ApiRouter,
+    private readonly apiRouter: Pick<ApiRouter, 'router'>,
     config: AppConfig,
   ) {
     this.app = express();
     this.port = config.port;
-    this.clientUrl = config.clientUrl;
+    this.allowedOrigins = new Set(
+      config.clientUrl
+        .split(',')
+        .map((origin) => origin.trim().replace(/\/+$/, ''))
+        .filter(Boolean),
+    );
 
     this.setupMiddlewares();
     this.setupRoutes();
@@ -29,15 +35,13 @@ export class App {
   }
 
   private setupMiddlewares(): void {
-    const allowedOrigins = [this.clientUrl, 'http://localhost:8081'];
-
     this.app.use(
       cors({
         origin: (origin, callback) => {
-          if (!origin || allowedOrigins.includes(origin)) {
+          if (!origin || this.allowedOrigins.has(origin.replace(/\/+$/, ''))) {
             return callback(null, true);
           }
-          return callback(new Error(`Origin ${origin} not allowed by CORS`));
+          return callback(AppError.forbidden('Origem não permitida.'));
         },
         credentials: true,
       }),

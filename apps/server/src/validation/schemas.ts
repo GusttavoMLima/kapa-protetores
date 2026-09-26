@@ -4,8 +4,19 @@ export const registerSchema = z.object({
   username: z.string().trim().min(3).max(80),
   email: z.string().trim().email().max(254).transform((value) => value.toLowerCase()),
   password: z.string().min(12).max(128),
-  role: z.enum(['adopter', 'volunteer']).default('adopter'),
+  role: z.literal('adopter').default('adopter'),
 }).strict();
+
+export const animalManagementQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).max(100000).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(12),
+  search: z.string().trim().max(120).optional(),
+  species: z.enum(['dog', 'cat', 'other']).optional(),
+  status: z.enum(['rescued', 'treating', 'available', 'adopted']).optional(),
+  sort: z.enum(['recent', 'name']).default('recent'),
+}).strict();
+
+export const animalIdSchema = z.string().cuid();
 
 export const adminCreateUserSchema = z.object({
   username: z.string().trim().min(3).max(80),
@@ -43,3 +54,6 @@ export const createAnimalSchema = z.object({
   observations: z.string().trim().max(4000).nullable().optional(),
   status: z.enum(['rescued', 'treating', 'available', 'adopted']),
 }).strict();
+
+export const updateAnimalSchema = createAnimalSchema.partial()
+  .refine((value) => Object.keys(value).length > 0, 'Informe ao menos um campo.');
