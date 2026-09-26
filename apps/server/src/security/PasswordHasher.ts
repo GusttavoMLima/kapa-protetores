@@ -4,6 +4,7 @@ import {
   timingSafeEqual,
 } from 'node:crypto';
 import { promisify } from 'node:util';
+import { Encrypt } from '../utils/Encypt';
 
 const scrypt = promisify(scryptCallback);
 const KEY_LENGTH = 64;
@@ -16,6 +17,7 @@ export class PasswordHasher {
   }
 
   public async verify(password: string, storedHash: string): Promise<boolean> {
+    if (/^[a-f0-9]{128}$/i.test(storedHash)) return Encrypt.verifySaltHash(password, storedHash);
     const [algorithm, saltValue, hashValue] = storedHash.split('$');
     if (algorithm !== 'scrypt' || !saltValue || !hashValue) return false;
 

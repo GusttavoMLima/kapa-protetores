@@ -8,7 +8,8 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "edu.fatec.kapaprotetores"
     },
     "android": {
       "adaptiveIcon": {
@@ -17,7 +18,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "edu.fatec.kapaprotetores"
     },
     "web": {
       "bundler": "metro",
@@ -49,7 +51,16 @@
           "imageWidth": 300,
           "resizeMode": "contain"
         }
-      ]
-    ]
+      ],
+      "expo-secure-store",
+      "expo-web-browser",
+      "@react-native-community/datetimepicker"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "2fe7d1ce-3a78-44ce-ac8d-5e6cf15f8fd3"
+      }
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { UserRole } from '@kapa/shared';
+import { UserRole, UserWithRelationsCount } from '@kapa/shared';
 import { Email } from '../domains/Email';
 import { Url } from '../domains/Url';
 import { UUID } from '../domains/UUID';
@@ -19,11 +19,17 @@ export class UserRepository implements IUserRepository {
     user.setAvatar(record.avatar);
     user.setRole(record.role);
     user.setRules(record.rules);
-    user.setLatitude(record.latitude === null ? null : Number(record.latitude));
-    user.setLongitude(record.longitude === null ? null : Number(record.longitude));
+    user.setLatitude(record.latitude != null ? Number(record.latitude) : null);
+    user.setLongitude(
+      record.longitude != null ? Number(record.longitude) : null,
+    );
     user.setCreatedAt(record.created_at.toISOString());
 
     return user;
+  }
+
+  async countAll(): Promise<number> {
+    return await this.prisma.user.count();
   }
 
   async findAll(): Promise<User[]> {
@@ -45,6 +51,53 @@ export class UserRepository implements IUserRepository {
     const user = this.mapToDomain(data);
 
     return user;
+  }
+
+  async findByIdCountingRelations(
+    id: UUID,
+  ): Promise<UserWithRelationsCount | null> {
+    const data = await this.prisma.user.findUnique({
+      where: {
+        id: id.toString(),
+      },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        avatar: true,
+        role: true,
+        rules: true,
+        latitude: true,
+        longitude: true,
+        created_at: true,
+        _count: {
+          select: {
+            adoptions: true,
+            events: true,
+            favorites: true,
+          },
+        },
+      },
+    });
+
+    if (!data) return null;
+
+    return {
+      id: data.id,
+      username: data.username,
+      email: data.email,
+      avatar: data.avatar,
+      role: data.role,
+      rules: data.rules,
+      latitude: data.latitude != null ? Number(data.latitude) : null,
+      longitude: data.longitude != null ? Number(data.longitude) : null,
+      createdAt: data.created_at.toISOString(),
+      counts: {
+        adoptions: data._count.adoptions,
+        events: data._count.events,
+        favorites: data._count.favorites,
+      },
+    };
   }
 
   async findByIdValue(id: string): Promise<User | null> {
@@ -187,9 +240,14 @@ export class UserRepository implements IUserRepository {
           password: user.getPassword() ?? undefined,
           role: user.getRole(),
           rules: [...user.getRules()],
-          avatar: user.getAvatar()?.toString() ?? undefined,
-          latitude: user.getLatitude() ?? undefined,
-          longitude: user.getLongitude() ?? undefined,
+          avatar:
+            user.getAvatar() !== undefined
+              ? user.getAvatar()?.toString() ?? null
+              : undefined,
+          latitude:
+            user.getLatitude() !== undefined ? user.getLatitude() : undefined,
+          longitude:
+            user.getLongitude() !== undefined ? user.getLongitude() : undefined,
         },
       }),
     );

@@ -1,36 +1,43 @@
-import type { NextFunction, Request, Response } from 'express';
-import { AppError } from '../errors';
-import { AuthService } from '../services/AuthService';
+import { Request, Response, NextFunction } from 'express';
+import { googleAuthSchema } from '../schemas/auth.schema';
+import { UserService } from '../services/UserService';
+import { Jwt } from '../utils/Jwt';
+import { AppError } from '../errors/AppError';
 
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly userService: UserService) {}
 
-  public register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public googleSignIn = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
-      const data = await this.authService.register(req.body);
-      res.status(201).json({ success: true, data });
-    } catch (error) { next(error); }
+      const parseResult = googleAuthSchema.safeParse(req.body);
+
+      if (!parseResult.success) {
+        throw AppError.badRequest(
+          'idToken é obrigatório para login com Google',
+          parseResult.error.format(),
+        );
+      }
+
+      const { idToken } = parseResult.data;
+      const user = await this.userService.authenticateWithGoogle(idToken);
+      const token = Jwt.generateUserToken(user);
+
+      res.status(200).json({
+        success: true,
+        message: 'Autenticado com sucesso',
+        data: {
+          token,
+          user: user.toDTO(),
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
   };
 
-  public login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const data = await this.authService.login(req.body);
-      res.status(200).json({ success: true, data });
-    } catch (error) { next(error); }
-  };
-
-  public me = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      if (!req.auth) throw AppError.unauthorized();
-      const data = await this.authService.getProfile(req.auth.userId);
-      res.status(200).json({ success: true, data });
-    } catch (error) { next(error); }
-  };
-
-  public createUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const data = await this.authService.createUserByAdmin(req.body);
-      res.status(201).json({ success: true, message: 'Usuário cadastrado com sucesso.', data });
-    } catch (error) { next(error); }
-  };
+  public signIn = this.googleSignIn;
 }

@@ -26,7 +26,16 @@ async function setItem<T>(key: string, data: T): Promise<void> {
   }
 }
 
+async function removeItem(key: string): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(key);
+  } catch (err) {
+    console.error('Error on removing item from async storage: ', err);
+  }
+}
+
 export const genericStorage = {
   set: setItem,
   get: getItem,
+  remove: removeItem,
 };

@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './config/env';
 import { App } from './App';
 import { apiRouter } from './routes';
 import { PrismaService } from './database/PrismaService';

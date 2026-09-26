@@ -1,3 +1,5 @@
+import { authRouter } from './auth.routes';
+import { userRouter } from './user.routes';
 import { ApiRouter } from './ApiRouter';
 import { healthRouter } from './health.routes';
 import { prisma } from '../database/PrismaService';
@@ -6,9 +8,9 @@ import { UserRepository } from '../repositories/UserRepository';
 import { AnimalService } from '../services/AnimalService';
 import { AuthService } from '../services/AuthService';
 import { AnimalsController } from '../controllers/AnimalsController';
-import { AuthController } from '../controllers/AuthController';
+import { CredentialsController } from '../controllers/CredentialsController';
 import { AnimalsRouter } from './AnimalsRouter';
-import { AuthRouter } from './AuthRouter';
+import { CredentialsRouter } from './CredentialsRouter';
 import { PasswordHasher } from '../security/PasswordHasher';
 import { JwtService } from '../security/JwtService';
 import { AuthMiddleware } from '../middlewares/AuthMiddleware';
@@ -46,11 +48,11 @@ const authService = new AuthService(
   new PasswordHasher(),
   jwtService,
 );
-const authRouter = new AuthRouter(
-  new AuthController(authService),
+const credentialsRouter = new CredentialsRouter(
+  new CredentialsController(authService),
   authMiddleware,
 );
 
-const apiRouterInstance = new ApiRouter(healthRouter, animalsRouter, authRouter);
+const apiRouterInstance = new ApiRouter(healthRouter, animalsRouter, authRouter, userRouter, credentialsRouter);
 
 export const apiRouter = apiRouterInstance;

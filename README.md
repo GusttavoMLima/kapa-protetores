@@ -187,6 +187,13 @@ Com o servidor rodando em `http://localhost:4000`:
 
 ## 🤝 Contribuição e Padrões de Código
 
+Antes de contribuir, leia o **[Guia de Contribuição (`CONTRIBUTING.md`)](./CONTRIBUTING.md)**, que define o fluxo de trabalho da equipe:
+
+- **Branches**: `main` (entrega/apresentação) e `development` (integração). Novas branches saem de `development` no padrão `{prefixo}/#{numero-da-issue}` (ex.: `feat/#12`).
+- **Merge**: branch → `development` via **Squash and merge**; `development` → `main` via **Merge commit**, apenas em marcos.
+- **Commits**: [Conventional Commits](https://www.conventionalcommits.org/) com escopo do workspace (`feat(server): ...`, `fix(mobile-web): ...`).
+- **Pull Requests**: referencie a issue com `Closes #12` e obtenha aprovação de outro desenvolvedor.
+
 Conforme estabelecido nas [Diretrizes de Desenvolvimento (`AGENTS.md`)](./AGENTS.md):
 - **Segurança em Primeiro Lugar**: Todas as entradas externas devem ser validadas; nunca versione segredos ou credenciais.
 - **Tipagem Estrita**: Evite o uso de `any`; reutilize os tipos centralizados em `@kapa/shared`.

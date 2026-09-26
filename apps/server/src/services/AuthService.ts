@@ -1,4 +1,4 @@
-import type { AuthResponse } from '@kapa/shared';
+import { DEFAULT_USER_ADOPTER_RULES, type AuthResponse } from '@kapa/shared';
 import type { UserRole } from '@kapa/shared';
 import { AppError } from '../errors';
 import { Email } from '../domains/Email';
@@ -29,6 +29,7 @@ export class AuthService {
     user.setUsername(input.username);
     user.setEmail(email);
     user.setRole(input.role);
+    user.setRules(Array.from(DEFAULT_USER_ADOPTER_RULES));
     user.setPassword(await this.passwordHasher.hash(input.password));
     const created = await this.repository.create(user);
     return this.createResponse(created);
@@ -49,6 +50,7 @@ export class AuthService {
     user.setUsername(input.username);
     user.setEmail(email);
     user.setRole(input.role);
+    user.setRules(input.role === 'admin' ? ['admin:*'] : Array.from(DEFAULT_USER_ADOPTER_RULES));
     user.setPassword(await this.passwordHasher.hash(input.password));
     return (await this.repository.create(user)).toDTO();
   }
@@ -65,14 +67,14 @@ export class AuthService {
   public async getProfile(userId: string) {
     const user = await this.repository.findByIdValue(userId);
     if (!user) throw AppError.unauthorized();
-    return user;
+    return user.toDTO();
   }
 
   private createResponse(user: User): AuthResponse {
     const dto = user.toDTO();
     return {
       user: dto,
-      token: this.jwtService.sign({ sub: dto.id, email: dto.email, role: dto.role }),
+      token: this.jwtService.sign({ sub: dto.id, email: dto.email, role: dto.role, rules: Array.from(dto.rules), username: dto.username }),
     };
   }
 }

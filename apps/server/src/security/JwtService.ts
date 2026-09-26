@@ -19,7 +19,7 @@ export class JwtService {
     }
   }
 
-  public sign(input: { sub: string; email: string; role: UserRole }): string {
+  public sign(input: { sub: string; email: string; role: UserRole; rules?: string[]; username?: string }): string {
     const now = Math.floor(Date.now() / 1000);
     const header = encode({ alg: 'HS256', typ: 'JWT' });
     const payload = encode({

@@ -1,5 +1,5 @@
-import { UnauthorizedScreen } from '@/screens/unauthorized';
+import { HomeScreen } from '@/screens/home';
 
 export default function IndexScreen() {
-  return <UnauthorizedScreen />;
+  return <HomeScreen />;
 }

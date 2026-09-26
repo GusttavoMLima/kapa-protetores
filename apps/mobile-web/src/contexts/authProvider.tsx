@@ -1,21 +1,37 @@
+import { setAccessToken } from '@/services/api';
+import { kapaService } from '@/services/kapaService';
+import { genericStorage } from '@/storage/genericStorage';
+import { User } from '@kapa/shared';
 import { router } from 'expo-router';
-import { createContext, ReactNode, useState } from 'react';
-import type { AuthResponse, User } from '@kapa/shared';
-import { apiRequest, setAccessToken } from '@/services/api';
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
+
+export interface SignUpData {
+  username: string;
+  email: string;
+  password: string;
+  avatar?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}
 
 interface AuthContextProps {
   isLogged: boolean;
   isReady: boolean;
-  user?: User;
-  signIn: (credentials: { email: string; password: string }) => Promise<void>;
-  register: (input: {
-    username: string;
-    email: string;
-    password: string;
-    role: 'adopter' | 'volunteer';
-  }) => Promise<void>;
+  user: User | null;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (data: SignUpData) => Promise<void>;
   signOut: () => void;
+  handleGoogleLogin: (idToken: string) => Promise<void>;
 }
+
+const AUTH_STORAGE_TOKEN_KEY = '@kapa:auth-token';
+const AUTH_STORAGE_DATA_KEY = '@kapa:user-data';
 
 export const AuthContext = createContext<AuthContextProps>(
   {} as AuthContextProps,
@@ -26,48 +42,142 @@ interface AuthProviderProp {
 }
 
 export function AuthProvider({ children }: AuthProviderProp) {
-  const [user, setUser] = useState<User>();
+  const [isLogged, setIsLogged] = useState<boolean>(false);
+  const [isReady, setIsReady] = useState<boolean>(false);
+  const [user, setUser] = useState<User | null>(null);
 
-  const signIn = async (credentials: { email: string; password: string }) => {
-    const auth = await apiRequest<AuthResponse>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    });
-    setAccessToken(auth.token);
-    setUser(auth.user);
-    router.replace('/');
+  const storageState = async (token: string, data: User) => {
+    try {
+      await genericStorage.set<string>(AUTH_STORAGE_TOKEN_KEY, token);
+      await genericStorage.set<User>(AUTH_STORAGE_DATA_KEY, data);
+      kapaService.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      setAccessToken(token);
+    } catch (err) {
+      console.error('Error on saving auth storage state:', err);
+    }
   };
 
-  const signOut = () => {
+  const establishSession = useCallback(
+    async (token: string, userData: User) => {
+      await storageState(token, userData);
+      setUser(userData);
+      setIsLogged(true);
+      router.replace('/(protected)/(tabs)');
+    },
+    [],
+  );
+
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      try {
+        const response = await kapaService.post('/auth/login', {
+          email,
+          password,
+        });
+
+        if (!response.data?.data) {
+          throw new Error('Falha na resposta de autenticação.');
+        }
+
+        const { token, user: userData } = response.data.data;
+        await establishSession(token, userData);
+      } catch (err) {
+        throw err;
+      }
+    },
+    [establishSession],
+  );
+
+  const signUp = useCallback(
+    async (data: SignUpData) => {
+      try {
+        const response = await kapaService.post('/users/create', data);
+
+        if (!response.data?.data) {
+          throw new Error('Falha no cadastro.');
+        }
+
+        const { token, user: userData } = response.data.data;
+        await establishSession(token, userData);
+      } catch (err) {
+        throw err;
+      }
+    },
+    [establishSession],
+  );
+
+  const signOut = async () => {
+    setIsLogged(false);
+    setUser(null);
     setAccessToken(undefined);
-    setUser(undefined);
+    delete kapaService.defaults.headers.common['Authorization'];
+    await genericStorage.remove(AUTH_STORAGE_TOKEN_KEY);
+    await genericStorage.remove(AUTH_STORAGE_DATA_KEY);
     router.replace('/signIn');
   };
 
-  const register = async (input: {
-    username: string;
-    email: string;
-    password: string;
-    role: 'adopter' | 'volunteer';
-  }) => {
-    const auth = await apiRequest<AuthResponse>('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    });
-    setAccessToken(auth.token);
-    setUser(auth.user);
-    router.replace('/');
-  };
+  const handleGoogleLogin = useCallback(
+    async (idToken: string) => {
+      try {
+        const response = await kapaService.post('/auth/google', {
+          idToken,
+        });
+
+        if (!response.data?.data) {
+          throw new Error('Error on authentication.');
+        }
+
+        const { token, user: userData } = response.data.data;
+        await establishSession(token, userData);
+      } catch (err) {
+        throw err;
+      }
+    },
+    [establishSession],
+  );
+
+  useEffect(() => {
+    async function loadStorageState() {
+      try {
+        const storedToken = await genericStorage.get<string>(
+          AUTH_STORAGE_TOKEN_KEY,
+        );
+        const storedUser = await genericStorage.get<User>(
+          AUTH_STORAGE_DATA_KEY,
+        );
+
+        if (storedToken && storedUser) {
+          kapaService.defaults.headers.common['Authorization'] =
+            `Bearer ${storedToken}`;
+          setAccessToken(storedToken);
+          setUser(storedUser);
+          setIsLogged(true);
+        } else {
+          setIsLogged(false);
+          setUser(null);
+        }
+      } catch (err) {
+        console.error('Error loading auth storage state:', err);
+        setIsLogged(false);
+        setUser(null);
+      } finally {
+        setIsReady(true);
+      }
+    }
+
+    loadStorageState();
+  }, []);
 
   return (
     <AuthContext.Provider
       value={{
-        isLogged: Boolean(user),
-        isReady: true,
+        isLogged,
+        isReady,
         user,
         signIn,
-        register,
+        signUp,
         signOut,
+        handleGoogleLogin,
       }}
     >
       {children}
