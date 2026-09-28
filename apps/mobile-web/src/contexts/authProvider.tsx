@@ -1,3 +1,4 @@
+import { setAccessToken } from '@/services/api';
 import { kapaService } from '@/services/kapaService';
 import { genericStorage } from '@/storage/genericStorage';
 import { User } from '@kapa/shared';
@@ -50,6 +51,7 @@ export function AuthProvider({ children }: AuthProviderProp) {
       await genericStorage.set<string>(AUTH_STORAGE_TOKEN_KEY, token);
       await genericStorage.set<User>(AUTH_STORAGE_DATA_KEY, data);
       kapaService.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      setAccessToken(token);
     } catch (err) {
       console.error('Error on saving auth storage state:', err);
     }
@@ -68,7 +70,7 @@ export function AuthProvider({ children }: AuthProviderProp) {
   const signIn = useCallback(
     async (email: string, password: string) => {
       try {
-        const response = await kapaService.post('/api/users/signin', {
+        const response = await kapaService.post('/auth/login', {
           email,
           password,
         });
@@ -80,7 +82,6 @@ export function AuthProvider({ children }: AuthProviderProp) {
         const { token, user: userData } = response.data.data;
         await establishSession(token, userData);
       } catch (err) {
-        console.error('signIn error:', err);
         throw err;
       }
     },
@@ -90,7 +91,7 @@ export function AuthProvider({ children }: AuthProviderProp) {
   const signUp = useCallback(
     async (data: SignUpData) => {
       try {
-        const response = await kapaService.post('/api/users/create', data);
+        const response = await kapaService.post('/auth/register', data);
 
         if (!response.data?.data) {
           throw new Error('Falha no cadastro.');
@@ -99,7 +100,6 @@ export function AuthProvider({ children }: AuthProviderProp) {
         const { token, user: userData } = response.data.data;
         await establishSession(token, userData);
       } catch (err) {
-        console.error('signUp error:', err);
         throw err;
       }
     },
@@ -109,6 +109,7 @@ export function AuthProvider({ children }: AuthProviderProp) {
   const signOut = async () => {
     setIsLogged(false);
     setUser(null);
+    setAccessToken(undefined);
     delete kapaService.defaults.headers.common['Authorization'];
     await genericStorage.remove(AUTH_STORAGE_TOKEN_KEY);
     await genericStorage.remove(AUTH_STORAGE_DATA_KEY);
@@ -118,7 +119,7 @@ export function AuthProvider({ children }: AuthProviderProp) {
   const handleGoogleLogin = useCallback(
     async (idToken: string) => {
       try {
-        const response = await kapaService.post('/api/auth/google', {
+        const response = await kapaService.post('/auth/google', {
           idToken,
         });
 
@@ -129,7 +130,6 @@ export function AuthProvider({ children }: AuthProviderProp) {
         const { token, user: userData } = response.data.data;
         await establishSession(token, userData);
       } catch (err) {
-        console.error('handleGoogleLogin error:', err);
         throw err;
       }
     },
@@ -149,6 +149,7 @@ export function AuthProvider({ children }: AuthProviderProp) {
         if (storedToken && storedUser) {
           kapaService.defaults.headers.common['Authorization'] =
             `Bearer ${storedToken}`;
+          setAccessToken(storedToken);
           setUser(storedUser);
           setIsLogged(true);
         } else {

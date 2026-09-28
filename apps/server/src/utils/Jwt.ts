@@ -1,9 +1,13 @@
+import '../config/env';
 import jwt from 'jsonwebtoken';
 import { UserJwt, UserRole } from '@kapa/shared';
 import { z } from 'zod';
 
-const JWT_SECRET =
-  process.env.JWT_SECRET || 'kapa-dev-secret-key-change-in-production';
+function getSecret(): string {
+  const secret = process.env.JWT_SECRET ?? '';
+  if (secret.length < 32) throw new Error('JWT_SECRET must contain at least 32 characters');
+  return secret;
+}
 
 const userJwtSchema = z.object({
   sub: z.string().uuid(),
@@ -22,11 +26,12 @@ export interface UserTokenPayload {
 }
 
 export class Jwt {
-  public static generateToken(data: string | object) {
-    const token = jwt.sign(data, JWT_SECRET, {
-      expiresIn: '7d',
+  public static generateToken(data: object) {
+    const token = jwt.sign(data, getSecret(), {
+      expiresIn: Number(process.env.ACCESS_TOKEN_TTL_SECONDS) || 900,
       algorithm: 'HS256',
-      issuer: '@kapa/api',
+      issuer: process.env.JWT_ISSUER ?? 'kapa-api',
+      audience: process.env.JWT_AUDIENCE ?? 'kapa-app',
     });
 
     return token;
@@ -50,9 +55,10 @@ export class Jwt {
     }
 
     try {
-      const payload = jwt.verify(token, JWT_SECRET, {
+      const payload = jwt.verify(token, getSecret(), {
         algorithms: ['HS256'],
-        issuer: '@kapa/api',
+        issuer: process.env.JWT_ISSUER ?? 'kapa-api',
+        audience: process.env.JWT_AUDIENCE ?? 'kapa-app',
       });
 
       if (typeof payload === 'string') return [null, false];

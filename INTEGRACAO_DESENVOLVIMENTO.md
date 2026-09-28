@@ -2,6 +2,47 @@
 
 Este documento consolida a arquitetura de autenticação (**Google OAuth** e **E-mail/Senha**), persistência de sessão, integração entre React Native/Expo e a API Express, infraestrutura local com Docker e procedimentos para resolução de problemas e garantia de qualidade.
 
+## Gestão dos animais do abrigo
+
+### Interface e permissões
+
+- Entrada na home: **Animais do abrigo → Gerenciar animais**, para `admin`, `protector` e `volunteer`.
+- `/gestao/animais`: listagem interna com busca por nome/raça, espécie, status, ordenação e paginação de 12 registros. Os contadores representam todo o abrigo, independentemente dos filtros.
+- `/gestao/animais/[id]`: edição de identificação, porte, acompanhamento, saúde, temperamento, local e observações. Validação no cliente e na API; falhas ao salvar preservam o formulário. Retornar à lista mantém os filtros enquanto a tela permanece na pilha e recarrega os dados.
+- `/cadastro-animal`: formulário existente, agora protegido pelos mesmos perfis e com retorno à listagem.
+- `/adopet` permanece reservado ao catálogo de adoção. Adotantes não recebem ações de gestão.
+- Estilo em Tailwind/NativeWind, com os tokens existentes, fontes do projeto, limite de 1140px do `DESIGN.md`, linhas no desktop e cartões no celular. Seletores possuem estados acessíveis, alvos mínimos de 48px e os status incluem texto.
+
+### Contrato da API
+
+| Método / caminho | Uso |
+| --- | --- |
+| `GET /api/animals/management` | Listagem interna paginada, todos os status |
+| `GET /api/animals/management/:id` | Cadastro completo, incluindo fotos |
+| `PATCH /api/animals/management/:id` | Atualiza apenas os campos enviados; campos desconhecidos e corpo vazio são rejeitados |
+| `POST /api/animals` | Cadastro existente, restrito à equipe |
+| `POST /api/animals/:id/photos` | Upload existente, restrito à equipe |
+| `GET /api/animals` | Consulta pública: apenas `available` |
+| `GET /api/animals/:id` | Consulta pública: retorna 404 se o animal não estiver disponível |
+
+A listagem interna aceita `page` (padrão 1), `pageSize` (padrão 12, máximo 50), `search` (até 120 caracteres), `species` (`dog/cat/other`), `status` (`rescued/treating/available/adopted`) e `sort` (`recent/name`). Retorna `{ success: true, data: { items, total, page, pageSize, counts } }`. `counts` contém as quatro contagens globais. A pesquisa e paginação são executadas no PostgreSQL; a listagem inclui a foto mais recente de cada animal.
+
+As rotas de gestão, criação e upload validam o JWT e consultam o **papel atual do usuário no banco**, para que remoção de conta ou revogação de papel não dependam da expiração do token. `adopter` recebe 403; sessão ausente, inválida, expirada ou conta removida recebe 401. IDs e entradas são validados. O cadastro público `POST /api/auth/register` aceita somente `adopter`: equipe é atribuída pela administração, evitando autoatribuição de acesso. O fluxo público `/api/users/create` já força `adopter`.
+
+**Integração com o catálogo do colega:** respostas públicas usam uma projeção própria com identificação, características de adoção, status e fotos. Não retornam `place`, `observations`, `rescuedAt`, `healthCondition` nem `createdAt`. Para informações internas, usar os endpoints de gestão autenticados. A tela de interesses/adoção não foi implementada nesta entrega.
+
+### Persistência e limites
+
+Não houve mudança no schema, migrations ou índices. São usadas `tb_animals`, `tb_animal_photos` e a coluna `role` de `tb_users`. O modelo atual representa um único abrigo; não possui vínculo por ONG ou responsável para limitar registros por instituição.
+
+O editor envia PATCH apenas dos campos exibidos, preservando `ageStage`, escores de comportamento, compatibilidades, data de resgate e fotos. A foto existente é apresentada; troca de foto e histórico veterinário não fazem parte deste editor. Os campos extras do cadastro legado (pelagem e histórico individual de doses, por exemplo) não têm colunas próprias: esta entrega não cria persistência para eles nem altera silenciosamente o schema.
+
+### Verificações da funcionalidade
+
+- `npm run type-check` e `npm run lint`.
+- `npm test`: testes da API mais testes do modelo de edição; cobre perfis, revogação, token inválido/expirado, filtros, paginação, PATCH parcial, campos privados e autoelevação no cadastro público.
+- Teste de navegador: iniciar Expo em `localhost:8081` e executar `node apps/mobile-web/tests/animal-management-browser.cjs` com Playwright disponível (ou `PLAYWRIGHT_MODULE_PATH` apontando para uma instalação existente) e Microsoft Edge instalado. `ANIMAL_UI_URL` permite outro endereço. O teste intercepta a API com fixtures isoladas, não altera o banco e grava capturas em `apps/mobile-web/.expo/animal-management-qa/` (ignorado pelo Git). Verifica desktop/celular, busca, filtros, paginação, edição, validação, erros, estado vazio e bloqueio de adotantes.
+
 ---
 
 ## 1. Arquitetura de Autenticação e Sessão
@@ -213,7 +254,7 @@ Os serviços de banco, cache e armazenamento de arquivos são executados via Doc
 | `DATABASE_URL` | Backend | String de conexão com o PostgreSQL |
 | `JWT_SECRET` | Backend | Chave secreta para assinatura dos tokens JWT |
 | `SALT_SECRET` | Backend | Segredo utilizado na derivação PBKDF2 de senhas |
-| `CLIENT_URL` | Backend | URL do cliente autorizada no CORS (padrão: `http://localhost:8081`) |
+| `CLIENT_URL` | Backend | Lista exata de origens web autorizadas pelo CORS, separadas por vírgula (desenvolvimento: portas 8081 e 8082) |
 | `GOOGLE_CLIENT_ID` | Backend | Client ID principal da aplicação Google |
 | `GOOGLE_WEB_CLIENT_ID` | Backend | Client ID web para verificação de audiência |
 | `GOOGLE_IOS_CLIENT_ID` | Backend | Client ID iOS para verificação de audiência |
@@ -221,6 +262,32 @@ Os serviços de banco, cache e armazenamento de arquivos são executados via Doc
 | `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | Mobile/Web | Client ID Google injetado no navegador pelo Expo |
 | `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | Mobile/Web | Client ID nativo para dispositivos iOS |
 | `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` | Mobile/Web | Client ID nativo para dispositivos Android |
+
+Se o Client ID correspondente à plataforma estiver vazio, a aplicação continua
+disponível para autenticação por e-mail e senha e mantém o botão Google
+desabilitado. O hook usa um identificador interno apenas para satisfazer a
+inicialização do `expo-auth-session`; ele nunca inicia o OAuth enquanto a
+variável pública real não estiver configurada. Depois de alterar uma variável
+`EXPO_PUBLIC_*`, reinicie o Metro para que o valor seja incorporado ao bundle.
+
+O Expo SDK 57 resolve workspaces do monorepo automaticamente. O
+`metro.config.js` não define `watchFolders` nem `resolver.nodeModulesPaths`;
+isso evita a varredura manual de todo o repositório e o erro `EMFILE: too many
+open files` no Windows. Após alterar essa configuração, execute o Expo uma vez
+com `npm run web --workspace=apps/mobile-web -- --clear` para remover o cache
+antigo. O script `web` limita o Metro a um worker para reduzir o número de
+arquivos abertos simultaneamente no Windows.
+
+O destino web usa `output: "single"` (SPA). As telas dependem da sessão
+persistida no navegador e não usam carregadores ou API Routes do Expo; nesse
+modo o desenvolvimento gera somente o bundle do cliente, evitando a segunda
+compilação usada pela renderização estática e reduzindo o consumo de arquivos
+no Windows. A API Express continua sendo executada separadamente na porta
+4000.
+
+O Tailwind usa `darkMode: "class"`. Além de deixar a troca de tema explícita,
+isso evita que o `react-native-css-interop` tente alterar manualmente um tema
+configurado como `media` quando o CSS é injetado pelo Metro no navegador.
 | `EXPO_PUBLIC_API_URL` | Mobile/Web | URL base da API (padrão: `http://localhost:4000/api`) |
 
 ---
@@ -257,4 +324,125 @@ npm run build:web
   * Casos de uso do `UserService` (atualização de perfil, troca de papel, exclusão e contadores de relações).
   * `UserController` e integridade das 11 rotas mapeadas no `UserRouter`.
 
+### 6.2 Testes de Carga e Performance com Grafana k6 (Docker)
+
+O backend possui suporte a testes de carga e estresse utilizando o **Grafana k6** encapsulado em Docker (imagem oficial `grafana/k6`), sem dependências extras:
+
+* **Configuração no Docker Compose (`apps/server/docker-compose.yaml`)**:
+  * Serviço `k6` sob o perfil `test` (não inicializa automaticamente com `docker compose up -d`).
+  * Configurado com `network_mode: host` para comunicação direta de baixa latência com a API local (`http://localhost:4000`).
+  * Volume montado em `./k6:/scripts`.
+
+* **Scripts Disponíveis (`apps/server/k6/`)**:
+  * `smoke-test.js`: Validação rápida (1 VU por 10s) dos endpoints `/health`, `/health/redis` e `/users/count`.
+  * `load-test.js`: Teste em estágios (rampa até 20 VUs, sustentação e desaceleração ao longo de 60s) com limiares rígidos (`p(95) < 500ms`, taxa de erro `< 5%`).
+
+* **Comandos de Execução**:
+  ```bash
+  # Na raiz do monorepo:
+  npm run test:k6        # Executa o smoke test do servidor via Docker Compose
+  npm run test:k6:load   # Executa o teste de carga estagiado
+
+  # Diretamente em apps/server:
+  npm run test:k6:smoke
+  npm run test:k6:load
+  ```
+
 > **Aviso de Governança (`AGENTS.md`):** Nunca execute alterações diretas no esquema do banco de dados (`schema.prisma`) ou crie migrações sem alinhamento e autorização prévia da equipe.
+---
+
+## 7. Gestão semanal de atividades — Interface mobile/web
+
+A aplicação mobile/web possui a tela protegida `/(protected)/activities`, disponível na Home para os papéis `admin` e `protector`. Ela permite listar e cadastrar atividades semanais com título, descrição, tipo, data, horário, local e número de vagas. Data e horários são selecionados pelos controles nativos do navegador ou do celular, sem digitação manual.
+
+O cadastro e a listagem administrativa agora usam a API; atividades novas ficam persistidas em `tb_community_events` e são compartilhadas com a tela de voluntários. Atividades criadas em versões anteriores apenas no `AsyncStorage` local não são migradas automaticamente para o servidor.
+
+### Inscrição de voluntários
+
+A branch `feat/volunteers` acrescenta uma tela separada para voluntários em `/(protected)/(tabs)/activities`. As duas telas usam os modelos `CommunityEvents` e `CommunityEventVolunteers` no Prisma. A migration `20260927100000_extend_community_events` acrescenta tipo, término, local e vagas. Registros antigos recebem tipo `event`; os novos campos permanecem nulos para registros antigos até que sejam editados ou recriados.
+
+| Endpoint | Acesso e comportamento |
+| --- | --- |
+| `GET /api/community-events/manage` | Exige autenticação e papel atual `admin` ou `protector`; lista atividades futuras e a contagem de inscrições. |
+| `POST /api/community-events` | Exige autenticação e papel atual `admin` ou `protector`; valida e cadastra atividade futura, com limite positivo de vagas. |
+| `GET /api/community-events` | Exige autenticação e papel atual `volunteer`; lista atividades futuras, vagas restantes e se o usuário da sessão já está inscrito. |
+| `POST /api/community-events/:id/volunteers` | Exige autenticação e papel atual `volunteer`; inscreve o usuário autenticado. Atividade passada, inscrição duplicada e atividade lotada são rejeitadas. Inscrições simultâneas usam transação serializável para respeitar o limite. |
+
+Admin/protetores e voluntários usam o mesmo contrato e os mesmos registros da API. Campos novos da migration são opcionais no banco para preservar atividades antigas; a API exige esses dados ao cadastrar atividades novas. Atividades antigas não possuem local, horário final ou quantidade máxima de vagas, então são apresentadas sem esses detalhes e sem limite de vagas definido.
+
+---
+
+## 8. População de dados de desenvolvimento
+
+O backend possui um comando de população explícito do Prisma (`npm run prisma:seed` em `apps/server`). Ele cria ou atualiza uma conta administrativa local com o papel `admin` e a regra `admin:*`, sem alterar o esquema ou criar migrações.
+
+As credenciais são lidas somente de `SEED_ADMIN_EMAIL` e `SEED_ADMIN_PASSWORD` no arquivo local `apps/server/.env`, que é ignorado pelo Git. O comando é bloqueado quando `NODE_ENV=production`.
+
+---
+
+## Integração com feature/cadastros-ong
+
+As rotas de cadastro, login e administração em `/api/auth` e as rotas de animais e upload da branch de cadastros são preservadas. O login Google e as rotas `/api/users` usam os controladores recebidos de weekly-activities. Os serviços Docker de inicialização do storage e testes k6 coexistem. A migration de atividades estende `tb_community_events`; não cria tabelas novas.
+
+### Compatibilidade de autenticação após o merge
+
+Os dois fluxos emitem JWT com o mesmo segredo obrigatório, emissor, audiência e expiração curta. Novas senhas usam scrypt; hashes legados de weekly-activities continuam aceitos, com comparação em tempo constante. O cliente compartilha a sessão entre os cadastros existentes e o login recebido, e normaliza a URL da API para evitar `/api/api`. O login Google exige uma audiência configurada. Os testes usam tsx para resolver os fontes do pacote compartilhado, mantendo a compilação TypeScript prévia.
+
+### Funcionalidades de cadastros preservadas
+
+### Interface mobile e web
+
+- As telas de cadastro de animal e cadastro de voluntário foram convertidas de `StyleSheet` e estilos inline para NativeWind/Tailwind.
+- Os arquivos antigos `styles.ts` dessas duas telas foram removidos.
+- Foi criado o token Tailwind `shadow-card` para preservar a aparência dos cartões.
+- Layouts e componentes relacionados foram ajustados para usar as classes do design system existente.
+- O seletor de foto informa que a imagem é opcional e mantém seu conteúdo centralizado.
+- `PrimaryInputText` passou a aceitar entrada segura de senha.
+- O formulário de login foi conectado à API.
+- A antiga tela de cadastro de voluntário foi transformada em cadastro geral de usuários.
+- A nova rota `/cadastro-usuario` só pode ser acessada por administradores autenticados e permite selecionar `adopter`, `protector`, `volunteer` ou `admin`.
+- A URL anterior `/cadastro-voluntario` redireciona para `/cadastro-usuario` para preservar links existentes.
+- O formulário de animal converte os campos legados em português para o formato de domínio usado pela API.
+- Erros de cadastro de animal agora distinguem sessão expirada, erro retornado pela API e indisponibilidade do servidor.
+- A rota visual `/cadastro-animal` está pública temporariamente. O backend continua protegido.
+
+### API, autenticação e segurança
+
+- Foram adicionadas as rotas:
+  - `POST /api/auth/register`
+  - `POST /api/auth/login`
+  - `GET /api/auth/me`
+  - `POST /api/auth/users`, exclusiva para administradores
+- O cadastro público de usuários aceita apenas os papéis `adopter` e `volunteer`. Não é permitido criar `admin` ou `protector` por autorregistro.
+- A criação administrativa aceita todos os papéis definidos pelo enum `UserRole` e não substitui a sessão do administrador que fez o cadastro.
+- Senhas são armazenadas com `scrypt`, salt aleatório e comparação segura.
+- Tokens JWT usam HS256 e validam algoritmo, emissor, audiência e expiração.
+- Foram adicionados middlewares de autenticação, autorização por papel e validação com Zod.
+- O repositório de usuários foi corrigido para mapear corretamente nome e e-mail.
+- A persistência de animais passou a usar PostgreSQL em vez do repositório em memória.
+- O cadastro de animais é permitido no servidor para `protector`, `admin` e `volunteer` autenticados.
+- O limite global de JSON e formulário URL-encoded é de 1 MB.
+- O header `x-powered-by` do Express foi desabilitado.
+- O tratamento de erros foi ajustado para não expor detalhes internos.
+- A rota antiga duplicada de animais permanece removida. A verificação de hashes legados foi mantida apenas para compatibilidade com contas da outra branch.
+
+### Upload opcional de foto
+
+- A foto não é obrigatória para cadastrar um animal.
+- Quando existe uma foto, o cliente primeiro cria o animal e depois envia um `multipart/form-data` para `POST /api/animals/:id/photos`.
+- São aceitos JPEG, PNG e WebP com no máximo 5 MB.
+- O servidor verifica a assinatura binária real do arquivo, e não apenas o nome ou MIME informado pelo cliente.
+- O arquivo é armazenado em serviço compatível com S3; localmente é usado o MinIO.
+- A URL é registrada na tabela já existente `tb_animal_photos`.
+- Nenhuma migration ou alteração de schema foi criada para o upload.
+- Se o banco falhar depois do envio ao storage, o backend tenta remover o objeto enviado para evitar arquivo órfão.
+- Se somente o upload falhar, o animal permanece cadastrado e o cliente mostra uma mensagem específica.
+
+### Banco de dados e infraestrutura
+
+- PostgreSQL, Redis e MinIO estão configurados em `apps/server/docker-compose.yaml`.
+- O Redis local exige senha.
+- O MinIO cria automaticamente o bucket `kapa-public` por meio do serviço de inicialização `storage-init`.
+- O bucket permite leitura pública das imagens; gravação continua restrita às credenciais S3 do backend.
+- Os dados são persistidos nos volumes Docker `database_data`, `redis_data` e `storage_data`.
+- Não houve alteração no schema existente do PostgreSQL.

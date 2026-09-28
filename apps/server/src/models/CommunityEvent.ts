@@ -2,13 +2,18 @@ import { Cuid } from '../domains/Cuid';
 import { ICommunityEvent } from '../interfaces/ICommunityEvent';
 import { ValidationError } from '../errors';
 import type { CommunityEvent as SharedCommunityEvent } from '@kapa/shared';
+import type { CommunityEventType } from '@kapa/shared';
 
 export class CommunityEvent implements ICommunityEvent {
   private id!: Cuid;
   private title!: string;
   private description!: string;
   private cep!: number;
+  private type: CommunityEventType = 'event';
   private startAt!: string;
+  private endAt: string | null = null;
+  private location: string | null = null;
+  private vacancies: number | null = null;
   private createdAt!: string;
 
   public getId(): Cuid {
@@ -27,9 +32,15 @@ export class CommunityEvent implements ICommunityEvent {
     return this.cep;
   }
 
+  public getType(): CommunityEventType { return this.type; }
+
   public getStartAt(): string {
     return this.startAt;
   }
+
+  public getEndAt(): string | null { return this.endAt; }
+  public getLocation(): string | null { return this.location; }
+  public getVacancies(): number | null { return this.vacancies; }
 
   public getCreatedAt(): string {
     return this.createdAt;
@@ -54,14 +65,31 @@ export class CommunityEvent implements ICommunityEvent {
   }
 
   public setCep(cep: number): void {
-    if (cep < 0) {
+    if (!Number.isInteger(cep) || cep < 1_000_000 || cep > 99_999_999) {
       throw new ValidationError('Invalid CEP');
     }
     this.cep = cep;
   }
 
+  public setType(type: CommunityEventType): void { this.type = type; }
+
   public setStartAt(date: string): void {
     this.startAt = new Date(date).toISOString();
+  }
+
+  public setEndAt(date: string | null): void {
+    this.endAt = date ? new Date(date).toISOString() : null;
+  }
+
+  public setLocation(location: string | null): void {
+    this.location = location?.trim() || null;
+  }
+
+  public setVacancies(vacancies: number | null): void {
+    if (vacancies !== null && (!Number.isInteger(vacancies) || vacancies < 1)) {
+      throw new ValidationError('Invalid community event vacancies');
+    }
+    this.vacancies = vacancies;
   }
 
   public setCreatedAt(date: string): void {
@@ -77,7 +105,11 @@ export class CommunityEvent implements ICommunityEvent {
       title: this.title,
       description: this.description,
       cep: this.cep,
+      type: this.type,
       startAt: this.startAt,
+      endAt: this.endAt,
+      location: this.location,
+      vacancies: this.vacancies,
       createdAt: this.createdAt,
     };
   }

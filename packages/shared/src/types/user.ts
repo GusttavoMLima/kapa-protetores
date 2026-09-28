@@ -49,4 +49,3 @@ export interface UserJwt {
   username: string;
   email: string;
 }
-

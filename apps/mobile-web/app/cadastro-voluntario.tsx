@@ -1,5 +1,5 @@
-import { CadastroVoluntarioScreen } from '@/screens/cadastroVoluntario';
+import { Redirect } from 'expo-router';
 
 export default function CadastroVoluntarioRoute() {
-  return <CadastroVoluntarioScreen />;
+  return <Redirect href="/cadastro-usuario" />;
 }

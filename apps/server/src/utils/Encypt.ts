@@ -31,7 +31,7 @@ export class Encrypt {
   public static verifySaltHash(data: string, hashed: string) {
     const verifyHash = this.saltHash(data).toString('hex');
 
-    return verifyHash === hashed;
+    return /^[a-f0-9]{128}$/i.test(hashed) && crypto.timingSafeEqual(Buffer.from(verifyHash, 'hex'), Buffer.from(hashed, 'hex'));
   }
 
   public static symetric() {}

@@ -12,6 +12,14 @@ module.exports = defineConfig([
     ],
   },
   {
+    settings: {
+      'import/resolver': {
+        node: {
+          extensions: ['.js', '.jsx', '.ts', '.tsx'],
+        },
+        typescript: true,
+      },
+    },
     rules: {
       '@typescript-eslint/no-unused-vars': [
         'warn',

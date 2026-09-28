@@ -138,11 +138,22 @@ model CommunityEvents {
   title       String
   description String
   cep         Int
+  type        CommunityEventType         @default(event)
   start_at    DateTime                   @map("startAt")
+  end_at      DateTime?                  @map("endAt")
+  location    String?                    @db.VarChar(200)
+  vacancies   Int?
   created_at  DateTime                   @default(now()) @map("createdAt")
   volunteers  CommunityEventVolunteers[]
 
   @@map("tb_community_events")
+}
+
+enum CommunityEventType {
+  care
+  cleaning
+  event
+  transport
 }
 
 model CommunityEventVolunteers {

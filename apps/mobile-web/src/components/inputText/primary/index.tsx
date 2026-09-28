@@ -18,6 +18,8 @@ type Props = {
   keyboardType?: TextInputProps['keyboardType'];
   autoCapitalize?: TextInputProps['autoCapitalize'];
   maxLength?: number;
+  secureTextEntry?: boolean;
+  editable?: boolean;
 };
 
 export function PrimaryInputText({
@@ -31,12 +33,15 @@ export function PrimaryInputText({
   keyboardType,
   autoCapitalize,
   maxLength,
+  secureTextEntry,
+  editable = true,
 }: Props) {
   return (
     <View className={`flex flex-col gap-1.5 ${className ?? ''}`}>
       <Text className="text-xs font-bold text-ink tracking-wide">{label}</Text>
       <TextInput
         value={value}
+        editable={editable}
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={palette.inkMuted}
@@ -44,6 +49,7 @@ export function PrimaryInputText({
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize}
         maxLength={maxLength}
+        secureTextEntry={secureTextEntry}
         accessibilityLabel={label}
         aria-invalid={Boolean(erro)}
         textAlignVertical={multiline ? 'top' : 'center'}

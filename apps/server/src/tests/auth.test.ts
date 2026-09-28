@@ -881,7 +881,7 @@ describe('UserService updatePassword', () => {
 
     assert.ok(savedHash);
     assert.strictEqual(
-      Encrypt.verifySaltHash('brandNewPassword123', savedHash),
+      await new (await import('../security/PasswordHasher')).PasswordHasher().verify('brandNewPassword123', savedHash),
       true,
     );
   });
@@ -1090,4 +1090,3 @@ describe('UserRouter', () => {
     assert.ok(routes.some((r) => r.path === '/:id' && r.methods?.delete));
   });
 });
-

@@ -15,7 +15,7 @@ import {
 } from 'phosphor-react-native';
 import { isAxiosError } from 'axios';
 import { z } from 'zod';
-import type { CommunityEventListItem } from '@kapa/shared';
+import type { CommunityEventListItem, CommunityEventType } from '@kapa/shared';
 import { useAuth } from '@/hooks/useAuth';
 import { kapaService } from '@/services/kapaService';
 import { PrimaryButton } from '@/components/buttons/primary';
@@ -27,10 +27,15 @@ const activitySchema = z.object({
   title: z.string(),
   description: z.string(),
   cep: z.number().int(),
+  type: z.enum(['care', 'cleaning', 'event', 'transport']),
   startAt: z.string().datetime(),
+  endAt: z.string().datetime().nullable(),
+  location: z.string().nullable(),
+  vacancies: z.number().int().nullable(),
   createdAt: z.string().datetime(),
   isSignedUp: z.boolean(),
   volunteerCount: z.number().int().nonnegative(),
+  remainingVacancies: z.number().int().nonnegative().nullable(),
 });
 
 const activitiesResponseSchema = z.object({
@@ -72,6 +77,13 @@ function formatCep(cep: number): string {
   return `${digits.slice(0, 5)}-${digits.slice(5)}`;
 }
 
+const activityTypeLabels: Record<CommunityEventType, string> = {
+  care: 'Cuidados',
+  cleaning: 'Limpeza',
+  event: 'Evento',
+  transport: 'Transporte',
+};
+
 export function VolunteerActivitiesScreen() {
   const { user } = useAuth();
   const [activities, setActivities] = useState<CommunityEventListItem[]>([]);
@@ -82,7 +94,7 @@ export function VolunteerActivitiesScreen() {
   const [signupError, setSignupError] = useState<string>();
 
   const fetchActivities = useCallback(async () => {
-    const response = await kapaService.get<unknown>('/api/community-events');
+    const response = await kapaService.get<unknown>('/community-events');
     const payload = activitiesResponseSchema.safeParse(response.data);
     if (!payload.success) {
       throw new Error('A resposta de atividades recebida é inválida.');
@@ -133,7 +145,7 @@ export function VolunteerActivitiesScreen() {
     setSignupError(undefined);
     try {
       const response = await kapaService.post<unknown>(
-        `/api/community-events/${activityId}/volunteers`,
+        `/community-events/${activityId}/volunteers`,
       );
       const payload = activityResponseSchema.safeParse(response.data);
       if (!payload.success) {
@@ -214,30 +226,42 @@ export function VolunteerActivitiesScreen() {
 
             <Text style={styles.description}>{activity.description}</Text>
 
+            <Text style={styles.metadata}>{activityTypeLabels[activity.type]}</Text>
+
             <View style={styles.metadataRow}>
               <CalendarBlankIcon size={19} color={palette.denim} />
               <Text style={styles.metadata}>{formatDate(activity.startAt)}</Text>
             </View>
             <View style={styles.metadataRow}>
               <MapPinIcon size={19} color={palette.denim} />
-              <Text style={styles.metadata}>CEP {formatCep(activity.cep)}</Text>
+              <Text style={styles.metadata}>
+                {activity.location ? `${activity.location} · CEP ${formatCep(activity.cep)}` : `CEP ${formatCep(activity.cep)}`}
+              </Text>
             </View>
             <View style={styles.metadataRow}>
               <UsersThreeIcon size={19} color={palette.denim} />
               <Text style={styles.metadata}>
-                {activity.volunteerCount}{' '}
-                {activity.volunteerCount === 1 ? 'voluntário inscrito' : 'voluntários inscritos'}
+                {activity.volunteerCount}{activity.vacancies === null ? '' : `/${activity.vacancies}`} voluntários inscritos
+                {activity.remainingVacancies === null ? ' · sem limite definido' : ` · ${activity.remainingVacancies} vagas restantes`}
               </Text>
             </View>
+            {activity.endAt ? (
+              <View style={styles.metadataRow}>
+                <CalendarBlankIcon size={19} color={palette.denim} />
+                <Text style={styles.metadata}>Término: {formatDate(activity.endAt)}</Text>
+              </View>
+            ) : null}
 
             <PrimaryButton
-              title={activity.isSignedUp ? 'Inscrição confirmada' : 'Quero participar'}
-              disabled={activity.isSignedUp || submittingId === activity.id}
+              title={activity.isSignedUp ? 'Inscrição confirmada' : activity.remainingVacancies === 0 ? 'Vagas preenchidas' : 'Quero participar'}
+              disabled={activity.isSignedUp || activity.remainingVacancies === 0 || submittingId === activity.id}
               loading={submittingId === activity.id}
               onPress={() => void signUp(activity.id)}
               accessibilityLabel={
                 activity.isSignedUp
                   ? `Inscrição confirmada para ${activity.title}`
+                : activity.remainingVacancies === 0
+                  ? `Vagas preenchidas para ${activity.title}`
                   : `Inscrever-se em ${activity.title}`
               }
             />

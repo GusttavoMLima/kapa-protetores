@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: ['./app/**/*.{js,jsx,ts,tsx}', './src/**/*.{js,jsx,ts,tsx}'],
   presets: [require('nativewind/preset')],
   theme: {
@@ -66,7 +67,11 @@ module.exports = {
         'body-medium': ['PlusJakartaSans-Medium'],
       },
       maxWidth: {
+        content: '1140px',
         form: '640px',
+      },
+      boxShadow: {
+        card: '0px 2px 4px rgba(217, 122, 0, 0.04)',
       },
     },
   },

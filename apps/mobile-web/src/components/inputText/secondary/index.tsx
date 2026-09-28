@@ -33,6 +33,7 @@ const SecondaryInputText = memo(
     placeholderTextColor,
     autoCapitalize,
     autoCorrect,
+    accessibilityLabel,
     ...rest
   }: SecondaryInputTextProps) => {
     const [isSecure, setIsSecure] = useState(true);
@@ -64,6 +65,8 @@ const SecondaryInputText = memo(
               isPassword ? (autoCapitalize ?? 'none') : autoCapitalize
             }
             autoCorrect={isPassword ? (autoCorrect ?? false) : autoCorrect}
+            accessibilityLabel={accessibilityLabel ?? label}
+            aria-invalid={hasError}
             className={`w-full bg-white border rounded-xl px-3.5 py-3 text-base text-ink min-h-[56px] ${
               icon ? 'pl-12' : ''
             } ${isPassword ? 'pr-13' : ''} ${

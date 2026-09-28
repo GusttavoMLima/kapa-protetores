@@ -5,6 +5,7 @@ import type {
   TriageStatus,
   AnimalStatus,
   Animal as IAnimalDTO,
+  AnimalPhoto,
 } from '@kapa/shared';
 import { IAnimal } from '../interfaces/IAnimal';
 import { Cuid } from '../domains/Cuid';
@@ -35,6 +36,11 @@ export class Animal implements IAnimal {
   private observations: string | null = null;
   private status: AnimalStatus = 'rescued';
   private createdAt!: string;
+  private photos: AnimalPhoto[] = [];
+
+  public setPhotos(photos: AnimalPhoto[]): void {
+    this.photos = photos;
+  }
 
   public getId(): Cuid {
     return this.id;
@@ -285,6 +291,7 @@ export class Animal implements IAnimal {
       observations: this.observations,
       status: this.status,
       createdAt: this.createdAt,
+      photos: this.photos,
     };
   }
 

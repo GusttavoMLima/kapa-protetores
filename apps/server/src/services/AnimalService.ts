@@ -1,16 +1,45 @@
 import { AnimalRepositoryInterface } from '../interfaces/AnimalRepositoryInterface';
 import { Animal } from '../models/Animal';
 import { AppError } from '../errors/AppError';
-import type { CreateAnimalInput } from '@kapa/shared';
+import type { CreateAnimalInput, AnimalManagementQuery, UpdateAnimalInput, Animal as AnimalDTO } from '@kapa/shared';
+import { Cuid } from '../domains/Cuid';
 
 export class AnimalService {
   constructor(private readonly animalRepository: AnimalRepositoryInterface) {}
 
-  public async getAll(): Promise<Animal[]> {
-    return this.animalRepository.findAll();
+  public async getAll() {
+    const animals = await this.animalRepository.findAll();
+    return animals.filter((animal) => animal.getStatus() === 'available').map((animal) => this.publicView(animal.toDTO()));
   }
 
-  public async getById(id: string): Promise<Animal> {
+  public async getById(id: string) {
+    const animal = await this.getManagedById(id);
+    if (animal.getStatus() !== 'available') throw AppError.notFound('Animal não encontrado.');
+    return this.publicView(animal.toDTO());
+  }
+
+  private publicView(animal: AnimalDTO) {
+    const { id, name, breed, species, gender, age, ageStage, size, weightKg, energyLevel,
+      kidFriendly, noiseLevel, apartmentFriendly, otherPetFriendly, castrated,
+      vaccinated, dewormed, mood, status, photos } = animal;
+    return { id, name, breed, species, gender, age, ageStage, size, weightKg, energyLevel,
+      kidFriendly, noiseLevel, apartmentFriendly, otherPetFriendly, castrated,
+      vaccinated, dewormed, mood, status, photos };
+  }
+
+  public getManagementPage(query: AnimalManagementQuery) {
+    return this.animalRepository.findManagementPage(query);
+  }
+
+  public async update(id: string, input: UpdateAnimalInput): Promise<Animal> {
+    Cuid.create(id);
+    const animal = await this.animalRepository.update(id, input);
+    if (!animal) throw AppError.notFound('Animal não encontrado.');
+    return animal;
+  }
+
+  public async getManagedById(id: string): Promise<Animal> {
+    Cuid.create(id);
     const animal = await this.animalRepository.findById(id);
     if (!animal) {
       throw AppError.notFound(`Animal com ID "${id}" não encontrado.`);
