@@ -182,6 +182,22 @@ O módulo de usuários conta com um conjunto completo de endpoints RESTful, com 
    * **Causa**: Na atualização do usuário, `avatar: user.getAvatar()?.toString() ?? undefined` impedia que um usuário removesse sua foto de perfil (`null`), pois campos `undefined` são ignorados no `update` do Prisma.
    * **Solução**: Diferenciação explícita entre valor não informado (`undefined`) e intenção de limpeza (`null`).
 
+10. **Mapeamento e Proteção no Método `findByIdCountingAndDataOfRelations` (`UserRepository.ts`)**:
+    * **Causa**: O método selecionava apenas campos parciais e omitia dados essenciais do usuário (`id`, `username`, `email`, `role`, `rules`, etc.), causando erro de tipagem TS2740 contra `UserWithRelationsCount` e deixando de retornar os dados de favoritos e eventos requisitados.
+    * **Solução**: Criação do tipo `UserWithCountAndDataOfRelations` e `FavoriteAnimalSummary` em `@kapa/shared`. Para otimização de tráfego de rede e performance de consulta, os animais favoritados são selecionados de forma enxuta via Prisma trazendo apenas `id`, `name`, `gender`, `age` e a foto principal (`photo`), além da proteção estrita para jamais selecionar o hash da senha (`password`).
+
+11. **Endpoint `GET /api/users/me/profile` (`UserRouter.ts`, `UserController.ts`, `UserService.ts`)**:
+    * **Rota**: `GET /api/users/me/profile` (autenticada via `authTokenHandler` e autorizada via `rulesHandler('user:read:own')`).
+    * **Finalidade**: Retorna as relações e dados resumidos do usuário autenticado no formato `UserWithCountAndDataOfRelations` (`id`, `latitude`, `longitude`, `counts`, `favorites` e `events`).
+    * **Cliente Mobile/Web**: Consumido preferencialmente via `@tanstack/react-query` para cache e sincronização reativa na tela de perfil.
+
+12. **Gerenciamento de Estado de Servidor no Mobile (`@tanstack/react-query`)**:
+    * Instalado `@tanstack/react-query` no workspace `@kapa/mobile-web` para gerenciamento de cache de rede, background refetching (stale-while-revalidate), e sincronização entre abas.
+
+13. **Padronização Global das Respostas de API com `ApiResponse<T>` (`@kapa/shared`)**:
+    * Todos os controladores do backend ([`UserController`](apps/server/src/controllers/UserController.ts), [`AuthController`](apps/server/src/controllers/AuthController.ts), [`AnimalsController`](apps/server/src/controllers/AnimalsController.ts), [`HealthController`](apps/server/src/controllers/HealthController.ts)) e o manipulador global de erros ([`ErrorHandler`](apps/server/src/middlewares/ErrorHandler.ts)) foram padronizados com os contratos estritos de `ApiResponse<T>` e `ApiErrorResponse`.
+    * Operações sem payload de retorno (ex: deleção, troca de senha) retornam explicitamente `data: null`, eliminando inconsistências e garantindo tipagem forte e previsível no frontend/mobile.
+
 ---
 
 ## 3. Infraestrutura Docker Local

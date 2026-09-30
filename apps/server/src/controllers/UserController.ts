@@ -8,7 +8,14 @@ import {
   updateProfileSchema,
   updateRoleSchema,
 } from '../schemas/user.schema';
-import { DEFAULT_USER_ADOPTER_RULES, UserRole } from '@kapa/shared';
+import {
+  DEFAULT_USER_ADOPTER_RULES,
+  UserRole,
+  type ApiResponse,
+  type User as SharedUser,
+  type UserWithRelationsCount,
+  type UserWithCountAndDataOfRelations,
+} from '@kapa/shared';
 import { Jwt } from '../utils/Jwt';
 import { PasswordHasher } from '../security/PasswordHasher';
 import { AppError } from '../errors/AppError';
@@ -19,11 +26,12 @@ export class UserController {
   public countAll = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const data = await this.userService.countAll();
-      return res.status(200).json({
+      const response: ApiResponse<number> = {
         success: true,
         message: 'Success',
         data,
-      });
+      };
+      return res.status(200).json(response);
     } catch (err) {
       next(err);
     }
@@ -40,11 +48,13 @@ export class UserController {
         ? await this.userService.getAllByRole(role)
         : await this.userService.getAll();
 
-      res.status(200).json({
+      const response: ApiResponse<SharedUser[]> = {
         success: true,
         message: 'Success',
         data: users.map((user) => user.toDTO()),
-      });
+      };
+
+      res.status(200).json(response);
     } catch (err) {
       next(err);
     }
@@ -68,11 +78,49 @@ export class UserController {
       const userId = params.data.id;
       const user = await this.userService.getById(userId);
 
-      res.status(200).json({
+      const response: ApiResponse<SharedUser> = {
         success: true,
         message: 'User found with success',
         data: user.toDTO(),
-      });
+      };
+
+      res.status(200).json(response);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public getProfile = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      if (!req.user) {
+        const errorResponse: ApiResponse<null> = {
+          success: false,
+          data: null,
+          message: 'Unauthorized',
+        };
+        return res.status(401).json(errorResponse);
+      }
+
+      const user = req.user;
+      let data;
+
+      try {
+        data = await this.userService.getByIdWithRelationsData(user.sub);
+      } catch {
+        throw AppError.notFound('Usuário não foi encontrado');
+      }
+
+      const response: ApiResponse<UserWithCountAndDataOfRelations> = {
+        success: true,
+        data,
+        message: 'Success',
+      };
+
+      return res.status(200).json(response);
     } catch (err) {
       next(err);
     }
@@ -116,14 +164,16 @@ export class UserController {
 
       const token = Jwt.generateUserToken(user);
 
-      res.status(200).json({
+      const response: ApiResponse<{ token: string; user: SharedUser }> = {
         success: true,
         message: 'Login realizado com sucesso',
         data: {
           token,
           user: user.toDTO(),
         },
-      });
+      };
+
+      res.status(200).json(response);
     } catch (err) {
       next(err);
     }
@@ -173,14 +223,16 @@ export class UserController {
 
       const token = Jwt.generateUserToken(user);
 
-      res.status(201).json({
+      const response: ApiResponse<{ token: string; user: SharedUser }> = {
         success: true,
         message: 'Usuário cadastrado com sucesso',
         data: {
           token,
           user: user.toDTO(),
         },
-      });
+      };
+
+      res.status(201).json(response);
     } catch (err) {
       next(err);
     }
@@ -202,11 +254,13 @@ export class UserController {
         user.sub,
       );
 
-      res.status(200).json({
+      const response: ApiResponse<UserWithRelationsCount> = {
         success: true,
         message: 'Informações do usuário obtidas com sucesso',
         data: userInfo,
-      });
+      };
+
+      res.status(200).json(response);
     } catch (err) {
       next(err);
     }
@@ -241,10 +295,13 @@ export class UserController {
         newPassword,
       );
 
-      res.status(200).json({
+      const response: ApiResponse<null> = {
         success: true,
         message: 'Senha atualizada com sucesso',
-      });
+        data: null,
+      };
+
+      res.status(200).json(response);
     } catch (err) {
       next(err);
     }
@@ -276,11 +333,13 @@ export class UserController {
         parsedBody.data,
       );
 
-      res.status(200).json({
+      const response: ApiResponse<SharedUser> = {
         success: true,
         message: 'Perfil atualizado com sucesso',
         data: updatedUser.toDTO(),
-      });
+      };
+
+      res.status(200).json(response);
     } catch (err) {
       next(err);
     }
@@ -300,10 +359,13 @@ export class UserController {
 
       await this.userService.deleteById(user.sub);
 
-      res.status(200).json({
+      const response: ApiResponse<null> = {
         success: true,
         message: 'Conta excluída com sucesso',
-      });
+        data: null,
+      };
+
+      res.status(200).json(response);
     } catch (err) {
       next(err);
     }
@@ -318,7 +380,10 @@ export class UserController {
       const params = userIdParams.safeParse(req.params);
 
       if (!params.success) {
-        throw AppError.badRequest('ID de usuário inválido', params.error.format());
+        throw AppError.badRequest(
+          'ID de usuário inválido',
+          params.error.format(),
+        );
       }
 
       const parsedBody = updateRoleSchema.safeParse(req.body);
@@ -335,11 +400,13 @@ export class UserController {
         parsedBody.data.role,
       );
 
-      res.status(200).json({
+      const response: ApiResponse<SharedUser> = {
         success: true,
         message: 'Papel do usuário atualizado com sucesso',
         data: updatedUser.toDTO(),
-      });
+      };
+
+      res.status(200).json(response);
     } catch (err) {
       next(err);
     }
@@ -354,15 +421,21 @@ export class UserController {
       const params = userIdParams.safeParse(req.params);
 
       if (!params.success) {
-        throw AppError.badRequest('ID de usuário inválido', params.error.format());
+        throw AppError.badRequest(
+          'ID de usuário inválido',
+          params.error.format(),
+        );
       }
 
       await this.userService.deleteById(params.data.id);
 
-      res.status(200).json({
+      const response: ApiResponse<null> = {
         success: true,
         message: 'Usuário excluído com sucesso',
-      });
+        data: null,
+      };
+
+      res.status(200).json(response);
     } catch (err) {
       next(err);
     }

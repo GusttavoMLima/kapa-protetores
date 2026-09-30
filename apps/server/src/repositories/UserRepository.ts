@@ -1,4 +1,8 @@
-import { UserRole, UserWithRelationsCount } from '@kapa/shared';
+import {
+  UserRole,
+  UserWithRelationsCount,
+  UserWithCountAndDataOfRelations,
+} from '@kapa/shared';
 import { Email } from '../domains/Email';
 import { Url } from '../domains/Url';
 import { UUID } from '../domains/UUID';
@@ -103,6 +107,88 @@ export class UserRepository implements IUserRepository {
   async findByIdValue(id: string): Promise<User | null> {
     const data = await this.prisma.user.findUnique({ where: { id } });
     return data ? this.mapToDomain(data) : null;
+  }
+
+  async findByIdCountingAndDataOfRelations(
+    id: UUID,
+  ): Promise<UserWithCountAndDataOfRelations | null> {
+    const data = await this.prisma.user.findUnique({
+      where: {
+        id: id.toString(),
+      },
+      select: {
+        id: true,
+        latitude: true,
+        longitude: true,
+        favorites: {
+          take: 4,
+          select: {
+            user_id: true,
+            animal_id: true,
+            created_at: true,
+            animal: {
+              select: {
+                id: true,
+                name: true,
+                gender: true,
+                age: true,
+                photos: {
+                  take: 1,
+                  select: {
+                    photo_url: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        events: {
+          take: 2,
+        },
+        _count: {
+          select: {
+            adoptions: true,
+            events: true,
+            favorites: true,
+          },
+        },
+      },
+    });
+
+    if (!data) return null;
+
+    return {
+      id: data.id,
+      latitude: data.latitude != null ? Number(data.latitude) : null,
+      longitude: data.longitude != null ? Number(data.longitude) : null,
+      counts: {
+        adoptions: data._count.adoptions,
+        events: data._count.events,
+        favorites: data._count.favorites,
+      },
+      favorites: data.favorites.map((fav) => ({
+        userId: fav.user_id,
+        animalId: fav.animal_id,
+        createdAt: fav.created_at.toISOString(),
+        animal: fav.animal
+          ? {
+              id: fav.animal.id,
+              name: fav.animal.name,
+              gender: fav.animal.gender,
+              age: fav.animal.age,
+              photo: fav.animal.photos[0]?.photo_url ?? null,
+            }
+          : undefined,
+      })),
+      events: data.events.map((evt) => ({
+        id: evt.id,
+        type: evt.type,
+        userId: evt.user_id,
+        animalId: evt.animal_id,
+        payload: evt.payload as Record<string, unknown> | null,
+        emittedAt: evt.emitted_at.toISOString(),
+      })),
+    };
   }
 
   async findByEmail(email: Email): Promise<User | null> {
@@ -242,7 +328,7 @@ export class UserRepository implements IUserRepository {
           rules: [...user.getRules()],
           avatar:
             user.getAvatar() !== undefined
-              ? user.getAvatar()?.toString() ?? null
+              ? (user.getAvatar()?.toString() ?? null)
               : undefined,
           latitude:
             user.getLatitude() !== undefined ? user.getLatitude() : undefined,

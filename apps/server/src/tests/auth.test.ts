@@ -1066,6 +1066,7 @@ describe('UserRouter', () => {
       updatePassword: () => {},
       updateProfile: () => {},
       deleteMe: () => {},
+      getProfile: () => {},
       updateRole: () => {},
       deleteById: () => {},
     } as unknown as import('../controllers/UserController').UserController;
@@ -1084,6 +1085,7 @@ describe('UserRouter', () => {
     assert.ok(routes.some((r) => r.path === '/me' && r.methods?.get));
     assert.ok(routes.some((r) => r.path === '/me' && r.methods?.patch));
     assert.ok(routes.some((r) => r.path === '/me' && r.methods?.delete));
+    assert.ok(routes.some((r) => r.path === '/me/profile' && r.methods?.get));
     assert.ok(routes.some((r) => r.path === '/me/password' && r.methods?.patch));
     assert.ok(routes.some((r) => r.path === '/:id' && r.methods?.get));
     assert.ok(routes.some((r) => r.path === '/:id/role' && r.methods?.patch));

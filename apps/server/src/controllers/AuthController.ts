@@ -3,6 +3,7 @@ import { googleAuthSchema } from '../schemas/auth.schema';
 import { UserService } from '../services/UserService';
 import { Jwt } from '../utils/Jwt';
 import { AppError } from '../errors/AppError';
+import type { ApiResponse, User as SharedUser } from '@kapa/shared';
 
 export class AuthController {
   constructor(private readonly userService: UserService) {}
@@ -26,14 +27,16 @@ export class AuthController {
       const user = await this.userService.authenticateWithGoogle(idToken);
       const token = Jwt.generateUserToken(user);
 
-      res.status(200).json({
+      const response: ApiResponse<{ token: string; user: SharedUser }> = {
         success: true,
         message: 'Autenticado com sucesso',
         data: {
           token,
           user: user.toDTO(),
         },
-      });
+      };
+
+      res.status(200).json(response);
     } catch (error) {
       next(error);
     }

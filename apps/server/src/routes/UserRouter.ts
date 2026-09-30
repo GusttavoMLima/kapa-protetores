@@ -38,6 +38,12 @@ export class UserRouter {
       rulesHandler('user:delete:own'),
       this.controller.deleteMe,
     );
+    this.router.get(
+      '/me/profile',
+      authTokenHandler,
+      rulesHandler('user:read:own'),
+      this.controller.getProfile,
+    );
     this.router.patch(
       '/me/password',
       authTokenHandler,

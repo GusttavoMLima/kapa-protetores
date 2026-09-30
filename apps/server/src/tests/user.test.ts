@@ -273,6 +273,106 @@ describe('UserService', () => {
     const count = await service.countAll();
     assert.strictEqual(count, 42);
   });
+
+  it('should map user with relations count and data correctly in UserRepository', async () => {
+    const { UserRepository } = await import('../repositories/UserRepository');
+    const { UUID } = await import('../domains/UUID');
+    const mockPrisma = {
+      user: {
+        findUnique: async () => ({
+          id: '123e4567-e89b-12d3-a456-426614174000',
+          username: 'JohnDoe',
+          email: 'john@example.com',
+          avatar: 'https://example.com/avatar.png',
+          role: 'adopter',
+          rules: ['rule1'],
+          latitude: '10.5',
+          longitude: '-20.5',
+          created_at: new Date('2026-01-01T00:00:00Z'),
+          favorites: [
+            {
+              user_id: '123e4567-e89b-12d3-a456-426614174000',
+              animal_id: 'animal-1',
+              created_at: new Date('2026-01-02T00:00:00Z'),
+              animal: {
+                id: 'animal-1',
+                name: 'Rex',
+                gender: 'male',
+                age: 3,
+                photos: [
+                  {
+                    photo_url: 'https://example.com/rex.png',
+                  },
+                ],
+              },
+            },
+          ],
+          events: [
+            {
+              id: 'event-1',
+              type: 'USER_LOGIN',
+              user_id: '123e4567-e89b-12d3-a456-426614174000',
+              animal_id: null,
+              payload: { ip: '127.0.0.1' },
+              emitted_at: new Date('2026-01-02T00:00:00Z'),
+            },
+          ],
+          _count: {
+            adoptions: 2,
+            events: 1,
+            favorites: 1,
+          },
+        }),
+      },
+    } as unknown as import('@prisma/client').PrismaClient;
+
+    const repo = new UserRepository(mockPrisma);
+    const result = await repo.findByIdCountingAndDataOfRelations(
+      UUID.create('123e4567-e89b-12d3-a456-426614174000'),
+    );
+
+    assert.ok(result);
+    assert.strictEqual(result.id, '123e4567-e89b-12d3-a456-426614174000');
+    assert.strictEqual(result.latitude, 10.5);
+    assert.strictEqual(result.counts.adoptions, 2);
+    assert.strictEqual(result.favorites.length, 1);
+    assert.strictEqual(result.favorites[0].animal?.name, 'Rex');
+    assert.strictEqual(result.favorites[0].animal?.gender, 'male');
+    assert.strictEqual(result.favorites[0].animal?.age, 3);
+    assert.strictEqual(result.favorites[0].animal?.photo, 'https://example.com/rex.png');
+    assert.strictEqual(result.events.length, 1);
+    assert.strictEqual(result.events[0].type, 'USER_LOGIN');
+  });
+
+  it('getByIdWithRelationsData should return user relations data', async () => {
+    const mockRepo = {
+      findByIdCountingAndDataOfRelations: async () => ({
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        latitude: -23.5505,
+        longitude: -46.6333,
+        counts: { adoptions: 1, events: 2, favorites: 3 },
+        favorites: [],
+        events: [],
+      }),
+    } as unknown as import('../repositories/UserRepository').UserRepository;
+
+    const service = new UserService(mockRepo);
+    const result = await service.getByIdWithRelationsData('123e4567-e89b-12d3-a456-426614174000');
+    assert.strictEqual(result.id, '123e4567-e89b-12d3-a456-426614174000');
+    assert.strictEqual(result.counts.adoptions, 1);
+  });
+
+  it('getByIdWithRelationsData should throw 404 when user is not found', async () => {
+    const mockRepo = {
+      findByIdCountingAndDataOfRelations: async () => null,
+    } as unknown as import('../repositories/UserRepository').UserRepository;
+
+    const service = new UserService(mockRepo);
+    await assert.rejects(
+      async () => service.getByIdWithRelationsData('123e4567-e89b-12d3-a456-426614174000'),
+      { statusCode: 404 },
+    );
+  });
 });
 
 describe('UserController', () => {
@@ -401,10 +501,90 @@ describe('UserController', () => {
     assert.ok(forwardedError);
     assert.strictEqual((forwardedError as { statusCode: number }).statusCode, 400);
   });
+
+  it('getProfile should reject unauthenticated request with 401', async () => {
+    const controller = new UserController({} as UserService);
+    const req = {} as Request;
+    let statusCode: number | undefined;
+    let responseBody: unknown;
+    const res = {
+      status(code: number) {
+        statusCode = code;
+        return this;
+      },
+      json(data: unknown) {
+        responseBody = data;
+        return this;
+      },
+    } as unknown as Response;
+
+    await controller.getProfile(req, res, () => {});
+    assert.strictEqual(statusCode, 401);
+    assert.strictEqual((responseBody as { success: boolean }).success, false);
+  });
+
+  it('getProfile should return 200 with user profile relations data', async () => {
+    const mockRelationsData = {
+      id: '123e4567-e89b-12d3-a456-426614174000',
+      latitude: -23.5505,
+      longitude: -46.6333,
+      counts: { adoptions: 1, events: 0, favorites: 2 },
+      favorites: [],
+      events: [],
+    };
+    const mockUserService = {
+      getByIdWithRelationsData: async () => mockRelationsData,
+    } as unknown as UserService;
+
+    const controller = new UserController(mockUserService);
+    const req = {
+      user: { sub: '123e4567-e89b-12d3-a456-426614174000' },
+    } as unknown as Request;
+
+    let statusCode: number | undefined;
+    let responseBody: unknown;
+    const res = {
+      status(code: number) {
+        statusCode = code;
+        return this;
+      },
+      json(data: unknown) {
+        responseBody = data;
+        return this;
+      },
+    } as unknown as Response;
+
+    await controller.getProfile(req, res, () => {});
+    assert.strictEqual(statusCode, 200);
+    const body = responseBody as { success: boolean; data: typeof mockRelationsData };
+    assert.strictEqual(body.success, true);
+    assert.strictEqual(body.data.id, '123e4567-e89b-12d3-a456-426614174000');
+  });
+
+  it('getProfile should forward 404 when user is not found', async () => {
+    const mockUserService = {
+      getByIdWithRelationsData: async () => {
+        throw new Error('Not found');
+      },
+    } as unknown as UserService;
+
+    const controller = new UserController(mockUserService);
+    const req = {
+      user: { sub: '123e4567-e89b-12d3-a456-426614174000' },
+    } as unknown as Request;
+
+    let forwardedError: unknown;
+    await controller.getProfile(req, {} as Response, (err) => {
+      forwardedError = err;
+    });
+
+    assert.ok(forwardedError);
+    assert.strictEqual((forwardedError as { statusCode: number }).statusCode, 404);
+  });
 });
 
 describe('UserRouter Endpoints Coverage', () => {
-  it('should define all 11 user routes with correct HTTP methods and paths', () => {
+  it('should define all 12 user routes with correct HTTP methods and paths', () => {
     const mockController = {
       countAll: () => {},
       getAll: () => {},
@@ -413,6 +593,7 @@ describe('UserRouter Endpoints Coverage', () => {
       userInfo: () => {},
       updateProfile: () => {},
       deleteMe: () => {},
+      getProfile: () => {},
       updatePassword: () => {},
       getById: () => {},
       updateRole: () => {},
@@ -437,6 +618,7 @@ describe('UserRouter Endpoints Coverage', () => {
     assert.ok(registered.some((r) => r.path === '/me' && r.methods?.get));
     assert.ok(registered.some((r) => r.path === '/me' && r.methods?.patch));
     assert.ok(registered.some((r) => r.path === '/me' && r.methods?.delete));
+    assert.ok(registered.some((r) => r.path === '/me/profile' && r.methods?.get));
     assert.ok(registered.some((r) => r.path === '/me/password' && r.methods?.patch));
 
     // Individual user routes

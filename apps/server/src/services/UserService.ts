@@ -136,6 +136,18 @@ export class UserService {
     return user;
   }
 
+  public async getByIdWithRelationsData(id: string) {
+    const safeId = UUID.create(id);
+    const user =
+      await this.repository.findByIdCountingAndDataOfRelations(safeId);
+
+    if (!user) {
+      throw AppError.notFound(`User With ID: ${id} not found`);
+    }
+
+    return user;
+  }
+
   public async countAll(): Promise<number> {
     return this.repository.countAll();
   }

@@ -1,3 +1,6 @@
+import type { Genders } from './animal';
+import type { SystemEvent } from './event';
+
 export type UserRole = 'adopter' | 'protector' | 'admin' | 'volunteer';
 
 export interface User {
@@ -25,13 +28,38 @@ export type CreateUserInput = {
 
 export type UpdateUserInput = Partial<Omit<CreateUserInput, 'email'>>;
 
-export interface UserWithRelationsCount extends User {
+type UserRelationCounts = {
   counts: {
     adoptions: number;
     events: number;
     favorites: number;
   };
+};
+
+export interface UserWithRelationsCount extends User, UserRelationCounts {}
+
+export interface FavoriteAnimalSummary {
+  id: string;
+  name: string;
+  gender: Genders;
+  age: number;
+  photo?: string | null;
 }
+
+export interface UserFavoriteItem {
+  userId: string;
+  animalId: string;
+  createdAt: string;
+  animal?: FavoriteAnimalSummary;
+}
+
+export interface UserWithCountAndDataOfRelations
+  extends Pick<User, 'id' | 'latitude' | 'longitude'>, UserRelationCounts {
+  favorites: UserFavoriteItem[];
+  events: SystemEvent[];
+}
+
+export type UserWithCundAndDataOfRelations = UserWithCountAndDataOfRelations;
 
 export interface UserProfile {
   id: string;
@@ -48,4 +76,11 @@ export interface UserJwt {
   rules: string[];
   username: string;
   email: string;
+}
+
+export enum UserRoleEnum {
+  'adopter' = 'Adotador',
+  'protector' = 'Protetor',
+  'admin' = 'Administrador',
+  'volunteer' = 'Voluntário',
 }

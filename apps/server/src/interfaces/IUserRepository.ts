@@ -1,4 +1,8 @@
-import { UserRole, UserWithRelationsCount } from '@kapa/shared';
+import {
+  UserRole,
+  UserWithRelationsCount,
+  UserWithCountAndDataOfRelations,
+} from '@kapa/shared';
 import { Email } from '../domains/Email';
 import { Url } from '../domains/Url';
 import { UUID } from '../domains/UUID';
@@ -9,6 +13,9 @@ export interface IUserRepository {
   countAll(): Promise<number>;
   findById(id: UUID): Promise<User | null>;
   findByIdCountingRelations(id: UUID): Promise<UserWithRelationsCount | null>;
+  findByIdCountingAndDataOfRelations(
+    id: UUID,
+  ): Promise<UserWithCountAndDataOfRelations | null>;
   findByEmail(email: Email): Promise<User | null>;
   findAllByRole(role: UserRole): Promise<User[]>;
 

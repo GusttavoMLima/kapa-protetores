@@ -89,7 +89,11 @@ export type Sexo = 'macho' | 'femea' | 'nao_sei';
 export type Porte = 'pequeno' | 'medio' | 'grande';
 export type CondicaoChegada = 'saudavel' | 'ferido' | 'debilitado';
 export type TriState = 'sim' | 'nao' | 'nao_sei';
-export type StatusAnimal = 'resgatado' | 'em_tratamento' | 'disponivel' | 'adotado';
+export type StatusAnimal =
+  | 'resgatado'
+  | 'em_tratamento'
+  | 'disponivel'
+  | 'adotado';
 export type NivelEnergia = 'baixo' | 'moderado' | 'alto';
 export type Temperamento = 'docil' | 'medroso' | 'sociavel' | 'agressivo';
 export type Humor = 'tranquilo' | 'brincalhao' | 'assustado';
@@ -135,3 +139,9 @@ export interface LegacyAnimal {
   createdAt: string;
 }
 
+export type FavoritedAnimal = {
+  id: string;
+  name: string;
+  characteristics: string[];
+  photo: string;
+};

@@ -5,13 +5,14 @@ import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AuthProvider } from '@/contexts/authProvider';
-
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const [queryClient] = useState(() => new QueryClient());
   const [loaded, error] = useFonts({
     'BeVietnamPro-Bold': require('../assets/fonts/BeVietnamPro-Bold.ttf'),
     'BeVietnamPro-ExtraBold': require('../assets/fonts/BeVietnamPro-ExtraBold.ttf'),
@@ -35,55 +36,57 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <View className="flex-1 bg-cream">
-          <StatusBar style="light" />
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <View className="flex-1 bg-cream">
+            <StatusBar style="light" />
 
-          <Stack>
-            <Stack.Screen
-              name="(protected)"
-              options={{
-                headerShown: false,
-              }}
-            />
+            <Stack>
+              <Stack.Screen
+                name="(protected)"
+                options={{
+                  headerShown: false,
+                }}
+              />
 
-            <Stack.Screen
-              name="signIn"
-              options={{
-                headerShown: false,
-              }}
-            />
+              <Stack.Screen
+                name="signIn"
+                options={{
+                  headerShown: false,
+                }}
+              />
 
-            <Stack.Screen
-              name="signUp"
-              options={{
-                headerShown: false,
-              }}
-            />
+              <Stack.Screen
+                name="signUp"
+                options={{
+                  headerShown: false,
+                }}
+              />
 
-            <Stack.Screen
-              name="cadastro-animal"
-              options={{
-                headerShown: false,
-              }}
-            />
+              <Stack.Screen
+                name="cadastro-animal"
+                options={{
+                  headerShown: false,
+                }}
+              />
 
-            <Stack.Screen
-              name="cadastro-voluntario"
-              options={{
-                headerShown: false,
-              }}
-            />
+              <Stack.Screen
+                name="cadastro-voluntario"
+                options={{
+                  headerShown: false,
+                }}
+              />
 
-            <Stack.Screen
-              name="cadastro-usuario"
-              options={{
-                headerShown: false,
-              }}
-            />
-          </Stack>
-        </View>
-      </AuthProvider>
+              <Stack.Screen
+                name="cadastro-usuario"
+                options={{
+                  headerShown: false,
+                }}
+              />
+            </Stack>
+          </View>
+        </AuthProvider>
+      </QueryClientProvider>
     </SafeAreaProvider>
   );
 }
