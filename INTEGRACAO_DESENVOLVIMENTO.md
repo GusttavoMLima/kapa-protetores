@@ -462,3 +462,9 @@ Os dois fluxos emitem JWT com o mesmo segredo obrigatório, emissor, audiência 
 - O bucket permite leitura pública das imagens; gravação continua restrita às credenciais S3 do backend.
 - Os dados são persistidos nos volumes Docker `database_data`, `redis_data` e `storage_data`.
 - Não houve alteração no schema existente do PostgreSQL.
+
+### CI e analise SonarCloud
+
+- O workflow `.github/workflows/quality.yml` executa `npm ci`, lint e analise SonarCloud em pull requests.
+- O token deve existir nos secrets do repositorio com o nome `KAPA_SONAR`; o workflow o fornece ao scanner pela variavel `SONAR_TOKEN`. Nunca registrar o valor do token no repositorio ou em logs.
+- A analise usa `sonar.projectKey=GusttavoMLima_kapa-protetores` e `sonar.organization=gusttavomlima`, conforme `sonar-project.properties`.
