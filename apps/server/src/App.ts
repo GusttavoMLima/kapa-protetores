@@ -10,6 +10,14 @@ export interface AppConfig {
   clientUrl: string;
 }
 
+function trimTrailingSlashes(value: string): string {
+  let result = value;
+  while (result.endsWith('/')) {
+    result = result.slice(0, -1);
+  }
+  return result;
+}
+
 export class App {
   public readonly app: Application;
   private readonly port: number;
@@ -25,7 +33,7 @@ export class App {
     this.allowedOrigins = new Set(
       config.clientUrl
         .split(',')
-        .map((origin) => origin.trim().replace(/\/+$/, ''))
+        .map((origin) => trimTrailingSlashes(origin.trim()))
         .filter(Boolean),
     );
 
@@ -38,7 +46,7 @@ export class App {
     this.app.use(
       cors({
         origin: (origin, callback) => {
-          if (!origin || this.allowedOrigins.has(origin.replace(/\/+$/, ''))) {
+          if (!origin || this.allowedOrigins.has(trimTrailingSlashes(origin))) {
             return callback(null, true);
           }
           return callback(AppError.forbidden('Origem não permitida.'));
