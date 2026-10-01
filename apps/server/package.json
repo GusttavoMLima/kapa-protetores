@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "docker compose up -d && tsx watch src/index.ts",
+    "dev": "docker compose up -d database redis && tsx watch src/index.ts",
     "build": "prisma generate && tsc",
     "test": "npm run build && tsx --test src/security/*.test.ts src/services/*.test.ts src/validation/*.test.ts src/tests/*.test.ts",
     "start": "node dist/index.js",

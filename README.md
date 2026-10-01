@@ -141,7 +141,7 @@ npm run dev
 
 ### Execução Individual
 ```bash
-# Iniciar apenas o backend Express (com hot-reload)
+# Iniciar o backend Express (com hot-reload; inicia Postgres e Redis pelo Compose)
 npm run dev:server
 
 # Iniciar apenas o aplicativo Expo
