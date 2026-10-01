@@ -107,7 +107,7 @@ A sessão é gerenciada pelo `AuthProvider` e mantida no armazenamento do dispos
 * **Ciclo de Vida**:
   1. **Inicialização (`loadStorageState`)**: Ao abrir ou recarregar a aplicação, recupera o token e o perfil do usuário. Se válidos, injeta automaticamente o cabeçalho padrão `Authorization: Bearer <token>` na instância do `kapaService` (Axios) e define `isLogged = true`.
   2. **Login com Sucesso**: Tanto `signIn(email, password)` quanto `handleGoogleLogin(idToken)` salvam a sessão, atualizam o estado e redirecionam o usuário para a área protegida `/(protected)/(tabs)`.
-  3. **Logout (`signOut`)**: Limpa os estados em memória, apaga o cabeçalho `Authorization` do Axios, remove as chaves do `AsyncStorage` e redireciona para `/signIn`.
+  3. **Logout (`signOut`)**: A opção **Sair** na tela de perfil limpa os estados em memória, apaga o cabeçalho `Authorization` do Axios, remove as chaves do `AsyncStorage` e redireciona para `/signIn`.
   4. **Feedback de Erro Visual**: O formulário exibe um banner de alerta baseado no Material Design (`#FFDAD6` com texto `#93000A`) caso as credenciais estejam erradas ou ocorra erro de rede.
 
 ---
@@ -304,7 +304,7 @@ no Windows. A API Express continua sendo executada separadamente na porta
 O Tailwind usa `darkMode: "class"`. Além de deixar a troca de tema explícita,
 isso evita que o `react-native-css-interop` tente alterar manualmente um tema
 configurado como `media` quando o CSS é injetado pelo Metro no navegador.
-| `EXPO_PUBLIC_API_URL` | Mobile/Web | URL base da API (padrão: `http://localhost:4000/api`) |
+| `EXPO_PUBLIC_API_URL` | Mobile/Web | URL base obrigatória da API. Para web/iOS local, use `http://localhost:4000/api`; no emulador Android, use `http://10.0.2.2:4000/api`. Em produção, configure um endpoint HTTPS. |
 
 ---
 
@@ -369,7 +369,7 @@ O backend possui suporte a testes de carga e estresse utilizando o **Grafana k6*
 
 ## 7. Gestão semanal de atividades — Interface mobile/web
 
-A aplicação mobile/web possui a tela protegida `/(protected)/activities`, disponível na Home para os papéis `admin` e `protector`. Ela permite listar e cadastrar atividades semanais com título, descrição, tipo, data, horário, local e número de vagas. Data e horários são selecionados pelos controles nativos do navegador ou do celular, sem digitação manual.
+A aplicação mobile/web possui a tela protegida `/(protected)/manage-activities`, disponível na Home para os papéis `admin` e `protector`. Ela permite listar e cadastrar atividades semanais com título, descrição, tipo, data, horário, local e número de vagas. Data e horários são selecionados pelos controles nativos do navegador ou do celular, sem digitação manual. O caminho é distinto de `/(protected)/(tabs)/activities`, que é a tela de consulta e inscrição dos voluntários, pois os grupos do Expo Router não fazem parte do caminho final e rotas com o mesmo nome entram em conflito.
 
 O cadastro e a listagem administrativa agora usam a API; atividades novas ficam persistidas em `tb_community_events` e são compartilhadas com a tela de voluntários. Atividades criadas em versões anteriores apenas no `AsyncStorage` local não são migradas automaticamente para o servidor.
 
@@ -457,6 +457,7 @@ Os dois fluxos emitem JWT com o mesmo segredo obrigatório, emissor, audiência 
 ### Banco de dados e infraestrutura
 
 - PostgreSQL, Redis e MinIO estão configurados em `apps/server/docker-compose.yaml`.
+- `npm run dev:server` inicia somente PostgreSQL e Redis antes da API. O serviço de armazenamento de objetos não é iniciado automaticamente, pois as imagens atuais do MinIO não estão disponíveis anonimamente no Quay; upload e leitura de fotos exigem configurar um armazenamento S3 compatível.
 - O Redis local exige senha.
 - O MinIO cria automaticamente o bucket `kapa-public` por meio do serviço de inicialização `storage-init`.
 - O bucket permite leitura pública das imagens; gravação continua restrita às credenciais S3 do backend.
