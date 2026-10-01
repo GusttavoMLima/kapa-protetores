@@ -1,5 +1,5 @@
 import { ActivitiesScreen } from '@/screens/activities';
 
-export default function ActivitiesRoute() {
+export default function ManageActivitiesRoute() {
   return <ActivitiesScreen />;
 }

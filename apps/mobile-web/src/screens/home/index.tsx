@@ -52,7 +52,7 @@ export function HomeScreen() {
           description: 'Cadastre as ações da semana para os voluntários.',
           link: {
             label: 'Gerenciar semana',
-            href: '/(protected)/activities',
+            href: '/(protected)/manage-activities',
             color: palette.denim,
           },
         },
