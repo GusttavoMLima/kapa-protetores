@@ -5,7 +5,7 @@ import { Image, ScrollView, View, Text } from 'react-native';
 import { UnauthorizedScreen } from '@/screens/unauthorized';
 import { FavoritedAnimal, UserRoleEnum } from '@kapa/shared';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { GearIcon, HandHeartIcon, UserIcon } from 'phosphor-react-native';
+import { GearIcon, HandHeartIcon, SignOutIcon, UserIcon } from 'phosphor-react-native';
 import { PrimaryMenuItem } from '@/components/menuItems/primary';
 import { PetCard } from '@/components/cards/pet';
 import ProfileBlob from '@/../assets/profile-blob.svg'
@@ -21,7 +21,7 @@ const mockFavorited: FavoritedAnimal[] = [
 ];
 
 export function ProfileScreen() {
-  const { user, isLogged } = useAuth();
+  const { user, isLogged, signOut } = useAuth();
   const { data } = useUserProfile();
 
   if (!isLogged || !user) return <UnauthorizedScreen />;
@@ -90,6 +90,12 @@ export function ProfileScreen() {
           icon={GearIcon}
           iconColor={'#79716B'}
           iconBgColor={'#D6D3D1'}
+        />
+        <PrimaryMenuItem
+          label="Sair"
+          icon={SignOutIcon}
+          isDestructive
+          onPress={() => { void signOut(); }}
         />
       </View>
 
