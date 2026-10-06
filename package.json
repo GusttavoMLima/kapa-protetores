@@ -17,7 +17,7 @@
     "web": "npm run web --workspace=apps/mobile-web",
     "build:shared": "npm run build --workspace=@kapa/shared",
     "build:server": "npm run build --workspace=apps/server",
-    "build:web": "npm run build:web --workspace=apps/mobile-web",
+    "build:web": "npm run build:shared && npm run build:web --workspace=apps/mobile-web",
     "lint": "npm run lint --workspaces --if-present",
     "prisma:generate": "prisma generate",
     "prisma:seed": "npm run prisma:seed --workspace=apps/server",
