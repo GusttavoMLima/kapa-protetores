@@ -8,7 +8,7 @@ COPY apps/mobile-web/package.json apps/mobile-web/package.json
 COPY packages/eslint-config/package.json packages/eslint-config/package.json
 COPY packages/shared/package.json packages/shared/package.json
 
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 FROM dependencies AS build
 
@@ -34,7 +34,7 @@ COPY apps/mobile-web/package.json apps/mobile-web/package.json
 COPY packages/eslint-config/package.json packages/eslint-config/package.json
 COPY packages/shared/package.json packages/shared/package.json
 
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
 COPY --from=build /app/apps/server/dist apps/server/dist
 COPY --from=build /app/apps/server/prisma apps/server/prisma
