@@ -140,7 +140,7 @@ npm run lint --workspace=apps/mobile-web
 npm run lint --workspace=packages/shared
 ```
 
-O CI é executado em todo push para qualquer branch e em Pull Requests. Antes de abrir um PR, execute localmente `npm run lint`, `npm run type-check` e `npm test`.
+O CI é executado em pushes para `development` e `main`, além de todos os Pull Requests. Antes de abrir um PR, execute localmente `npm run lint`, `npm run type-check` e `npm test`.
 
 ### 4. Publicar os commits
 
@@ -207,7 +207,7 @@ A promoção `development` → `main` **não exige** revisão de outro desenvolv
 
 ### Checks automáticos
 
-O workflow [CI](.github/workflows/quality.yml) é executado em todo push para branches e em Pull Requests. Ele executa:
+O workflow [CI](.github/workflows/quality.yml) é executado em pushes para `development` e `main`, além de todos os Pull Requests. Ele executa:
 
 - `npm ci` para instalar as dependências travadas no `package-lock.json`.
 - ESLint em todos os workspaces (`npm run lint`).

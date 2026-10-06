@@ -466,7 +466,7 @@ Os dois fluxos emitem JWT com o mesmo segredo obrigatório, emissor, audiência 
 
 ### CI, seguranca e CD
 
-- O workflow `.github/workflows/quality.yml` roda em todo push para qualquer branch, em Pull Requests e sob disparo manual. Ele executa lint, type-check, testes com cobertura LCOV, `npm audit`, builds da API e do web, SonarCloud e Gitleaks.
+- O workflow `.github/workflows/quality.yml` roda em pushes para `development` e `main`, em Pull Requests e sob disparo manual. Ele executa lint, type-check, testes com cobertura LCOV, `npm audit`, builds da API e do web, SonarCloud e Gitleaks.
 - A geração do Prisma no CI usa URLs PostgreSQL fictícias em `DATABASE_URL` e `DIRECT_URL` apenas para validação/build. Os testes atuais usam repositórios em memória e mocks; o CI não conecta a banco de dados nem aplica migrations.
 - O SonarCloud lê os relatórios configurados em `sonar.javascript.lcov.reportPaths` e aguarda o Quality Gate. O token fica no secret do repositório `KAPA_SONAR`, exposto ao scanner como `SONAR_TOKEN`. PRs de forks não recebem secrets e pulam a etapa SonarCloud; os outros checks continuam obrigatórios.
 - O relatório LCOV é gerado em `coverage/lcov.info`. Ainda não há um percentual mínimo de cobertura imposto: primeiro será necessário observar o baseline do conjunto atual de testes.
