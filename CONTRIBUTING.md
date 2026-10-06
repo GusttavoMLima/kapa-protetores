@@ -217,6 +217,8 @@ O workflow [CI](.github/workflows/quality.yml) é executado em todo push para br
 - Build da API (`npm run build:server`) e do app web (`npm run build:web`).
 - Análise SonarCloud com Quality Gate e varredura Gitleaks para segredos.
 
+Cada verificação executa em um job separado, para que uma falha não interrompa nem esconda o resultado das demais. Os jobs são `Lint`, `Type check`, `Tests and coverage`, `Dependency security`, `Build API`, `Build web`, `SonarCloud` e `Scan for leaked secrets`.
+
 O SonarCloud precisa do secret `KAPA_SONAR`. Repositórios pertencentes a uma organização também precisam configurar `GITLEAKS_LICENSE`, conforme os requisitos do Gitleaks. PRs de forks executam os checks sem receber secrets; por isso, a etapa SonarCloud é omitida nesses PRs.
 
 Configure as regras de proteção de `development` e `main` no GitHub para exigir os checks do workflow antes do merge. Para o CI também controlar a publicação, configure Vercel para criar previews de PR/branches e usar `main` como branch de produção. Configure os serviços da API no Render para `development` e `main`, com auto-deploy após os checks de CI passarem. Ambientes de preview completos da API no Render exigem Preview Environments e um Blueprint; essa configuração pode gerar cobrança.
