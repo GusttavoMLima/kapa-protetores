@@ -68,7 +68,7 @@ for (const record of records) {
 const repositoryUrl = process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY
   ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}`
   : undefined;
-const commitSha = process.env.GITHUB_SHA;
+const commitSha = process.env.COVERAGE_COMMIT_SHA ?? process.env.GITHUB_SHA;
 const shortCommit = commitSha?.slice(0, 7) ?? 'execução local';
 const commit = repositoryUrl && commitSha
   ? `[\`${shortCommit}\`](${repositoryUrl}/commit/${commitSha})`
