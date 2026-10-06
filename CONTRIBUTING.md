@@ -212,12 +212,12 @@ O workflow [CI](.github/workflows/quality.yml) é executado em pushes para `deve
 - `npm ci` para instalar as dependências travadas no `package-lock.json`.
 - ESLint em todos os workspaces (`npm run lint`).
 - Type-check dos aplicativos (`npm run type-check`).
-- Testes automatizados com relatório de cobertura LCOV.
+- Testes automatizados e relatório de cobertura LCOV comentado no Pull Request.
 - Auditoria de dependências com `npm audit --audit-level=high`.
 - Build da API (`npm run build:server`) e do app web (`npm run build:web`).
-- Análise SonarCloud com Quality Gate e varredura Gitleaks para segredos.
+- Análise SonarCloud com Quality Gate, Semgrep, Trivy e Gitleaks para qualidade, vulnerabilidades, configurações inseguras e segredos.
 
-Cada verificação executa em um job separado, para que uma falha não interrompa nem esconda o resultado das demais. Os jobs são `Lint`, `Type check`, `Tests and coverage`, `Dependency security`, `Build API`, `Build web`, `SonarCloud` e `Scan for leaked secrets`.
+Cada verificação executa em um job separado, para que uma falha não interrompa nem esconda o resultado das demais. Os jobs são `ESLint`, `TypeScript`, `Testes`, `Cobertura`, `Build da API`, `Build web`, `Dockerfile (build API)`, `SonarCloud`, `Segurança (Semgrep + Trivy + npm audit)` e `Segredos (Gitleaks)`.
 
 O SonarCloud precisa do secret `KAPA_SONAR`. Repositórios pertencentes a uma organização também precisam configurar `GITLEAKS_LICENSE`, conforme os requisitos do Gitleaks. PRs de forks executam os checks sem receber secrets; por isso, a etapa SonarCloud é omitida nesses PRs.
 

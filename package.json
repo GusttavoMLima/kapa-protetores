@@ -15,6 +15,7 @@
     "android": "npm run android --workspace=apps/mobile-web",
     "ios": "npm run ios --workspace=apps/mobile-web",
     "web": "npm run web --workspace=apps/mobile-web",
+    "build:shared": "npm run build --workspace=@kapa/shared",
     "build:server": "npm run build --workspace=apps/server",
     "build:web": "npm run build:web --workspace=apps/mobile-web",
     "lint": "npm run lint --workspaces --if-present",
