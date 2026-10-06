@@ -210,16 +210,15 @@ A promoção `development` → `main` **não exige** revisão de outro desenvolv
 O workflow [CI](.github/workflows/quality.yml) é executado em pushes para `development` e `main`, além de todos os Pull Requests. Ele executa:
 
 - `npm ci` para instalar as dependências travadas no `package-lock.json`.
-- ESLint em todos os workspaces (`npm run lint`).
-- Type-check dos aplicativos (`npm run type-check`).
+- ESLint em todos os workspaces (`npm run lint`) e type-check dos aplicativos (`npm run type-check`).
 - Testes automatizados e relatório de cobertura LCOV comentado no Pull Request.
 - Auditoria de dependências com `npm audit --audit-level=high`.
 - Build da API (`npm run build:server`) e do app web (`npm run build:web`).
-- Análise SonarCloud com Quality Gate, Semgrep, Trivy e Gitleaks para qualidade, vulnerabilidades, configurações inseguras e segredos.
+- Semgrep, Trivy e Gitleaks para vulnerabilidades, configurações inseguras e segredos.
 
-Cada verificação executa em um job separado, para que uma falha não interrompa nem esconda o resultado das demais. Os jobs são `ESLint`, `TypeScript`, `Testes`, `Cobertura`, `Build da API`, `Build web`, `Dockerfile (build API)`, `SonarCloud`, `Segurança (Semgrep + Trivy + npm audit)` e `Segredos (Gitleaks)`.
+O CI apresenta cinco checks no Pull Request: `ESLint`, `Testes`, `Cobertura`, `Dockerfile (build base)` e `Segurança (Semgrep + Trivy + npm audit)`. O type-check executa dentro de `ESLint`; os builds executam dentro de `Testes` e `Dockerfile`; o Gitleaks executa dentro de `Segurança`.
 
-O SonarCloud precisa do secret `KAPA_SONAR`. Repositórios pertencentes a uma organização também precisam configurar `GITLEAKS_LICENSE`, conforme os requisitos do Gitleaks. PRs de forks executam os checks sem receber secrets; por isso, a etapa SonarCloud é omitida nesses PRs.
+Repositórios pertencentes a uma organização precisam configurar `GITLEAKS_LICENSE`, conforme os requisitos do Gitleaks. O envio de comentários e relatórios do Gitleaks permanece desativado para evitar exposição de conteúdo sensível.
 
 Configure as regras de proteção de `development` e `main` no GitHub para exigir os checks do workflow antes do merge. Para o CI também controlar a publicação, configure Vercel para criar previews de PR/branches e usar `main` como branch de produção. Configure os serviços da API no Render para `development` e `main`, com auto-deploy após os checks de CI passarem. Ambientes de preview completos da API no Render exigem Preview Environments e um Blueprint; essa configuração pode gerar cobrança.
 
