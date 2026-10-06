@@ -211,7 +211,7 @@ O workflow [CI](.github/workflows/quality.yml) é executado em pushes para `deve
 
 - `npm ci` para instalar as dependências travadas no `package-lock.json`.
 - ESLint em todos os workspaces (`npm run lint`) e type-check dos aplicativos (`npm run type-check`).
-- Testes automatizados e relatório de cobertura LCOV comentado no Pull Request.
+- Testes automatizados e relatório de cobertura LCOV por pacote, com statements, branches, functions e lines comentados no Pull Request.
 - Auditoria de dependências com `npm audit --audit-level=high`.
 - Build da API (`npm run build:server`) e do app web (`npm run build:web`).
 - Semgrep, Trivy e Gitleaks para vulnerabilidades, configurações inseguras e segredos.
