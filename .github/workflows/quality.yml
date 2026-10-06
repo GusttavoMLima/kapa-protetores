@@ -1,29 +1,100 @@
-name: Quality
+name: CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - '**'
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  sonar:
-    name: Lint and SonarQube
+  quality:
+    name: Lint, tests, coverage, security and builds
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/kapa?schema=public
+      DIRECT_URL: postgresql://ci:ci@localhost:5432/kapa?schema=public
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
 
-      - run: npm ci
-      - run: npm run lint
+      - name: Install dependencies
+        run: npm ci
 
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v6
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Check TypeScript types
+        run: npm run type-check
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+
+      - name: Build API
+        run: npm run build:server
+
+      - name: Build web app
+        run: npm run build:web
+
+      - name: Run tests and generate LCOV coverage
+        shell: bash
+        run: |
+          mkdir -p coverage
+          mapfile -d '' test_files < <(
+            find apps/server/src apps/mobile-web/tests packages \
+              -type f \( -name '*.test.ts' -o -name '*.test.mjs' \) -print0
+          )
+          if ((${#test_files[@]} == 0)); then
+            echo 'No automated tests were found.' >&2
+            exit 1
+          fi
+          node --import tsx --experimental-test-coverage --test \
+            --test-reporter=spec \
+            --test-reporter=lcov \
+            --test-reporter-destination=stdout \
+            --test-reporter-destination=coverage/lcov.info \
+            "${test_files[@]}"
+
+      - name: Analyze with SonarCloud
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: SonarSource/sonarqube-scan-action@v8.3.0
+        with:
+          args: -Dsonar.qualitygate.wait=true
         env:
           SONAR_TOKEN: ${{ secrets.KAPA_SONAR }}
           SONAR_HOST_URL: https://sonarcloud.io
+
+  secrets:
+    name: Scan for leaked secrets
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Check out repository history
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+          GITLEAKS_ENABLE_COMMENTS: 'false'
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'false'

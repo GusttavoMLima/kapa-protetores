@@ -464,11 +464,19 @@ Os dois fluxos emitem JWT com o mesmo segredo obrigatório, emissor, audiência 
 - Os dados são persistidos nos volumes Docker `database_data`, `redis_data` e `storage_data`.
 - Não houve alteração no schema existente do PostgreSQL.
 
-### CI e analise SonarCloud
+### CI, seguranca e CD
 
-- O workflow `.github/workflows/quality.yml` executa `npm ci`, lint e analise SonarCloud em pull requests.
-- O token deve existir nos secrets do repositorio com o nome `KAPA_SONAR`; o workflow o fornece ao scanner pela variavel `SONAR_TOKEN`. Nunca registrar o valor do token no repositorio ou em logs.
-- A analise usa `sonar.projectKey=GusttavoMLima_kapa-protetores` e `sonar.organization=gusttavomlima`, conforme `sonar-project.properties`.
+- O workflow `.github/workflows/quality.yml` roda em todo push para qualquer branch, em Pull Requests e sob disparo manual. Ele executa lint, type-check, testes com cobertura LCOV, `npm audit`, builds da API e do web, SonarCloud e Gitleaks.
+- A geração do Prisma no CI usa URLs PostgreSQL fictícias em `DATABASE_URL` e `DIRECT_URL` apenas para validação/build. Os testes atuais usam repositórios em memória e mocks; o CI não conecta a banco de dados nem aplica migrations.
+- O SonarCloud lê os relatórios configurados em `sonar.javascript.lcov.reportPaths` e aguarda o Quality Gate. O token fica no secret do repositório `KAPA_SONAR`, exposto ao scanner como `SONAR_TOKEN`. PRs de forks não recebem secrets e pulam a etapa SonarCloud; os outros checks continuam obrigatórios.
+- O relatório LCOV é gerado em `coverage/lcov.info`. Ainda não há um percentual mínimo de cobertura imposto: primeiro será necessário observar o baseline do conjunto atual de testes.
+- Gitleaks procura segredos no histórico completo do Git. Para repositórios de organizações, configure o secret `GITLEAKS_LICENSE`; não habilite comentários automáticos nem envio de relatórios com conteúdo sensível.
+- `.github/dependabot.yml` agenda atualizações semanais para dependências npm e GitHub Actions.
+- Para bloquear merges inválidos, configure as proteções das branches `development` e `main` exigindo os checks `Lint, tests, coverage, security and builds` e `Scan for leaked secrets`.
+- O modelo de CD recomendado é: Vercel com preview deployments para branches/PRs e `main` como produção; API no Render em serviços separados para `development` e `main`, configurados para auto-deploy somente após os checks do GitHub passarem. Os deploys nativos dependem de conectar o repositório e configurar os serviços, variáveis e secrets nos dashboards dos provedores.
+- Preview Environments do Render podem criar cópias de serviços e bancos por PR e têm cobrança própria; só devem ser ativados com um Blueprint e ambiente de dados de teste apropriado. O CI não cria recursos cloud nem altera o schema do PostgreSQL.
+- Builds de distribuição Android/iOS e publicação nas lojas não estão automatizados nesta etapa. Expo EAS pode ser conectado quando o projeto definir o fluxo de release mobile.
+- A análise SonarCloud usa `sonar.projectKey=GusttavoMLima_kapa-protetores` e `sonar.organization=gusttavomlima`, conforme `sonar-project.properties`.
 
 ---
 

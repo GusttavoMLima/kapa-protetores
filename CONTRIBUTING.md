@@ -140,7 +140,7 @@ npm run lint --workspace=apps/mobile-web
 npm run lint --workspace=packages/shared
 ```
 
-> **Testes automatizados e pipeline de CI ainda não estão configurados.** A equipe vai definir as ferramentas e os checks obrigatórios; quando isso acontecer, esta seção e a seção [Checks automáticos](#checks-automáticos) serão atualizadas.
+O CI é executado em todo push para qualquer branch e em Pull Requests. Antes de abrir um PR, execute localmente `npm run lint`, `npm run type-check` e `npm test`.
 
 ### 4. Publicar os commits
 
@@ -207,7 +207,21 @@ A promoção `development` → `main` **não exige** revisão de outro desenvolv
 
 ### Checks automáticos
 
-Ainda não há pipeline de CI configurado no repositório. Quando a equipe definir as verificações obrigatórias (lint, testes, análise estática), elas serão documentadas nesta seção.
+O workflow [CI](.github/workflows/quality.yml) é executado em todo push para branches e em Pull Requests. Ele executa:
+
+- `npm ci` para instalar as dependências travadas no `package-lock.json`.
+- ESLint em todos os workspaces (`npm run lint`).
+- Type-check dos aplicativos (`npm run type-check`).
+- Testes automatizados com relatório de cobertura LCOV.
+- Auditoria de dependências com `npm audit --audit-level=high`.
+- Build da API (`npm run build:server`) e do app web (`npm run build:web`).
+- Análise SonarCloud com Quality Gate e varredura Gitleaks para segredos.
+
+O SonarCloud precisa do secret `KAPA_SONAR`. Repositórios pertencentes a uma organização também precisam configurar `GITLEAKS_LICENSE`, conforme os requisitos do Gitleaks. PRs de forks executam os checks sem receber secrets; por isso, a etapa SonarCloud é omitida nesses PRs.
+
+Configure as regras de proteção de `development` e `main` no GitHub para exigir os checks do workflow antes do merge. Para o CI também controlar a publicação, configure Vercel para criar previews de PR/branches e usar `main` como branch de produção. Configure os serviços da API no Render para `development` e `main`, com auto-deploy após os checks de CI passarem. Ambientes de preview completos da API no Render exigem Preview Environments e um Blueprint; essa configuração pode gerar cobrança.
+
+O deploy de aplicativos nativos Android/iOS e envio às lojas não é automático nesta etapa. Builds de distribuição devem ser configurados no EAS quando houver uma entrega que precise deles.
 
 ### Fluxo de revisão
 
