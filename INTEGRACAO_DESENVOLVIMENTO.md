@@ -466,6 +466,7 @@ Os dois fluxos emitem JWT com o mesmo segredo obrigatório, emissor, audiência 
 
 ### CI, seguranca e CD
 
+- A documentação operacional completa do pipeline e o plano de entrega contínua estão em `docs/CI_CD.md`.
 - O workflow `.github/workflows/quality.yml` roda em pushes para `development` e `main`, em Pull Requests e sob disparo manual. Ele executa lint, type-check, testes, cobertura LCOV, `npm audit`, builds da API e do web, validação da imagem Docker, Semgrep, Trivy e Gitleaks.
 - A geração do Prisma no CI usa URLs PostgreSQL fictícias em `DATABASE_URL` e `DIRECT_URL` apenas para validação/build. Cada job de testes gera um `JWT_SECRET` efêmero, mascarado no log e descartado ao final da execução. Os testes atuais usam repositórios em memória e mocks; o CI não conecta a banco de dados nem aplica migrations.
 - O relatório LCOV é gerado em `coverage/lcov.info` e armazenado como artefato do workflow. Ainda não há um percentual mínimo de cobertura imposto: primeiro será necessário observar o baseline do conjunto atual de testes.

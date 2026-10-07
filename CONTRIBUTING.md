@@ -207,6 +207,8 @@ A promoção `development` → `main` **não exige** revisão de outro desenvolv
 
 ### Checks automáticos
 
+Consulte também a documentação operacional em [`docs/CI_CD.md`](docs/CI_CD.md).
+
 O workflow [CI](.github/workflows/quality.yml) é executado em pushes para `development` e `main`, além de todos os Pull Requests. Ele executa:
 
 - `npm ci` para instalar as dependências travadas no `package-lock.json`.
