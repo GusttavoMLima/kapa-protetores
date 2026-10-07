@@ -5,7 +5,7 @@ Este documento descreve o pipeline de integração contínua já ativo e o plano
 ## Estado atual
 
 - **CI:** ativo no GitHub Actions.
-- **CD:** planejado, ainda sem acesso aos provedores e sem secrets de deploy configurados.
+- **CD:** workflow preparado em `.github/workflows/cd.yml`; permanece sem executar deploy até os provedores e secrets serem configurados e o CI passar.
 - **Ambientes previstos:** homologação a partir de `development` e produção a partir de `main`.
 
 ## Integração contínua
@@ -74,7 +74,21 @@ flowchart LR
 - **API:** Render, construindo [`apps/server/Dockerfile`](../apps/server/Dockerfile) com o contexto na raiz do monorepo.
 - **Mobile:** EAS Build/Submit em uma etapa posterior, quando o fluxo de publicação nas lojas estiver definido.
 
-O Expo gera uma aplicação web estática que pode ser hospedada no Vercel. O Render permite configurar o deploy automático somente depois que os checks do GitHub passam.
+O Expo gera uma aplicação web estática que pode ser hospedada no Vercel. No Render, o auto-deploy deve permanecer desligado porque o workflow aciona um deploy hook somente depois que os checks passam.
+
+### Workflow de deploy
+
+O workflow [`.github/workflows/cd.yml`](../.github/workflows/cd.yml) é acionado somente quando o workflow `CI` termina em `development` ou `main`. Ele exige que a execução tenha vindo de um push e que todos os checks tenham concluído com sucesso.
+
+O job:
+
+1. obtém exatamente o commit aprovado pelo CI;
+2. lê os secrets do ambiente `staging` ou `production`;
+3. gera o build com Vercel CLI fixado na versão `62.5.0`;
+4. publica o web no Vercel;
+5. aciona o deploy do mesmo commit da API pelo deploy hook do Render.
+
+O workflow `CD` precisa existir na branch padrão do GitHub para receber eventos `workflow_run`. A primeira ativação acontece depois que esta configuração for promovida para `main`.
 
 ### Ambientes
 
@@ -86,14 +100,35 @@ O Expo gera uma aplicação web estática que pode ser hospedada no Vercel. O Re
 
 Homologação e produção devem usar bancos, Redis, buckets S3, chaves JWT e credenciais Google separados.
 
+### Configuração dos provedores
+
+No Vercel, crie um projeto para cada ambiente com a raiz do monorepo e configure:
+
+- Framework Preset: `Other`;
+- Install Command: `npm ci`;
+- Build Command: `npm run build:web`;
+- Output Directory: `apps/mobile-web/dist`.
+
+Use projetos sem auto-deploy pelo Git ou desative os builds automáticos da integração para não publicar antes do CI nem criar deploys duplicados. Copie os IDs do projeto e da organização para os respectivos ambientes do GitHub.
+
+No Render, crie um Web Service Docker para cada ambiente com:
+
+- repositório do Kapa;
+- Docker Context: `.`;
+- Dockerfile Path: `apps/server/Dockerfile`;
+- Health Check Path: `/api/health`;
+- Auto-Deploy: `Off`;
+- deploy hook exclusivo para o ambiente.
+
+O deploy hook é um segredo. Armazene-o somente como `RENDER_DEPLOY_HOOK_URL` no ambiente correspondente do GitHub.
+
 ### Bloqueios antes de ativar o CD
 
 1. Corrigir as vulnerabilidades existentes no `package-lock.json`; o check `Segurança` bloqueia o deploy enquanto estiver vermelho.
-2. Alterar a API para aceitar uma variável `REDIS_URL`. Atualmente [`RedisService.ts`](../apps/server/src/services/RedisService.ts) usa `localhost`, que não funciona com Redis gerenciado.
-3. Criar os projetos de homologação e produção no Vercel e no Render.
-4. Definir PostgreSQL/Supabase, Redis e armazenamento S3 separados por ambiente.
-5. Configurar os domínios e as origens CORS exatas.
-6. Cadastrar secrets nos ambientes do GitHub e nos provedores, sem copiar arquivos `.env`.
+2. Criar os projetos de homologação e produção no Vercel e no Render.
+3. Definir PostgreSQL/Supabase, Redis e armazenamento S3 separados por ambiente.
+4. Configurar os domínios e as origens CORS exatas.
+5. Cadastrar secrets nos ambientes do GitHub e nos provedores, sem copiar arquivos `.env`.
 
 ### Variáveis da API por ambiente
 
@@ -102,7 +137,7 @@ Homologação e produção devem usar bancos, Redis, buckets S3, chaves JWT e cr
 | Runtime | `NODE_ENV`, `PORT`, `CLIENT_URL` |
 | PostgreSQL | `DATABASE_URL`, `DIRECT_URL` |
 | Autenticação | `JWT_SECRET`, `JWT_ISSUER`, `JWT_AUDIENCE`, `ACCESS_TOKEN_TTL_SECONDS`, `SALT_SECRET` |
-| Redis | futura `REDIS_URL` |
+| Redis | `REDIS_URL`, usando `rediss://` quando o provedor oferecer TLS |
 | S3 | `S3_ENDPOINT`, `S3_PUBLIC_URL`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` |
 | Google | `GOOGLE_CLIENT_ID`, `GOOGLE_WEB_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID`, `GOOGLE_ANDROID_CLIENT_ID` |
 
@@ -120,14 +155,13 @@ Variáveis com prefixo `EXPO_PUBLIC_` são incorporadas ao bundle e não podem c
 ## Sequência de implementação do CD
 
 1. Resolver a dívida de dependências até o check `Segurança` passar.
-2. Implementar e testar `REDIS_URL` sem alterar o schema do banco.
-3. Criar os serviços de homologação e validar API, CORS, banco, Redis e S3.
-4. Configurar o Render com **After CI Checks Pass** para `development`.
-5. Configurar o projeto web de homologação no Vercel.
-6. Criar os ambientes `staging` e `production` no GitHub, restringindo branches e secrets.
-7. Adicionar o workflow de deploy do web depois do CI aprovado.
-8. Repetir a configuração para `main`, com aprovação de produção e estratégia de rollback.
-9. Adicionar EAS Build/Submit quando a equipe definir contas e publicação Android/iOS.
+2. Criar os serviços de homologação e validar API, CORS, banco, Redis e S3.
+3. Configurar o projeto web de homologação no Vercel.
+4. Criar os ambientes `staging` e `production` no GitHub, restringindo branches e secrets.
+5. Cadastrar em cada ambiente `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` e `RENDER_DEPLOY_HOOK_URL`.
+6. Promover o workflow de CD para `main` e validar o primeiro deploy de `development`.
+7. Repetir a configuração para produção, com aprovação e estratégia de rollback.
+8. Adicionar EAS Build/Submit quando a equipe definir contas e publicação Android/iOS.
 
 ## Rollback
 

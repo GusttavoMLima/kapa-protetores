@@ -1,13 +1,27 @@
 import { createClientPool, RedisClientPoolType } from 'redis';
 
-const URL = `redis://localhost:${process.env.REDIS_PORT || 6379}`;
-const PASSWORD = process.env.REDIS_PASSWORD;
+function getRedisConnection(): { url: string; password?: string } {
+  const configuredUrl = process.env.REDIS_URL?.trim();
+
+  if (configuredUrl) {
+    const parsedUrl = new URL(configuredUrl);
+    if (parsedUrl.protocol !== 'redis:' && parsedUrl.protocol !== 'rediss:') {
+      throw new Error('REDIS_URL must use the redis or rediss protocol');
+    }
+
+    return { url: configuredUrl };
+  }
+
+  return {
+    url: `redis://localhost:${process.env.REDIS_PORT || 6379}`,
+    password: process.env.REDIS_PASSWORD,
+  };
+}
+
+const redisConnection = getRedisConnection();
 
 const pool = createClientPool(
-  {
-    url: URL,
-    password: PASSWORD,
-  },
+  redisConnection,
   {
     minimum: 5,
     maximum: 25,
