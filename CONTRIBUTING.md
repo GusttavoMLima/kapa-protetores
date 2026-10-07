@@ -13,7 +13,7 @@ O repositório utiliza duas branches permanentes:
 | `main` | Entrega e apresentação — versão estável do projeto |
 | `development` | Integração — recebe as features aprovadas antes de ir para `main` |
 
-> Não há branch de homologação (`hml`): o projeto não possui dois ambientes de deploy. A validação acontece na própria `development`.
+> Não há branch `hml`: `development` representa o ambiente de homologação (`staging`) e `main` representa produção.
 
 ## Estratégia de merge
 
@@ -222,7 +222,7 @@ O CI apresenta cinco checks no Pull Request: `ESLint`, `Testes`, `Cobertura`, `D
 
 Repositórios pertencentes a uma organização precisam configurar `GITLEAKS_LICENSE`, conforme os requisitos do Gitleaks. O envio de comentários e relatórios do Gitleaks permanece desativado para evitar exposição de conteúdo sensível.
 
-Configure as regras de proteção de `development` e `main` no GitHub para exigir os checks do workflow antes do merge. Para o CI também controlar a publicação, configure Vercel para criar previews de PR/branches e usar `main` como branch de produção. Configure os serviços da API no Render para `development` e `main`, com auto-deploy após os checks de CI passarem. Ambientes de preview completos da API no Render exigem Preview Environments e um Blueprint; essa configuração pode gerar cobrança.
+Configure as regras de proteção de `development` e `main` no GitHub para exigir os checks do workflow antes do merge. Após um push aprovado pelo CI, o workflow `CD` publica `development` em homologação e `main` em produção. Os projetos Vercel e serviços Render devem permanecer sem auto-deploy pela integração Git para evitar publicações antes do CI e deploys duplicados. Ambientes de preview completos da API no Render exigem Preview Environments e um Blueprint; essa configuração pode gerar cobrança.
 
 O deploy de aplicativos nativos Android/iOS e envio às lojas não é automático nesta etapa. Builds de distribuição devem ser configurados no EAS quando houver uma entrega que precise deles.
 

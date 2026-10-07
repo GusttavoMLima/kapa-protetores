@@ -90,6 +90,8 @@ O job:
 
 O workflow `CD` precisa existir na branch padrão do GitHub para receber eventos `workflow_run`. A primeira ativação acontece depois que esta configuração for promovida para `main`.
 
+Nesse tipo de evento, o `GITHUB_REF` do workflow de CD aponta para a branch padrão, mesmo quando o CI que o originou executou em `development`. Por isso, não configure uma regra de branch selecionada que permita apenas `development` no ambiente `staging`: ela bloquearia o deploy. A origem é controlada pelos filtros `branches` do evento e pela validação de `github.event.workflow_run.head_branch` no workflow.
+
 ### Ambientes
 
 | Branch | Ambiente GitHub | Destino | Comportamento |
@@ -157,7 +159,7 @@ Variáveis com prefixo `EXPO_PUBLIC_` são incorporadas ao bundle e não podem c
 1. Resolver a dívida de dependências até o check `Segurança` passar.
 2. Criar os serviços de homologação e validar API, CORS, banco, Redis e S3.
 3. Configurar o projeto web de homologação no Vercel.
-4. Criar os ambientes `staging` e `production` no GitHub, restringindo branches e secrets.
+4. Criar os ambientes `staging` e `production` no GitHub para isolar secrets; em `production`, exigir aprovação quando o plano do repositório oferecer esse recurso.
 5. Cadastrar em cada ambiente `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` e `RENDER_DEPLOY_HOOK_URL`.
 6. Promover o workflow de CD para `main` e validar o primeiro deploy de `development`.
 7. Repetir a configuração para produção, com aprovação e estratégia de rollback.
