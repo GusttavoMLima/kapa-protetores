@@ -97,7 +97,7 @@ const summary = [
   '| --- | ---: | ---: | ---: | ---: |',
   ...rows,
   '',
-  '_Comentário atualizado automaticamente a cada push._',
+  '_Comentário gerado automaticamente a cada push — histórico preservado._',
   '',
 ].join('\n');
 
