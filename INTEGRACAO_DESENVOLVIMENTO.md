@@ -483,7 +483,7 @@ Os dois fluxos emitem JWT com o mesmo segredo obrigatório, emissor, audiência 
 - A conexão Redis aceita `REDIS_URL` com os protocolos `redis://` ou `rediss://`. `REDIS_PORT` e `REDIS_PASSWORD` permanecem como fallback exclusivo para o Redis local em `localhost`.
 - Preview Environments do Render podem criar cópias de serviços e bancos por PR e têm cobrança própria; só devem ser ativados com um Blueprint e ambiente de dados de teste apropriado. O CI não cria recursos cloud nem altera o schema do PostgreSQL.
 - Builds de distribuição Android/iOS e publicação nas lojas não estão automatizados nesta etapa. Expo EAS pode ser conectado quando o projeto definir o fluxo de release mobile.
-- O arquivo `sonar-project.properties` mantém a configuração do projeto para o SonarCloud, que roda como check separado (`CI / SonarCloud`) em pushes e em PRs do próprio repositório, sendo pulado em PRs de fork por não receberem secrets. O job depende do job `Cobertura` e baixa o artefato `lcov-report`, para que o SonarCloud calcule a cobertura de código novo e passe no Quality Gate.
+- O arquivo `sonar-project.properties` mantém a configuração do projeto para o SonarCloud, que roda como check separado (`CI / SonarCloud`) em pushes e em PRs do próprio repositório, sendo pulado em PRs de fork por não receberem secrets. O job depende do job `Cobertura` e baixa o artefato `lcov-report`, para que o SonarCloud calcule a cobertura de código novo e passe no Quality Gate; `sonar.coverage.exclusions` remove infraestrutura de banco/Redis e telas do app, que não possuem teste unitário.
 
 ---
 

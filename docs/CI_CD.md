@@ -37,6 +37,8 @@ Execuções do mesmo PR ou branch usam concorrência. Quando chega um commit mai
 
 As ferramentas de segurança continuam executando mesmo quando uma etapa anterior encontra um problema, permitindo consultar todos os resultados da execução.
 
+O check `SonarCloud` roda **depois** do job `Cobertura` e baixa o artefato `lcov-report`, para que o Quality Gate avalie a cobertura de código novo. As `sonar.coverage.exclusions` em [`sonar-project.properties`](../sonar-project.properties) excluem arquivos sem teste unitário (infra de banco/Redis e telas do app), evitando penalizar código exercitado apenas manualmente/integralmente.
+
 ### Gate de auditoria de dependências
 
 A auditoria deixou de ser um `npm audit` bruto (que falhava por vulnerabilidades sem correção na linha atual do Prisma/Expo). Agora `scripts/audit-gate.mjs` roda `npm audit --json` e **falha apenas em advisories high/critical que não estejam na allowlist** [`scripts/audit-allowlist.json`](../scripts/audit-allowlist.json). Assim, novas vulnerabilidades bloqueiam o CI, enquanto as aceitas ficam documentadas (com motivo). Ao corrigir uma dependência, remova o id correspondente da allowlist.
