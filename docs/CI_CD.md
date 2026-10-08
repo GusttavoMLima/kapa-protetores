@@ -33,11 +33,11 @@ Execuções do mesmo PR ou branch usam concorrência. Quando chega um commit mai
 | `CI / Cobertura` | Testes com LCOV, artefato de cobertura e comentário no PR |
 | `CI / Dockerfile (build base)` | Build completo da imagem de runtime da API |
 | `CI / Segurança (Semgrep + Trivy + npm audit)` | Gate de auditoria npm (`scripts/audit-gate.mjs` + allowlist), Semgrep, Trivy (com `.trivyignore`) e Gitleaks |
-| `CI / SonarCloud` | Análise estática e espera pelo Quality Gate do SonarCloud, consumindo a cobertura do job `Cobertura` (executa em push e em PR do próprio repositório; pulado em PR de fork por não receber secrets) |
+| `CI / SonarCloud` | Análise estática e espera pelo Quality Gate do SonarCloud, consumindo a cobertura do job `Cobertura` (executa nos PRs do próprio repositório e em pushes para `main`) |
 
 As ferramentas de segurança continuam executando mesmo quando uma etapa anterior encontra um problema, permitindo consultar todos os resultados da execução.
 
-O check `SonarCloud` roda **depois** do job `Cobertura`, baixa o artefato `lcov-report` e aguarda por até cinco minutos o resultado do Quality Gate. O próprio job falha quando o gate reprova, inclusive quando a cobertura do código novo fica abaixo de 80%, impedindo que o CD interprete o CI como aprovado. As `sonar.coverage.exclusions` em [`sonar-project.properties`](../sonar-project.properties) excluem arquivos sem teste unitário (infra de banco/Redis e telas do app), evitando penalizar código exercitado apenas manualmente/integralmente.
+O check `SonarCloud` roda **depois** do job `Cobertura`, baixa o artefato `lcov-report` e aguarda por até cinco minutos o resultado do Quality Gate. O próprio job falha quando o gate reprova, inclusive quando a cobertura do código novo fica abaixo de 80%. O plano atual do SonarCloud não permite consultar o Quality Gate de branches secundárias; por isso, o job executa nos Pull Requests e nos pushes para `main`, mas é pulado no push de `development`. Antes do merge, o PR já precisa ter passado pelo Quality Gate; depois do merge, os demais checks são executados novamente sobre o commit integrado. As `sonar.coverage.exclusions` em [`sonar-project.properties`](../sonar-project.properties) excluem arquivos sem teste unitário (infra de banco/Redis e telas do app), evitando penalizar código exercitado apenas manualmente/integralmente.
 
 ### Gate de auditoria de dependências
 
