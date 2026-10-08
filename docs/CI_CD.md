@@ -32,14 +32,16 @@ Execuções do mesmo PR ou branch usam concorrência. Quando chega um commit mai
 | `CI / Testes` | Segredo JWT efêmero, testes automatizados, build da API e build web |
 | `CI / Cobertura` | Testes com LCOV, artefato de cobertura e comentário no PR |
 | `CI / Dockerfile (build base)` | Build completo da imagem de runtime da API |
-| `CI / Segurança (Semgrep + Trivy + npm audit)` | Gate de auditoria npm (`scripts/audit-gate.mjs` + allowlist), Semgrep, Trivy e Gitleaks |
-| `CI / SonarCloud` | Análise estática do SonarCloud (executa em push e em PR do próprio repositório; pulado em PR de fork por não receber secrets) |
+| `CI / Segurança (Semgrep + Trivy + npm audit)` | Gate de auditoria npm (`scripts/audit-gate.mjs` + allowlist), Semgrep, Trivy (com `.trivyignore`) e Gitleaks |
+| `CI / SonarCloud` | Análise estática do SonarCloud, consumindo a cobertura do job `Cobertura` (executa em push e em PR do próprio repositório; pulado em PR de fork por não receber secrets) |
 
 As ferramentas de segurança continuam executando mesmo quando uma etapa anterior encontra um problema, permitindo consultar todos os resultados da execução.
 
 ### Gate de auditoria de dependências
 
 A auditoria deixou de ser um `npm audit` bruto (que falhava por vulnerabilidades sem correção na linha atual do Prisma/Expo). Agora `scripts/audit-gate.mjs` roda `npm audit --json` e **falha apenas em advisories high/critical que não estejam na allowlist** [`scripts/audit-allowlist.json`](../scripts/audit-allowlist.json). Assim, novas vulnerabilidades bloqueiam o CI, enquanto as aceitas ficam documentadas (com motivo). Ao corrigir uma dependência, remova o id correspondente da allowlist.
+
+O job `Segurança` também roda o **Trivy**, que tem o próprio ignore em [`.trivyignore`](../.trivyignore) (mesmos CVEs aceitos, já que o Trivy não lê a allowlist do npm). O **Semgrep** roda com `--error`; em PRs usa `--baseline-commit` e eventuais falsos positivos são suprimidos pontualmente com `# nosemgrep`.
 
 ### Cobertura no Pull Request
 

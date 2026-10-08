@@ -21,18 +21,14 @@ export class PrismaService {
       connectionString.includes('pooler.supabase.com') ||
       process.env.NODE_ENV === 'production';
 
+    const rejectUnauthorized = !isRemote;
+
     this.pool = new Pool({
       connectionString,
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 15000,
-      ...(isRemote
-        ? {
-            ssl: {
-              rejectUnauthorized: false,
-            },
-          }
-        : {}),
+      ...(isRemote ? { ssl: { rejectUnauthorized } } : {}),
     });
 
     this.pool.on('error', (err) => {

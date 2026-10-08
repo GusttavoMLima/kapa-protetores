@@ -31,9 +31,10 @@ import { hojeBr } from '@kapa/shared/utils';
 import { ApiError } from '@/services/api';
 import { BackLink } from '@/screens/animalManagement/components';
 import { router } from 'expo-router';
+import * as Crypto from 'expo-crypto';
 
 function novoId(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return `${Date.now()}-${Crypto.randomUUID().slice(0, 8)}`;
 }
 
 type DoseFieldProps = {
