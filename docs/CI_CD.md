@@ -33,11 +33,11 @@ Execuções do mesmo PR ou branch usam concorrência. Quando chega um commit mai
 | `CI / Cobertura` | Testes com LCOV, artefato de cobertura e comentário no PR |
 | `CI / Dockerfile (build base)` | Build completo da imagem de runtime da API |
 | `CI / Segurança (Semgrep + Trivy + npm audit)` | Gate de auditoria npm (`scripts/audit-gate.mjs` + allowlist), Semgrep, Trivy (com `.trivyignore`) e Gitleaks |
-| `CI / SonarCloud` | Análise estática do SonarCloud, consumindo a cobertura do job `Cobertura` (executa em push e em PR do próprio repositório; pulado em PR de fork por não receber secrets) |
+| `CI / SonarCloud` | Análise estática e espera pelo Quality Gate do SonarCloud, consumindo a cobertura do job `Cobertura` (executa em push e em PR do próprio repositório; pulado em PR de fork por não receber secrets) |
 
 As ferramentas de segurança continuam executando mesmo quando uma etapa anterior encontra um problema, permitindo consultar todos os resultados da execução.
 
-O check `SonarCloud` roda **depois** do job `Cobertura` e baixa o artefato `lcov-report`, para que o Quality Gate avalie a cobertura de código novo. As `sonar.coverage.exclusions` em [`sonar-project.properties`](../sonar-project.properties) excluem arquivos sem teste unitário (infra de banco/Redis e telas do app), evitando penalizar código exercitado apenas manualmente/integralmente.
+O check `SonarCloud` roda **depois** do job `Cobertura`, baixa o artefato `lcov-report` e aguarda por até cinco minutos o resultado do Quality Gate. O próprio job falha quando o gate reprova, inclusive quando a cobertura do código novo fica abaixo de 80%, impedindo que o CD interprete o CI como aprovado. As `sonar.coverage.exclusions` em [`sonar-project.properties`](../sonar-project.properties) excluem arquivos sem teste unitário (infra de banco/Redis e telas do app), evitando penalizar código exercitado apenas manualmente/integralmente.
 
 ### Gate de auditoria de dependências
 
@@ -143,9 +143,9 @@ O deploy hook é um segredo. Armazene-o somente como `RENDER_DEPLOY_HOOK_URL` no
 Para o banco, crie **dois projetos Supabase** (homologação e produção). Cada projeto fornece:
 
 - `DATABASE_URL`: conexão via pooler (usada pela API em runtime);
-- `DIRECT_URL`: conexão direta (usada pelas migrations do Prisma).
+- `DIRECT_URL`: conexão usada pelas migrations do Prisma.
 
-As migrations rodam no próprio workflow de deploy (`prisma migrate deploy`), antes de acionar o Render — por isso o banco precisa estar acessível a partir do runner do GitHub Actions (o Supabase atende por HTTPS/público). Cadastre `DATABASE_URL` e `DIRECT_URL` nos environments `staging` e `production`, com valores distintos por ambiente.
+As migrations rodam no próprio workflow de deploy (`prisma migrate deploy`), antes de acionar o Render — por isso o banco precisa estar acessível a partir do runner do GitHub Actions. Como os runners do GitHub Actions e o Render usam IPv4, em projetos Supabase que não oferecem conexão direta por IPv4, use a URI do **Session pooler**, porta `5432`, tanto em `DATABASE_URL` quanto em `DIRECT_URL`, acrescentando `?sslmode=require`. Cadastre os valores nos environments `staging` e `production`, com bancos distintos por ambiente.
 
 ### Onde cada valor é configurado
 

@@ -9,11 +9,13 @@ function pad(value: number): string { return String(value).padStart(2, '0'); }
 
 function toDate(value: string, mode: 'date' | 'time'): Date {
   const now = new Date();
-  if (mode === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(value)) { // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos
+  // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- formato ancorado e de tamanho fixo
+  if (mode === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
     const [year, month, day] = value.split('-').map(Number);
     return new Date(year, month - 1, day, 12);
   }
-  if (mode === 'time' && /^\d{2}:\d{2}$/.test(value)) { // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos
+  // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- formato ancorado e de tamanho fixo
+  if (mode === 'time' && /^\d{2}:\d{2}$/.test(value)) {
     const [hours, minutes] = value.split(':').map(Number);
     now.setHours(hours, minutes, 0, 0);
   }
