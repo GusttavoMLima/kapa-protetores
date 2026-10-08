@@ -156,3 +156,30 @@ jobs:
             fi
           done
           echo "API saudável (HTTP 200): $API_HEALTH_URL"
+
+      - name: Publish deployment summary
+        if: always()
+        shell: bash
+        env:
+          API_HEALTH_URL: ${{ secrets.API_HEALTH_URL }}
+          DEPLOY_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+          CI_RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          environment=staging
+          if [ "$DEPLOY_BRANCH" = 'main' ]; then
+            environment=production
+          fi
+          health="$(curl --silent --max-time 15 "$API_HEALTH_URL" || true)"
+          {
+            echo "## Deploy ($environment)"
+            echo
+            echo "| Item | Valor |"
+            echo "| --- | --- |"
+            echo "| Ambiente | $environment |"
+            echo "| Branch | $DEPLOY_BRANCH |"
+            echo "| Commit enviado | $DEPLOY_SHA |"
+            echo "| API health | $API_HEALTH_URL |"
+            echo "| Resposta /health | $health |"
+            echo "| Execução do CI | $CI_RUN_URL |"
+          } >> "$GITHUB_STEP_SUMMARY"
