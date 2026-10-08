@@ -140,6 +140,16 @@ Para o banco, crie **dois projetos Supabase** (homologação e produção). Cada
 
 As migrations rodam no próprio workflow de deploy (`prisma migrate deploy`), antes de acionar o Render — por isso o banco precisa estar acessível a partir do runner do GitHub Actions (o Supabase atende por HTTPS/público). Cadastre `DATABASE_URL` e `DIRECT_URL` nos environments `staging` e `production`, com valores distintos por ambiente.
 
+### Onde cada valor é configurado
+
+| Onde | Para que serve | Variáveis |
+| --- | --- | --- |
+| GitHub Environment (`staging`/`production`) | O que o workflow usa para migrar e deployar | `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `RENDER_DEPLOY_HOOK_URL`, `API_HEALTH_URL`, `DATABASE_URL`, `DIRECT_URL` |
+| Render (runtime da API) | Variáveis que a API lê em execução | `NODE_ENV`, `PORT`, `CLIENT_URL`, `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`, `JWT_ISSUER`, `JWT_AUDIENCE`, `ACCESS_TOKEN_TTL_SECONDS`, `SALT_SECRET`, `REDIS_URL`, `S3_ENDPOINT`, `S3_PUBLIC_URL`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `GOOGLE_*` |
+| Vercel (build do web) | Variáveis embutidas no bundle | `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`, `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID`, `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` |
+
+`API_HEALTH_URL` é a URL pública de health do ambiente (ex.: `https://kapa-api-hml.onrender.com/api/health`); o CD faz polling nela até responder HTTP 200. `CLIENT_URL` deve conter as origens web exatas do ambiente (CORS), sem barra final.
+
 ### Bloqueios antes de ativar o CD
 
 1. Garantir que o check `Segurança` esteja verde — as vulnerabilidades pré-existentes estão documentadas na allowlist (`scripts/audit-allowlist.json`) e apenas advisories novas bloqueiam.
@@ -176,11 +186,12 @@ Variáveis com prefixo `EXPO_PUBLIC_` são incorporadas ao bundle e não podem c
 2. Criar os projetos Supabase de homologação e produção e obter `DATABASE_URL`/`DIRECT_URL`.
 3. Criar os serviços de homologação e validar API, CORS, banco, Redis e S3.
 4. Configurar o projeto web de homologação no Vercel.
-5. Criar os ambientes `staging` e `production` no GitHub para isolar secrets; em `production`, exigir aprovação quando o plano do repositório oferecer esse recurso.
-6. Cadastrar em cada ambiente `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `RENDER_DEPLOY_HOOK_URL`, `API_HEALTH_URL`, `DATABASE_URL` e `DIRECT_URL`.
-7. Promover o workflow de CD para `main` e validar o primeiro deploy de `development`.
-8. Repetir a configuração para produção, com aprovação e estratégia de rollback.
-9. Adicionar EAS Build/Submit quando a equipe definir contas e publicação Android/iOS.
+5. Criar os ambientes `staging` e `production` no GitHub para isolar secrets; em `production`, ativar **required reviewers** (aprovação).
+6. Configurar a proteção das branches `development` e `main` exigindo os seis checks do CI.
+7. Cadastrar em cada ambiente `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `RENDER_DEPLOY_HOOK_URL`, `API_HEALTH_URL`, `DATABASE_URL` e `DIRECT_URL`.
+8. Promover o workflow de CD para `main` e validar o primeiro deploy de `development`.
+9. Repetir a configuração para produção, com aprovação e estratégia de rollback.
+10. Adicionar EAS Build/Submit quando a equipe definir contas e publicação Android/iOS.
 
 ## Rollback
 
