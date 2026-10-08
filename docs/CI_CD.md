@@ -32,9 +32,14 @@ Execuções do mesmo PR ou branch usam concorrência. Quando chega um commit mai
 | `CI / Testes` | Segredo JWT efêmero, testes automatizados, build da API e build web |
 | `CI / Cobertura` | Testes com LCOV, artefato de cobertura e comentário no PR |
 | `CI / Dockerfile (build base)` | Build completo da imagem de runtime da API |
-| `CI / Segurança (Semgrep + Trivy + npm audit)` | Auditoria npm, Semgrep, Trivy e Gitleaks |
+| `CI / Segurança (Semgrep + Trivy + npm audit)` | Gate de auditoria npm (`scripts/audit-gate.mjs` + allowlist), Semgrep, Trivy e Gitleaks |
+| `CI / SonarCloud` | Análise estática do SonarCloud (executa em push e em PR do próprio repositório; pulado em PR de fork por não receber secrets) |
 
 As ferramentas de segurança continuam executando mesmo quando uma etapa anterior encontra um problema, permitindo consultar todos os resultados da execução.
+
+### Gate de auditoria de dependências
+
+A auditoria deixou de ser um `npm audit` bruto (que falhava por vulnerabilidades sem correção na linha atual do Prisma/Expo). Agora `scripts/audit-gate.mjs` roda `npm audit --json` e **falha apenas em advisories high/critical que não estejam na allowlist** [`scripts/audit-allowlist.json`](../scripts/audit-allowlist.json). Assim, novas vulnerabilidades bloqueiam o CI, enquanto as aceitas ficam documentadas (com motivo). Ao corrigir uma dependência, remova o id correspondente da allowlist.
 
 ### Cobertura no Pull Request
 
@@ -49,7 +54,7 @@ O relatório completo `coverage/lcov.info` permanece disponível como artefato p
 
 ### Proteção das branches
 
-Configure regras para `development` e `main` exigindo os cinco checks listados acima. Para `development`, mantenha também aprovação de outro desenvolvedor, discussões resolvidas e Squash and merge, conforme o [`CONTRIBUTING.md`](../CONTRIBUTING.md).
+Configure regras para `development` e `main` exigindo os seis checks listados acima. Para `development`, mantenha também aprovação de outro desenvolvedor, discussões resolvidas e Squash and merge, conforme o [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 
 ### Dependabot
 
@@ -59,7 +64,7 @@ O arquivo [`.github/dependabot.yml`](../.github/dependabot.yml) procura atualiza
 
 ```mermaid
 flowchart LR
-    PR[Pull Request] --> CI[Cinco checks de CI]
+    PR[Pull Request] --> CI[Seis checks de CI]
     CI -->|aprovado e merge| DEV[development]
     DEV --> WEBH[Web de homologação no Vercel]
     DEV --> APIH[API de homologação no Render]
@@ -84,9 +89,13 @@ O job:
 
 1. obtém exatamente o commit aprovado pelo CI;
 2. lê os secrets do ambiente `staging` ou `production`;
-3. gera o build com Vercel CLI fixado na versão `62.5.0`;
-4. publica o web no Vercel;
-5. aciona o deploy do mesmo commit da API pelo deploy hook do Render.
+3. instala as dependências (`npm ci`) e aplica as migrations do Prisma (`prisma migrate deploy`) usando `DATABASE_URL`/`DIRECT_URL` do ambiente;
+4. gera o build com Vercel CLI fixado na versão `62.5.0`;
+5. publica o web no Vercel;
+6. aciona o deploy do mesmo commit da API pelo deploy hook do Render;
+7. aguarda `API_HEALTH_URL` responder `HTTP 200` (timeout de 10 minutos) e falha o deploy se o serviço não subir.
+
+Migrations e deploy usam o mesmo environment do GitHub, então há **uma única aprovação** em produção, cobrindo os dois.
 
 O workflow `CD` precisa existir na branch padrão do GitHub para receber eventos `workflow_run`. A primeira ativação acontece depois que esta configuração for promovida para `main`.
 
@@ -124,11 +133,18 @@ No Render, crie um Web Service Docker para cada ambiente com:
 
 O deploy hook é um segredo. Armazene-o somente como `RENDER_DEPLOY_HOOK_URL` no ambiente correspondente do GitHub.
 
+Para o banco, crie **dois projetos Supabase** (homologação e produção). Cada projeto fornece:
+
+- `DATABASE_URL`: conexão via pooler (usada pela API em runtime);
+- `DIRECT_URL`: conexão direta (usada pelas migrations do Prisma).
+
+As migrations rodam no próprio workflow de deploy (`prisma migrate deploy`), antes de acionar o Render — por isso o banco precisa estar acessível a partir do runner do GitHub Actions (o Supabase atende por HTTPS/público). Cadastre `DATABASE_URL` e `DIRECT_URL` nos environments `staging` e `production`, com valores distintos por ambiente.
+
 ### Bloqueios antes de ativar o CD
 
-1. Corrigir as vulnerabilidades existentes no `package-lock.json`; o check `Segurança` bloqueia o deploy enquanto estiver vermelho.
-2. Criar os projetos de homologação e produção no Vercel e no Render.
-3. Definir PostgreSQL/Supabase, Redis e armazenamento S3 separados por ambiente.
+1. Garantir que o check `Segurança` esteja verde — as vulnerabilidades pré-existentes estão documentadas na allowlist (`scripts/audit-allowlist.json`) e apenas advisories novas bloqueiam.
+2. Criar os projetos de homologação e produção no Vercel, no Render e no Supabase.
+3. Definir Redis e armazenamento S3 separados por ambiente.
 4. Configurar os domínios e as origens CORS exatas.
 5. Cadastrar secrets nos ambientes do GitHub e nos provedores, sem copiar arquivos `.env`.
 
@@ -143,7 +159,7 @@ O deploy hook é um segredo. Armazene-o somente como `RENDER_DEPLOY_HOOK_URL` no
 | S3 | `S3_ENDPOINT`, `S3_PUBLIC_URL`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` |
 | Google | `GOOGLE_CLIENT_ID`, `GOOGLE_WEB_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID`, `GOOGLE_ANDROID_CLIENT_ID` |
 
-Variáveis `SEED_ADMIN_*` não devem permanecer no runtime de produção depois do uso controlado. O workflow de deploy não executará migrations nem seed automaticamente.
+Variáveis `SEED_ADMIN_*` não devem permanecer no runtime de produção depois do uso controlado. O workflow de deploy aplica as migrations do Prisma automaticamente antes de acionar a API, mas **não** executa seed.
 
 ### Variáveis públicas do web
 
@@ -156,14 +172,15 @@ Variáveis com prefixo `EXPO_PUBLIC_` são incorporadas ao bundle e não podem c
 
 ## Sequência de implementação do CD
 
-1. Resolver a dívida de dependências até o check `Segurança` passar.
-2. Criar os serviços de homologação e validar API, CORS, banco, Redis e S3.
-3. Configurar o projeto web de homologação no Vercel.
-4. Criar os ambientes `staging` e `production` no GitHub para isolar secrets; em `production`, exigir aprovação quando o plano do repositório oferecer esse recurso.
-5. Cadastrar em cada ambiente `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` e `RENDER_DEPLOY_HOOK_URL`.
-6. Promover o workflow de CD para `main` e validar o primeiro deploy de `development`.
-7. Repetir a configuração para produção, com aprovação e estratégia de rollback.
-8. Adicionar EAS Build/Submit quando a equipe definir contas e publicação Android/iOS.
+1. Garantir que o check `Segurança` passe (allowlist documentada de vulnerabilidades pré-existentes).
+2. Criar os projetos Supabase de homologação e produção e obter `DATABASE_URL`/`DIRECT_URL`.
+3. Criar os serviços de homologação e validar API, CORS, banco, Redis e S3.
+4. Configurar o projeto web de homologação no Vercel.
+5. Criar os ambientes `staging` e `production` no GitHub para isolar secrets; em `production`, exigir aprovação quando o plano do repositório oferecer esse recurso.
+6. Cadastrar em cada ambiente `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `RENDER_DEPLOY_HOOK_URL`, `API_HEALTH_URL`, `DATABASE_URL` e `DIRECT_URL`.
+7. Promover o workflow de CD para `main` e validar o primeiro deploy de `development`.
+8. Repetir a configuração para produção, com aprovação e estratégia de rollback.
+9. Adicionar EAS Build/Submit quando a equipe definir contas e publicação Android/iOS.
 
 ## Rollback
 
