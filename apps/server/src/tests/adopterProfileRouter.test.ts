@@ -26,11 +26,14 @@ describe('AdopterProfileRouter', () => {
 
     const adopterProfileRouter = new AdopterProfileRouter(mockController);
 
+    type RegisteredRoute = { path: string; methods: Record<string, boolean> };
+
     const registeredRoutes = adopterProfileRouter.router.stack
-      .filter((layer) => layer.route)
-      .map((layer) => ({
-        path: layer.route.path,
-        methods: Object.keys(layer.route.methods),
+      .map((layer) => layer.route as unknown as RegisteredRoute | undefined)
+      .filter((route): route is RegisteredRoute => route !== undefined)
+      .map((route) => ({
+        path: route.path,
+        methods: Object.keys(route.methods ?? {}),
       }));
 
     const paths = registeredRoutes.map((r) => r.path);
