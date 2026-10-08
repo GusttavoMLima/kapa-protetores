@@ -1,0 +1,80 @@
+[
+  {
+    "id": "GHSA-jqcg-44mw-7w3h",
+    "package": "proxy-addr",
+    "severity": "critical",
+    "reason": "Transitiva via express. Correção exige atualizar o lock, hoje bloqueado por conflito de peer (react-native-reanimated x react-native-worklets) que impede npm install."
+  },
+  {
+    "id": "GHSA-pqg4-j6r4-53mv",
+    "package": "shell-quote",
+    "severity": "critical",
+    "reason": "Transitiva de toolchain (concurrently/expo). Entrada não é controlada pelo usuário; correção presa ao mesmo conflito de peer."
+  },
+  {
+    "id": "GHSA-3f6p-5ww8-9rcr",
+    "package": "mysql2",
+    "severity": "high",
+    "reason": "Transitiva do Prisma CLI (ferramenta de build). Correção exige downgrade major do Prisma (7.x -> 6.19.3)."
+  },
+  {
+    "id": "GHSA-rgwj-5xj2-c3m3",
+    "package": "mysql2",
+    "severity": "high",
+    "reason": "Idem mysql2: dependência do Prisma CLI, sem correção na linha 7.x."
+  },
+  {
+    "id": "GHSA-ggr8-5vv4-36mx",
+    "package": "deepmerge-ts",
+    "severity": "high",
+    "reason": "Transitiva do Prisma CLI. Correção exige downgrade major do Prisma."
+  },
+  {
+    "id": "GHSA-5p2g-fcmc-qvqq",
+    "package": "image-size",
+    "severity": "high",
+    "reason": "Transitiva de toolchain do Expo/Metro (build). Não usada em runtime da API."
+  },
+  {
+    "id": "GHSA-w3rx-r6r6-pgpr",
+    "package": "image-size",
+    "severity": "high",
+    "reason": "Idem image-size (toolchain Expo/Metro)."
+  },
+  {
+    "id": "GHSA-68fv-2mgg-jv7q",
+    "package": "source-map-js",
+    "severity": "high",
+    "reason": "Transitiva de toolchain de build (source maps). Não usada em runtime da API."
+  },
+  {
+    "id": "GHSA-6j4f-fj2g-mc7p",
+    "package": "brace-expansion",
+    "severity": "high",
+    "reason": "Transitiva de toolchain (glob/minimatch). DoS local; correção presa ao conflito de peer."
+  },
+  {
+    "id": "GHSA-qhr7-859c-m2p7",
+    "package": "brace-expansion",
+    "severity": "high",
+    "reason": "Idem brace-expansion (toolchain)."
+  },
+  {
+    "id": "GHSA-86w9-cpqp-85rv",
+    "package": "node-forge",
+    "severity": "high",
+    "reason": "Transitiva de toolchain do Expo (code signing). Não usada em runtime da API."
+  },
+  {
+    "id": "GHSA-r5fr-rjxr-66jc",
+    "package": "lodash",
+    "severity": "high",
+    "reason": "Transitiva de toolchain (build). Correção presa ao conflito de peer."
+  },
+  {
+    "id": "GHSA-vfj7-8cjw-p6xm",
+    "package": "braces",
+    "severity": "high",
+    "reason": "Transitiva de toolchain (glob). DoS local; baixo risco no build."
+  }
+]
