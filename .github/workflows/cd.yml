@@ -25,7 +25,7 @@ jobs:
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     environment:
       name: ${{ github.event.workflow_run.head_branch == 'main' && 'production' || 'staging' }}
     env:
@@ -63,6 +63,64 @@ jobs:
             printf 'Missing deployment secrets: %s\n' "${missing[*]}" >&2
             exit 1
           fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply Prisma migrations
+        run: npm run prisma:migrate:deploy --workspace=@kapa/server
+
+      - name: Trigger API deploy on Render
+        shell: bash
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          separator='?'
+          if [[ "$RENDER_DEPLOY_HOOK_URL" == *'?'* ]]; then
+            separator='&'
+          fi
+          curl \
+            --fail-with-body \
+            --silent \
+            --show-error \
+            --request POST \
+            "${RENDER_DEPLOY_HOOK_URL}${separator}ref=${DEPLOY_SHA}"
+
+      - name: Wait for API health check
+        shell: bash
+        env:
+          API_HEALTH_URL: ${{ secrets.API_HEALTH_URL }}
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          # O HTTP 200 da versão anterior não confirma o deploy. Aguarda o novo SHA.
+          sleep 20
+          deadline=$((SECONDS + 1200))
+          code=''
+          deployed_commit=''
+          until [ "$code" = '200' ] && [ "$deployed_commit" = "$DEPLOY_SHA" ]; do
+            if ((SECONDS >= deadline)); then
+              echo "Timeout aguardando ${DEPLOY_SHA} em ${API_HEALTH_URL} (status: ${code:-sem resposta}; commit: ${deployed_commit:-desconhecido})." >&2
+              exit 1
+            fi
+            response_file="$(mktemp)"
+            code="$(curl --silent --output "$response_file" --write-out '%{http_code}' "$API_HEALTH_URL" || true)"
+            deployed_commit="$(node -e '
+              const fs = require("node:fs");
+              try {
+                const body = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+                process.stdout.write(
+                  typeof body?.data?.commit === "string" ? body.data.commit : "",
+                );
+              } catch {}
+            ' "$response_file")"
+            rm -f "$response_file"
+            if [ "$code" != '200' ] || [ "$deployed_commit" != "$DEPLOY_SHA" ]; then
+              echo "Aguardando commit aprovado... status: ${code:-sem resposta}; commit atual: ${deployed_commit:-desconhecido}"
+              sleep 10
+            fi
+          done
+          echo "API saudável no commit aprovado: $DEPLOY_SHA"
 
       - name: Pull Vercel environment
         shell: bash
@@ -113,51 +171,6 @@ jobs:
             --prebuilt \
             --token="$VERCEL_TOKEN" \
             "${production_args[@]}"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Apply Prisma migrations
-        run: npm run prisma:migrate:deploy --workspace=@kapa/server
-
-      - name: Trigger API deploy on Render
-        shell: bash
-        env:
-          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
-          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
-        run: |
-          separator='?'
-          if [[ "$RENDER_DEPLOY_HOOK_URL" == *'?'* ]]; then
-            separator='&'
-          fi
-          curl \
-            --fail-with-body \
-            --silent \
-            --show-error \
-            --request POST \
-            "${RENDER_DEPLOY_HOOK_URL}${separator}ref=${DEPLOY_SHA}"
-
-      - name: Wait for API health check
-        shell: bash
-        env:
-          API_HEALTH_URL: ${{ secrets.API_HEALTH_URL }}
-        run: |
-          # O deploy no Render é assíncrono; aguarda o serviço responder 200.
-          sleep 20
-          deadline=$((SECONDS + 600))
-          code=''
-          until [ "$code" = '200' ]; do
-            if ((SECONDS >= deadline)); then
-              echo "Timeout aguardando ${API_HEALTH_URL} ficar saudável (último status: ${code:-sem resposta})." >&2
-              exit 1
-            fi
-            code="$(curl --silent --output /dev/null --write-out '%{http_code}' "$API_HEALTH_URL" || true)"
-            if [ "$code" != '200' ]; then
-              echo "Aguardando API subir... status atual: ${code:-sem resposta}"
-              sleep 10
-            fi
-          done
-          echo "API saudável (HTTP 200): $API_HEALTH_URL"
 
       - name: Publish deployment summary
         if: always()

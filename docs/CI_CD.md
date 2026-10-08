@@ -94,13 +94,13 @@ O job:
 1. obtém exatamente o commit aprovado pelo CI;
 2. lê os secrets do ambiente `staging` ou `production`;
 3. instala as dependências (`npm ci`) e aplica as migrations do Prisma (`prisma migrate deploy`) usando `DATABASE_URL`/`DIRECT_URL` do ambiente;
-4. gera o build com Vercel CLI fixado na versão `62.5.0`;
-5. publica o web no Vercel;
-6. aciona o deploy do mesmo commit da API pelo deploy hook do Render;
-7. aguarda `API_HEALTH_URL` responder `HTTP 200` (timeout de 10 minutos) e falha o deploy se o serviço não subir;
+4. aciona o deploy do mesmo commit da API pelo deploy hook do Render;
+5. aguarda `API_HEALTH_URL` responder `HTTP 200` e informar exatamente o SHA aprovado pelo CI (timeout de 20 minutos);
+6. gera o build com Vercel CLI fixado na versão `62.5.0`;
+7. publica o web no Vercel somente depois que a nova API estiver saudável;
 8. publica um resumo do deploy (ambiente, branch, commit, URL e resposta de `/health`) no *Step Summary* da execução do GitHub Actions.
 
-O endpoint `GET /api/health` devolve o campo `commit` com o SHA em execução — resolvido por `GIT_SHA` (quando definido no ambiente) ou por `RENDER_GIT_COMMIT` (injetado pelo Render no deploy). Isso permite confirmar *qual* commit está no ar.
+O endpoint `GET /api/health` devolve o campo `data.commit` com o SHA em execução — resolvido por `GIT_SHA` (quando definido no ambiente) ou por `RENDER_GIT_COMMIT` (injetado pelo Render no deploy). Isso permite confirmar *qual* commit está no ar.
 
 Migrations e deploy usam o mesmo environment do GitHub, então há **uma única aprovação** em produção, cobrindo os dois.
 
@@ -155,9 +155,9 @@ As migrations rodam no próprio workflow de deploy (`prisma migrate deploy`), an
 | Render (runtime da API) | Variáveis que a API lê em execução | `NODE_ENV`, `PORT`, `CLIENT_URL`, `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`, `JWT_ISSUER`, `JWT_AUDIENCE`, `ACCESS_TOKEN_TTL_SECONDS`, `SALT_SECRET`, `REDIS_URL`, `S3_ENDPOINT`, `S3_PUBLIC_URL`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `GOOGLE_*` |
 | Vercel (build do web) | Variáveis embutidas no bundle | `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`, `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID`, `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` |
 
-`API_HEALTH_URL` é a URL pública de health do ambiente (ex.: `https://kapa-api-hml.onrender.com/api/health`); o CD faz polling nela até responder HTTP 200. `CLIENT_URL` deve conter as origens web exatas do ambiente (CORS), sem barra final.
+`API_HEALTH_URL` é a URL pública de health do ambiente (ex.: `https://kapa-api-hml.onrender.com/api/health`); o CD faz polling até ela responder HTTP 200 com o mesmo SHA aprovado pelo CI. `CLIENT_URL` deve conter as origens web exatas do ambiente (CORS), sem barra final.
 
-Opcionalmente, defina `GIT_SHA` no Render para fixar o commit exibido em `/api/health`; sem ele, o Render injeta `RENDER_GIT_COMMIT` automaticamente.
+Não defina `GIT_SHA` manualmente no Render. O serviço usa `RENDER_GIT_COMMIT`, injetado automaticamente a cada deploy, para informar o commit atual em `/api/health`.
 
 ### Bloqueios antes de ativar o CD
 
