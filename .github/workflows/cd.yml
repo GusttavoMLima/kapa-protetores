@@ -1,0 +1,181 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows:
+      - Quality
+      - CI
+    types:
+      - completed
+    branches:
+      - development
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy staging
+    if: >-
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment:
+      name: staging
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.DIRECT_URL }}
+    steps:
+      # nosemgrep: yaml.github-actions.security.workflow-run-target-code-checkout.workflow-run-target-code-checkout
+      - name: Check out approved commit
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Validate deployment secrets
+        shell: bash
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          API_HEALTH_URL: ${{ secrets.API_HEALTH_URL }}
+        run: |
+          missing=()
+          for variable in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID RENDER_DEPLOY_HOOK_URL API_HEALTH_URL DATABASE_URL DIRECT_URL; do
+            if [ -z "${!variable}" ]; then
+              missing+=("$variable")
+            fi
+          done
+          if ((${#missing[@]} > 0)); then
+            printf 'Missing deployment secrets: %s\n' "${missing[*]}" >&2
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply Prisma migrations
+        run: npm run prisma:migrate:deploy --workspace=@kapa/server
+
+      - name: Trigger API deploy on Render
+        shell: bash
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          separator='?'
+          if [[ "$RENDER_DEPLOY_HOOK_URL" == *'?'* ]]; then
+            separator='&'
+          fi
+          curl \
+            --fail-with-body \
+            --silent \
+            --show-error \
+            --request POST \
+            "${RENDER_DEPLOY_HOOK_URL}${separator}ref=${DEPLOY_SHA}"
+
+      - name: Wait for API health check
+        shell: bash
+        env:
+          API_HEALTH_URL: ${{ secrets.API_HEALTH_URL }}
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          # O HTTP 200 da versão anterior não confirma o deploy. Aguarda o novo SHA.
+          sleep 20
+          deadline=$((SECONDS + 1200))
+          code=''
+          deployed_commit=''
+          until [ "$code" = '200' ] && [ "$deployed_commit" = "$DEPLOY_SHA" ]; do
+            if ((SECONDS >= deadline)); then
+              echo "Timeout aguardando ${DEPLOY_SHA} em ${API_HEALTH_URL} (status: ${code:-sem resposta}; commit: ${deployed_commit:-desconhecido})." >&2
+              exit 1
+            fi
+            response_file="$(mktemp)"
+            code="$(curl --silent --output "$response_file" --write-out '%{http_code}' "$API_HEALTH_URL" || true)"
+            deployed_commit="$(node -e '
+              const fs = require("node:fs");
+              try {
+                const body = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+                process.stdout.write(
+                  typeof body?.data?.commit === "string" ? body.data.commit : "",
+                );
+              } catch {}
+            ' "$response_file")"
+            rm -f "$response_file"
+            if [ "$code" != '200' ] || [ "$deployed_commit" != "$DEPLOY_SHA" ]; then
+              echo "Aguardando commit aprovado... status: ${code:-sem resposta}; commit atual: ${deployed_commit:-desconhecido}"
+              sleep 10
+            fi
+          done
+          echo "API saudável no commit aprovado: $DEPLOY_SHA"
+
+      - name: Pull Vercel environment
+        shell: bash
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npx --yes vercel@62.5.0 pull \
+            --yes \
+            --environment=production \
+            --token="$VERCEL_TOKEN"
+
+      - name: Build web for Vercel
+        shell: bash
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npx --yes vercel@62.5.0 build \
+            --prod \
+            --token="$VERCEL_TOKEN"
+
+      - name: Deploy web to Vercel
+        shell: bash
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npx --yes vercel@62.5.0 deploy \
+            --prebuilt \
+            --prod \
+            --token="$VERCEL_TOKEN"
+
+      - name: Publish deployment summary
+        if: always()
+        shell: bash
+        env:
+          API_HEALTH_URL: ${{ secrets.API_HEALTH_URL }}
+          DEPLOY_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+          CI_RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          health="$(curl --silent --max-time 15 "$API_HEALTH_URL" || true)"
+          {
+            echo "## Deploy (staging)"
+            echo
+            echo "| Item | Valor |"
+            echo "| --- | --- |"
+            echo "| Ambiente | staging |"
+            echo "| Branch | $DEPLOY_BRANCH |"
+            echo "| Commit enviado | $DEPLOY_SHA |"
+            echo "| API health | $API_HEALTH_URL |"
+            echo "| Resposta /health | $health |"
+            echo "| Execução do CI | $CI_RUN_URL |"
+          } >> "$GITHUB_STEP_SUMMARY"
