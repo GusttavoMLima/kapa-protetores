@@ -2,6 +2,8 @@
 
 Este documento consolida a arquitetura de autenticação (**Google OAuth** e **E-mail/Senha**), persistência de sessão, integração entre React Native/Expo e a API Express, infraestrutura local com Docker e procedimentos para resolução de problemas e garantia de qualidade.
 
+> **Bootstrap de CD:** o workflow `.github/workflows/cd.yml` presente em `main` publica exclusivamente o commit aprovado de `development` no ambiente GitHub `staging`. Ele aceita temporariamente os nomes de workflow `Quality` e `CI` durante a migração do pipeline, aplica migrations, aciona o Render por deploy hook, valida o SHA em `/api/health` e só então publica o web no Vercel. Produção permanece desativada até que seus provedores e secrets sejam configurados.
+
 ---
 
 ## 1. Arquitetura de Autenticação e Sessão
