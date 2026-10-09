@@ -42,7 +42,7 @@ O editor envia PATCH apenas dos campos exibidos, preservando `ageStage`, escores
 - `npm run type-check` e `npm run lint`.
 - `npm run clean`: remove caches de build nativos (`android/app/build`, `.cxx`) e `.expo`, liberando gigabytes de espaço local sem afetar o repositório.
 - `npm test`: testes da API mais testes do modelo de edição; cobre perfis, revogação, token inválido/expirado, filtros, paginação, PATCH parcial, campos privados e autoelevação no cadastro público.
-- Teste de navegador: iniciar Expo em `localhost:8081` e executar `node apps/mobile-web/tests/animal-management-browser.cjs` com Playwright disponível (ou `PLAYWRIGHT_MODULE_PATH` apontando para uma instalação existente) e Microsoft Edge instalado. `ANIMAL_UI_URL` permite outro endereço. O teste intercepta a API com fixtures isoladas, não altera o banco e grava capturas em `apps/mobile-web/.expo/animal-management-qa/` (ignorado pelo Git). Verifica desktop/celular, busca, filtros, paginação, edição, validação, erros, estado vazio e bloqueio de adotantes.
+- Teste de navegador: iniciar Expo em `localhost:8081` e executar `node apps/mobile-web/test/browser/animal-management-browser.cjs` com Playwright disponível (ou `PLAYWRIGHT_MODULE_PATH` apontando para uma instalação existente) e Microsoft Edge instalado. `ANIMAL_UI_URL` permite outro endereço. O teste intercepta a API com fixtures isoladas, não altera o banco e grava capturas em `apps/mobile-web/.expo/animal-management-qa/` (ignorado pelo Git). Verifica desktop/celular, busca, filtros, paginação, edição, validação, erros, estado vazio e bloqueio de adotantes.
 
 ---
 
@@ -611,3 +611,128 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
     * `POST /api/adopter-profiles`: Criação explícita de perfil.
     * `GET /api/adopter-profiles/:id` e `PATCH /api/adopter-profiles/:id`: Operações por ID do perfil.
     * `GET /api/adopter-profiles/user/:id`, `PUT /api/adopter-profiles/user/:id`, `PATCH /api/adopter-profiles/user/:id`, `DELETE /api/adopter-profiles/user/:id`: Operações por ID do usuário (administração).
+
+---
+
+### 15. Migração e Reorganização dos Testes do Backend (`apps/server`)
+
+* **Migração de `node:test` para Jest**:
+  * Configurado **Jest** com **`ts-jest`** e `@types/jest` no `apps/server`.
+  * Criação de [`jest.config.ts`](apps/server/jest.config.ts) apontando para a raiz `test/` e combinando arquivos `**/*.spec.ts`.
+  * Criação de [`tsconfig.test.json`](apps/server/tsconfig.test.json) para compilação estrita dos testes sem poluir o diretório de build de produção (`dist/`).
+  * Scripts atualizados no `package.json`: `test` (`jest`), `test:watch` (`jest --watch`), `test:cov` (`jest --coverage`).
+* **Estrutura por Camadas (`apps/server/test/`)**:
+  * **`test/controllers/`**:
+    * `AdopterProfileController.spec.ts`: Testes unitários de todos os endpoints do controlador de perfis de adotantes.
+    * `AuthController.spec.ts`: Validação de login social com Google via ID Token.
+    * `UserController.spec.ts`: Cobertura de registro, login, sanitização de senhas, contagens, edição de perfil e controle de papéis.
+  * **`test/domains/`**:
+    * `Url.spec.ts`: Validações de integridade de Value Objects de URL e preservação de casing/parâmetros.
+  * **`test/integration/`**:
+    * `animalManagement.spec.ts`: Testes integrados de ponta a ponta para gestão de animais, permissões por papel, visibilidade pública vs. privada e paginação.
+  * **`test/middlewares/`**:
+    * `authTokenHandler.spec.ts`: Verificação do middleware de autenticação, cabeçalho `Authorization` e validação de tokens JWT.
+  * **`test/models/`**:
+    * `AdopterProfile.spec.ts`: Validação e invariantes da entidade de domínio `AdopterProfile`.
+    * `User.spec.ts`: Validação de username, regras por papel, avatars e serialização segura sem hashes.
+  * **`test/repositories/`**:
+    * `UserRepository.spec.ts`: Mapeamento de relações, contagens e tratamento seguro de coordenadas nulas.
+  * **`test/routes/`**:
+    * `AdopterProfileRouter.spec.ts`: Verificação de registro e métodos HTTP de rotas de perfil de adotante.
+    * `UserRouter.spec.ts`: Verificação de métodos e endpoints públicos, administrativos e do usuário autenticado.
+    * `appCors.spec.ts`: Testes do servidor HTTP para origens permitidas e rejeição de requisições de origens maliciosas.
+  * **`test/security/`**:
+    * `Jwt.spec.ts`: Testes da utilidade de geração e decodificação de tokens JWT.
+    * `JwtService.spec.ts`: Assinatura e verificação estrita de claims (`issuer`, `audience`, expiração).
+    * `PasswordHasher.spec.ts`: Hashing seguro de senhas com PBKDF2 e timing-safe comparison.
+    * `mergeAuth.spec.ts`: Compatibilidade retroativa entre senhas e tokens emitidos por diferentes fluxos.
+  * **`test/services/`**:
+    * `AdopterProfileService.spec.ts`: Regras de negócio, busca por preferências, upsert e exclusão.
+    * `AnimalPhotoService.spec.ts`: Detecção de magic bytes e validação de MIME types de imagens.
+    * `UserService.spec.ts`: Fluxos de perfil, atualização de senhas, contagem de relacionamentos e autenticação Google.
+  * **`test/validation/`**:
+    * `schemas.spec.ts`: Schemas Zod de criação de usuário, papéis, coordenadas, login e tokens Google.
+
+---
+
+### 16. Configuração de Testes com Jest + Expo em React Native (`apps/mobile-web`)
+
+* **Infraestrutura de Testes com `jest-expo`**:
+  * Configurado **Jest** com o preset oficial **`jest-expo`** compatível com Expo SDK 57 e React Native 0.86.
+  * Instalados como devDependencies: `jest-expo`, `jest`, `@types/jest`, `@react-native/jest-preset@0.86.3`, `@testing-library/react-native` e `test-renderer` (renderizador oficial para React 19).
+  * Arquivo [`apps/mobile-web/jest.config.js`](apps/mobile-web/jest.config.js) configurado com preset `jest-expo`, mapeamento de path alias `^@/(.*)$` e de `expo-modules-core`.
+  * Arquivo [`apps/mobile-web/jest.setup.ts`](apps/mobile-web/jest.setup.ts) para setups e mocks globais do ambiente React Native.
+  * Inclusão do tipo `"jest"` em [`apps/mobile-web/tsconfig.json`](apps/mobile-web/tsconfig.json).
+  * Scripts no `package.json` de `apps/mobile-web`: `"test": "jest"`, `"test:watch": "jest --watch"`.
+  * Scripts unificados no `package.json` da raiz:
+    * `"test"`: executa os testes do servidor e da aplicação mobile/web em cadeia (`npm run test --workspace=@kapa/server && npm run test --workspace=@kapa/mobile-web`).
+    * `"test:mobile"`: executa os testes do mobile/web isoladamente.
+    * `"test:server"`: executa os testes do servidor isoladamente.
+* **Organização das Suítes em `apps/mobile-web/test/`**:
+  * **`test/components/`**:
+    * `PrimaryButton.spec.tsx`: Testes de renderização, acessibilidade, eventos de clique e estado de carregamento do componente de botão utilizando `@testing-library/react-native` (com suporte assíncrono para React 19).
+    * `searchAdoptModel.spec.ts`: Validação de esquema e filtros de busca por nome, raça, porte, espécie e sexo.
+  * **`test/screens/`**:
+    * `animalManagementModel.spec.ts`: Validação do modelo do editor de animais, formatação de pesos decimais brasileiros e paginação.
+  * **`test/services/`**:
+    * `apiBaseUrl.spec.ts`: Testes unitários de normalização de URLs de API, sanitização de barras e validação de HTTPS em produção.
+  * **`test/storage/`**:
+    * `genericStorage.spec.ts`: Testes unitários de armazenamento local usando o mock de `@react-native-async-storage/async-storage`, cobrindo persistência de pares chave-valor, serialização de objetos JSON, recuperação, remoção, limpeza geral e isolamento de estado.
+  * **`test/browser/`**:
+    * `animal-management-browser.cjs`: Script de teste end-to-end de navegador via Playwright / Edge para gestão de animais, consolidado no padrão `test/`.
+
+---
+
+### 17. Persistência de Dados com Testcontainers (PostgreSQL), Prisma e Mock do AsyncStorage
+
+* **Mock do AsyncStorage (`apps/mobile-web`)**:
+  * Configurado em [`apps/mobile-web/jest.setup.ts`](apps/mobile-web/jest.setup.ts) utilizando a implementação oficial de mock `@react-native-async-storage/async-storage/jest/async-storage-mock`.
+  * Garante que chamadas de leitura, gravação e remoção de dados locais (`AsyncStorage.getItem`, `setItem`, `removeItem`, `clear`, `multiGet`) executem de forma síncrona/em memória durante os testes Jest, isolando o ambiente sem dependência de módulos nativos de SO.
+  * Testado e validado em [`apps/mobile-web/test/storage/genericStorage.spec.ts`](apps/mobile-web/test/storage/genericStorage.spec.ts).
+
+* **Testcontainers com PostgreSQL Real (`apps/server`)**:
+  * Dependências adicionadas ao `apps/server`: `@testcontainers/postgresql` e `testcontainers`.
+  * **Helper [`apps/server/test/helpers/postgresContainer.ts`](apps/server/test/helpers/postgresContainer.ts)**:
+    * Criação e inicialização dinâmica de contêiner PostgreSQL efêmero com imagem oficial `postgres:16-alpine`.
+    * Aplicação automatizada das migrações do Prisma com `npx prisma migrate deploy` apontando para a porta e banco dinâmicos do contêiner.
+    * Conexão do `PrismaClient` utilizando `@prisma/adapter-pg` com `pg.Pool` (em conformidade com o driver adapter exigido pelo Prisma v7).
+    * Função `executeSqlFile(prisma, filePath)` para execução de scripts SQL puros (`.sql`) com `prisma.$executeRawUnsafe`.
+    * Gerenciamento de ciclo de vida seguro: método `cleanup()` para encerramento do pool de conexões e destruição do contêiner Docker após a execução das suítes.
+  * **Script SQL de Fixture ([`apps/server/test/fixtures/seed_test_data.sql`](apps/server/test/fixtures/seed_test_data.sql))**:
+    * Insere dados iniciais de teste diretamente via SQL puro em `tb_users` e `tb_adopter_profiles`, respeitando tipos de dados (UUID, arrays PostgreSQL, timestamps e coordenadas).
+  * **Suíte de Testes de Integração ([`apps/server/test/integration/databasePersistence.spec.ts`](apps/server/test/integration/databasePersistence.spec.ts))**:
+    1. **Schema & Execução SQL**: Validação da criação das tabelas no schema `public` (`tb_users`, `tb_adopter_profiles`, `tb_animals`, `tb_events`, `tb_favorites`), execução do script `seed_test_data.sql` e verificação de índices criados pelas migrações em `pg_indexes`.
+    2. **`UserRepository`**: Persistência real de usuário com arrays de regras, coordenadas geográficas, buscas com `hasEvery` em regras, filtros por papel (`role`) e atualização de registros.
+    3. **`AdopterProfileRepository`**: Persistência real vinculada à chave estrangeira `tb_users(id)`, consultas compostas por preferências via `findByPreferences` e atualização de perfis.
+    4. **Integridade e Restrições Estruturais**:
+       * Verificação de rejeição de perfil duplicado para o mesmo usuário via constraint única 1:1 (erro `P2002`).
+       * Verificação de propagação de deleção em cascata (`ON DELETE CASCADE`) na remoção do usuário pai.
+
+---
+
+### 18. Otimização de Peso do Monorepo e Limpeza de Dependências
+
+* **Remoção de `@expo/vector-icons` (`apps/mobile-web`)**:
+  * Removido de `dependencies` (economia de ~6.5 MB no disco e menor overhead no bundling Web/Metro).
+  * O aplicativo padroniza exclusivamente a biblioteca `phosphor-react-native` em todos os ícones da interface.
+* **Remoção de `@prisma/dev` (`apps/server`)**:
+  * Removido de `devDependencies` (economia de ~19 MB no disco).
+  * O monorepo utiliza contêineres PostgreSQL oficiais (`postgres:16-alpine`) para testes e desenvolvimento via Docker Compose e Testcontainers, dispensando os runtimes experimentais PGlite/Bun do `@prisma/dev`.
+* **Eliminação de Redundâncias e Tipagens Legadas**:
+  * Removido `testcontainers` explícito de `apps/server/package.json` (mantendo `@testcontainers/postgresql`, que já fornece a dependência).
+  * Removido `@types/redis` (legado v4) de `apps/server`, visto que `redis` v6 já embute definições TypeScript oficiais em `dist/index.d.ts`.
+  * Removido `@react-native/jest-preset` da raiz `package.json` (gerenciado isoladamente no workspace `apps/mobile-web`).
+* **Otimização de Performance do Testcontainers**:
+  * Adicionadas flags de PostgreSQL em memória (`fsync=off`, `synchronous_commit=off`, `full_page_writes=off`) e `npx --no-install prisma migrate deploy` no helper [`postgresContainer.ts`](apps/server/test/helpers/postgresContainer.ts).
+
+---
+
+### 19. Pipeline de CI/CD e Qualidade (`.github/workflows/quality.yml`)
+
+* **Geração de Prisma Client e Build do Pacote Compartilhado**:
+  * Nos jobs de `lint` e `tests`, as etapas de `npm run prisma:generate --workspace=@kapa/server` e `npm run build:shared` são executadas imediatamente após `npm ci`.
+  * Isso garante que os tipos gerados pelo Prisma Client (`@prisma/client`) e a compilação do pacote `@kapa/shared` estejam prontos antes das etapas de análise estática (`npm run lint`), checagem de tipos estrita (`npm run type-check`) e execução de testes automatizados (`npm test`).
+* **Tipagem Estrita nos Testes de Integração**:
+  * Adicionadas anotações explícitas de tipo em lambdas de queries brutas (`$queryRaw`) em [`apps/server/test/integration/databasePersistence.spec.ts`](apps/server/test/integration/databasePersistence.spec.ts) para conformidade total com o modo `strict` do TypeScript (`noImplicitAny`).
+
+

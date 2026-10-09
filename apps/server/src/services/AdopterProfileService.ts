@@ -21,7 +21,11 @@ export class AdopterProfileService {
     profile: AdopterProfile,
     input: Partial<AdopterPreferences>,
   ): void {
-    const setters: Record<keyof AdopterPreferences, (val: any) => void> = {
+    const setters: {
+      [K in keyof AdopterPreferences]-?: (
+        val: NonNullable<AdopterPreferences[K]> | null,
+      ) => void;
+    } = {
       preferredSpecies: (val) => profile.setPreferredSpecies(val),
       preferredGender: (val) => profile.setPreferredGender(val),
       preferredSize: (val) => profile.setPreferredSize(val),
@@ -35,7 +39,8 @@ export class AdopterProfileService {
 
     for (const [key, value] of Object.entries(input)) {
       if (value !== undefined && key in setters) {
-        setters[key as keyof AdopterPreferences](value);
+        const setter = setters[key as keyof AdopterPreferences];
+        (setter as (val: unknown) => void)(value);
       }
     }
   }
@@ -162,7 +167,8 @@ export class AdopterProfileService {
     const existing = await this.repository.findByUserId(safeUserId);
 
     if (existing) {
-      return this.updateByUserId(userId, input);
+      this.applyPreferences(existing, input);
+      return this.repository.update(existing);
     }
 
     return this.create({

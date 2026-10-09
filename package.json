@@ -24,9 +24,10 @@
     "prisma:studio": "npm run prisma:studio --workspace=apps/server",
     "clean:build": "rm -rf apps/mobile-web/android/app/build apps/mobile-web/android/app/.cxx apps/mobile-web/.expo",
     "clean": "npm run clean:build",
-    "type-check": "tsc --noEmit --project apps/server/tsconfig.json && tsc --noEmit --project apps/mobile-web/tsconfig.json",
-    "test": "npm run test --workspace=@kapa/server && npm run test:animal-model",
-    "test:animal-model": "node --import tsx --test apps/mobile-web/tests/animal-management-model.test.mjs apps/mobile-web/tests/api-base-url.test.mjs apps/mobile-web/tests/search-adopt-model.test.mjs",
+    "type-check": "tsc --noEmit --project apps/server/tsconfig.json && tsc --noEmit --project apps/server/test/tsconfig.json && tsc --noEmit --project apps/mobile-web/tsconfig.json",
+    "test": "npm run test --workspace=@kapa/server && npm run test --workspace=@kapa/mobile-web",
+    "test:mobile": "npm run test --workspace=@kapa/mobile-web",
+    "test:server": "npm run test --workspace=@kapa/server",
     "test:k6": "npm run test:k6 --workspace=@kapa/server",
     "test:k6:load": "npm run test:k6:load --workspace=@kapa/server"
   },

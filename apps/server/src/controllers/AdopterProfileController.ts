@@ -261,9 +261,10 @@ export class AdopterProfileController {
       }
 
       const { key, value } = parsed.data;
+      const prefKey = key as keyof AdopterPreferences;
       const profiles = await this.profileService.getByPreference(
-        key as keyof AdopterPreferences,
-        value as any,
+        prefKey,
+        value as AdopterPreferences[typeof prefKey],
       );
 
       const response = this.mapToApiResponse<SharedAdopterProfile[]>({
