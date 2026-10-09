@@ -55,6 +55,7 @@ A autenticação é centralizada e compartilhada entre a aplicação mobile/web 
 * **Fluxo no Cliente (`apps/mobile-web`)**:
   * Implementado em [`LoginForm`](apps/mobile-web/src/components/forms/login/index.tsx) através do hook `Google.useIdTokenAuthRequest(...)` da biblioteca `expo-auth-session/providers/google`.
   * Configurado com `WebBrowser.maybeCompleteAuthSession()` para captura e fechamento seguro do popup de autenticação em ambiente web e mobile.
+  * No Vercel, [`vercel.json`](vercel.json) envia `Cross-Origin-Opener-Policy: same-origin-allow-popups` para permitir a comunicação necessária com a popup OAuth e reescreve as rotas da SPA para `index.html`, evitando `404` ao abrir ou recarregar `/signIn` e outras rotas do Expo Router.
   * Redirecionamento e Deep Linking: URI configurada como `edu.fatec.kapaprotetores:/oauthredirect` no Android/iOS (compatível com os schemes declarados no `app.json` e `AndroidManifest.xml`).
   * Rota de Redirecionamento dedicada: [`app/oauthredirect.tsx`](apps/mobile-web/app/oauthredirect.tsx) intercepta o retorno do navegador com tela de carregamento da marca (`ActivityIndicator` e mensagem amigável), evitando a exibição indevida da tela 404 / `+not-found.tsx` (`ErrorScreen`) enquanto a validação com a API é concluída.
   * Extração resiliente de token: prioriza o `id_token` JWT retornado pelo Google, mantendo fallback para `response.authentication?.idToken` e `response.params?.access_token`.

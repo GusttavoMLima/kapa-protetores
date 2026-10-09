@@ -127,6 +127,8 @@ No Vercel, crie um projeto para cada ambiente com a raiz do monorepo e configure
 - Build Command: `npm run build:web`;
 - Output Directory: `apps/mobile-web/dist`.
 
+O arquivo [`vercel.json`](../vercel.json) encaminha rotas da SPA, como `/signIn`, para `index.html` e envia `Cross-Origin-Opener-Policy: same-origin-allow-popups`. O cabeçalho permite que o fluxo OAuth consulte e feche a popup do Google sem desativar a política de origem para a página principal.
+
 Use projetos sem auto-deploy pelo Git ou desative os builds automáticos da integração para não publicar antes do CI nem criar deploys duplicados. Copie os IDs do projeto e da organização para os respectivos ambientes do GitHub.
 
 No Render, crie um Web Service Docker para cada ambiente com:
