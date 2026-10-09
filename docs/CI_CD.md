@@ -43,7 +43,7 @@ O check `SonarCloud` roda **depois** do job `Cobertura`, baixa o artefato `lcov-
 
 A auditoria deixou de ser um `npm audit` bruto (que falhava por vulnerabilidades sem correção na linha atual do Prisma/Expo). Agora `scripts/audit-gate.mjs` roda `npm audit --json` e **falha apenas em advisories high/critical que não estejam na allowlist** [`scripts/audit-allowlist.json`](../scripts/audit-allowlist.json). Assim, novas vulnerabilidades bloqueiam o CI, enquanto as aceitas ficam documentadas (com motivo). Ao corrigir uma dependência, remova o id correspondente da allowlist.
 
-O job `Segurança` também roda o **Trivy**, que tem o próprio ignore em [`.trivyignore`](../.trivyignore) (mesmos CVEs aceitos, já que o Trivy não lê a allowlist do npm). O **Semgrep** roda com `--error`; em PRs usa `--baseline-commit` e eventuais falsos positivos são suprimidos pontualmente com `# nosemgrep`.
+O job `Segurança` também roda o **Trivy**, que tem o próprio ignore em [`.trivyignore`](../.trivyignore) (mesmos CVEs aceitos, já que o Trivy não lê a allowlist do npm). Diretórios `node_modules` são excluídos da travessia: vulnerabilidades das dependências continuam sendo analisadas pelo `package-lock.json`, enquanto Dockerfiles e outras configurações internas de pacotes externos não são atribuídos ao projeto. O **Semgrep** roda com `--error`; em PRs usa `--baseline-commit` e eventuais falsos positivos são suprimidos pontualmente com `# nosemgrep`.
 
 ### Cobertura no Pull Request
 

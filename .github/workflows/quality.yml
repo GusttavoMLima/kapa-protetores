@@ -224,6 +224,8 @@ jobs:
               --exit-code 1 \
               --ignore-unfixed \
               --ignorefile .trivyignore \
+              --skip-dirs node_modules \
+              --skip-dirs '**/node_modules' \
               .
 
       - name: Run Gitleaks
