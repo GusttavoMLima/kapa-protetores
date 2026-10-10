@@ -96,8 +96,8 @@ O job:
 3. instala as dependências (`npm ci`) e aplica as migrations do Prisma (`prisma migrate deploy`) usando `DATABASE_URL`/`DIRECT_URL` do ambiente;
 4. aciona o deploy do mesmo commit da API pelo deploy hook do Render;
 5. aguarda `API_HEALTH_URL` responder `HTTP 200` e informar exatamente o SHA aprovado pelo CI (timeout de 20 minutos);
-6. gera o build com Vercel CLI fixado na versão `62.5.0`;
-7. publica o web no Vercel somente depois que a nova API estiver saudável;
+6. gera o build de produção no projeto Vercel selecionado pelos secrets do ambiente, com Vercel CLI fixado na versão `62.5.0`;
+7. publica o web como deployment principal desse projeto somente depois que a nova API estiver saudável, atualizando seu domínio fixo;
 8. publica um resumo do deploy (ambiente, branch, commit, URL e resposta de `/health`) no *Step Summary* da execução do GitHub Actions.
 
 O endpoint `GET /api/health` devolve o campo `data.commit` com o SHA em execução — resolvido por `GIT_SHA` (quando definido no ambiente) ou por `RENDER_GIT_COMMIT` (injetado pelo Render no deploy). Isso permite confirmar *qual* commit está no ar.
@@ -126,6 +126,8 @@ No Vercel, crie um projeto para cada ambiente com a raiz do monorepo e configure
 - Install Command: `npm ci`;
 - Build Command: `npm run build:web`;
 - Output Directory: `apps/mobile-web/dist`.
+
+Cada GitHub Environment deve guardar o `VERCEL_PROJECT_ID` do projeto correspondente: `staging` aponta para o projeto web de homologação e `production` aponta para o projeto web de produção. O workflow usa `--prod` nos dois casos porque cada projeto representa um ambiente isolado; assim, `development` atualiza o domínio fixo do projeto de staging e `main` atualiza o domínio fixo do projeto de produção.
 
 O arquivo [`vercel.json`](../vercel.json) encaminha rotas da SPA, como `/signIn`, para `index.html` e envia `Cross-Origin-Opener-Policy: same-origin-allow-popups`. O cabeçalho permite que o fluxo OAuth consulte e feche a popup do Google sem desativar a política de origem para a página principal.
 
@@ -215,5 +217,6 @@ Variáveis com prefixo `EXPO_PUBLIC_` são incorporadas ao bundle e não podem c
 - [Deploys e integração com checks no Render](https://render.com/docs/deploys)
 - [Deploy hooks do Render](https://render.com/docs/deploy-hooks)
 - [Vercel com GitHub Actions](https://vercel.com/docs/git/vercel-for-github)
+- [Ambientes e domínios de deployment no Vercel](https://vercel.com/docs/deployments/environments)
 - [Ambientes e proteção de deploy no GitHub](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)
 - [Exportação web estática com Expo Router](https://docs.expo.dev/router/web/static-rendering/)
