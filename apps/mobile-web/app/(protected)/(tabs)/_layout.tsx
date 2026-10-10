@@ -32,15 +32,21 @@ export default function TabLayout() {
           paddingBottom: 8,
           paddingTop: 8,
 
-          shadowColor: '#121212',
-          shadowOffset: {
-            width: 0,
-            height: -1,
-          },
-          shadowOpacity: 0.15,
-          shadowRadius: 10.9,
-
-          elevation: 4,
+          ...Platform.select({
+            web: {
+              boxShadow: '0px -1px 11px rgba(18, 18, 18, 0.15)',
+            } as const,
+            default: {
+              shadowColor: '#121212',
+              shadowOffset: {
+                width: 0,
+                height: -1,
+              },
+              shadowOpacity: 0.15,
+              shadowRadius: 10.9,
+              elevation: 4,
+            },
+          }),
         },
 
         tabBarLabelStyle: {
@@ -97,7 +103,7 @@ export default function TabLayout() {
         name="activities"
         options={{
           title: 'Atividades',
-          tabBarButton: user?.role === 'volunteer' ? undefined : () => null,
+          href: user?.role === 'volunteer' ? '/activities' : null,
           tabBarIcon: ({ color, size, focused }) => (
             <CalendarBlankIcon
               size={size}

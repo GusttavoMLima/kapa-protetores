@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { AppError } from '../errors';
+import { UnauthorizedError } from '../errors';
 import { AuthService } from '../services/AuthService';
 
 export class CredentialsController {
@@ -21,7 +21,7 @@ export class CredentialsController {
 
   public me = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      if (!req.auth) throw AppError.unauthorized();
+      if (!req.auth) throw new UnauthorizedError();
       const data = await this.authService.getProfile(req.auth.userId);
       res.status(200).json({ success: true, data });
     } catch (error) { next(error); }

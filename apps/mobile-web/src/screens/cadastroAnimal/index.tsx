@@ -31,9 +31,10 @@ import { hojeBr } from '@kapa/shared/utils';
 import { ApiError } from '@/services/api';
 import { BackLink } from '@/screens/animalManagement/components';
 import { router } from 'expo-router';
+import * as Crypto from 'expo-crypto';
 
 function novoId(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return `${Date.now()}-${Crypto.randomUUID().slice(0, 8)}`;
 }
 
 type DoseFieldProps = {
@@ -118,6 +119,7 @@ export function CadastroAnimalScreen() {
   const [status, setStatus] = useState<StatusAnimal>('resgatado');
   const [observacoes, setObservacoes] = useState('');
   const [salvando, setSalvando] = useState(false);
+  const salvandoRef = useRef(false);
   const [tentouSalvar, setTentouSalvar] = useState(false);
   const [sucesso, setSucesso] = useState<string>();
   const [erroSalvar, setErroSalvar] = useState<string>();
@@ -173,10 +175,13 @@ export function CadastroAnimalScreen() {
     setPublicacoes('');
     setStatus('resgatado');
     setObservacoes('');
+    salvandoRef.current = false;
     setTentouSalvar(false);
   }
 
   async function onSalvar() {
+    if (salvandoRef.current) return;
+
     const pendentesAgora = [
       ...(!nome.trim() ? ['nome'] : []),
       ...datasPendentes,
@@ -190,6 +195,7 @@ export function CadastroAnimalScreen() {
       return;
     }
 
+    salvandoRef.current = true;
     setSalvando(true);
     try {
       const animalSalvo = await saveAnimal({
@@ -266,6 +272,7 @@ export function CadastroAnimalScreen() {
       }
       scrollRef.current?.scrollTo({ y: 0, animated: true });
     } finally {
+      salvandoRef.current = false;
       setSalvando(false);
     }
   }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   RefreshControl,
@@ -90,6 +90,7 @@ export function VolunteerActivitiesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [submittingId, setSubmittingId] = useState<string>();
+  const submittingRef = useRef(false);
   const [error, setError] = useState<string>();
   const [signupError, setSignupError] = useState<string>();
 
@@ -141,6 +142,8 @@ export function VolunteerActivitiesScreen() {
   }, [loadActivities]);
 
   const signUp = useCallback(async (activityId: string) => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setSubmittingId(activityId);
     setSignupError(undefined);
     try {
@@ -161,6 +164,7 @@ export function VolunteerActivitiesScreen() {
     } catch (requestError) {
       setSignupError(dataFromError(requestError));
     } finally {
+      submittingRef.current = false;
       setSubmittingId(undefined);
     }
   }, []);

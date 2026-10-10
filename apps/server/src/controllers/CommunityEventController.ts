@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { z } from 'zod';
-import { AppError } from '../errors/AppError';
+import { UnauthorizedError, BadRequestError } from '../errors';
 import { CommunityEventService } from '../services/CommunityEventService';
 import type { CreateCommunityEventData } from '../validation/communityEventSchema';
 
@@ -45,7 +45,7 @@ export class CommunityEventController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      if (!req.user) throw AppError.unauthorized();
+      if (!req.user) throw new UnauthorizedError();
       const data = await this.service.listUpcomingForVolunteer(req.user.sub);
       res.status(200).json({ success: true, data });
     } catch (error) {
@@ -59,11 +59,11 @@ export class CommunityEventController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      if (!req.user) throw AppError.unauthorized();
+      if (!req.user) throw new UnauthorizedError();
       const { id } = req.params;
       const parsedId = eventIdSchema.safeParse(id);
       if (!parsedId.success) {
-        throw AppError.badRequest('Identificador de atividade inválido.');
+        throw new BadRequestError('Identificador de atividade inválido.');
       }
 
       const data = await this.service.signUp(req.user.sub, parsedId.data);

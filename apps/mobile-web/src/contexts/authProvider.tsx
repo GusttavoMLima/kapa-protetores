@@ -1,5 +1,5 @@
 import { setAccessToken } from '@/services/api';
-import { kapaService } from '@/services/kapaService';
+import { kapaService, setOnUnauthorizedCallback } from '@/services/kapaService';
 import { genericStorage } from '@/storage/genericStorage';
 import { User } from '@kapa/shared';
 import { router } from 'expo-router';
@@ -8,6 +8,7 @@ import {
   ReactNode,
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from 'react';
 
@@ -32,6 +33,25 @@ interface AuthContextProps {
 
 const AUTH_STORAGE_TOKEN_KEY = '@kapa:auth-token';
 const AUTH_STORAGE_DATA_KEY = '@kapa:user-data';
+
+function isTokenExpired(token: string): boolean {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return true;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join(''),
+    );
+    const decoded = JSON.parse(jsonPayload) as { exp?: number };
+    if (!decoded.exp) return false;
+    return Date.now() >= decoded.exp * 1000;
+  } catch {
+    return true;
+  }
+}
 
 export const AuthContext = createContext<AuthContextProps>(
   {} as AuthContextProps,
@@ -106,7 +126,7 @@ export function AuthProvider({ children }: AuthProviderProp) {
     [establishSession],
   );
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     setIsLogged(false);
     setUser(null);
     setAccessToken(undefined);
@@ -114,7 +134,7 @@ export function AuthProvider({ children }: AuthProviderProp) {
     await genericStorage.remove(AUTH_STORAGE_TOKEN_KEY);
     await genericStorage.remove(AUTH_STORAGE_DATA_KEY);
     router.replace('/signIn');
-  };
+  }, []);
 
   const handleGoogleLogin = useCallback(
     async (idToken: string) => {
@@ -137,6 +157,15 @@ export function AuthProvider({ children }: AuthProviderProp) {
   );
 
   useEffect(() => {
+    setOnUnauthorizedCallback(() => {
+      void signOut();
+    });
+    return () => {
+      setOnUnauthorizedCallback(null);
+    };
+  }, [signOut]);
+
+  useEffect(() => {
     async function loadStorageState() {
       try {
         const storedToken = await genericStorage.get<string>(
@@ -147,11 +176,20 @@ export function AuthProvider({ children }: AuthProviderProp) {
         );
 
         if (storedToken && storedUser) {
-          kapaService.defaults.headers.common['Authorization'] =
-            `Bearer ${storedToken}`;
-          setAccessToken(storedToken);
-          setUser(storedUser);
-          setIsLogged(true);
+          if (isTokenExpired(storedToken)) {
+            await genericStorage.remove(AUTH_STORAGE_TOKEN_KEY);
+            await genericStorage.remove(AUTH_STORAGE_DATA_KEY);
+            delete kapaService.defaults.headers.common['Authorization'];
+            setAccessToken(undefined);
+            setIsLogged(false);
+            setUser(null);
+          } else {
+            kapaService.defaults.headers.common['Authorization'] =
+              `Bearer ${storedToken}`;
+            setAccessToken(storedToken);
+            setUser(storedUser);
+            setIsLogged(true);
+          }
         } else {
           setIsLogged(false);
           setUser(null);
@@ -168,18 +206,29 @@ export function AuthProvider({ children }: AuthProviderProp) {
     loadStorageState();
   }, []);
 
+  const contextValue = useMemo(
+    () => ({
+      isLogged,
+      isReady,
+      user,
+      signIn,
+      signUp,
+      signOut,
+      handleGoogleLogin,
+    }),
+    [
+      isLogged,
+      isReady,
+      user,
+      signIn,
+      signUp,
+      signOut,
+      handleGoogleLogin,
+    ],
+  );
+
   return (
-    <AuthContext.Provider
-      value={{
-        isLogged,
-        isReady,
-        user,
-        signIn,
-        signUp,
-        signOut,
-        handleGoogleLogin,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

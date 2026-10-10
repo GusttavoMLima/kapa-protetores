@@ -258,8 +258,10 @@ export class UserRepository implements IUserRepository {
   }
 
   async create(user: User): Promise<User> {
+    const id = user.getId() ? user.getId().toString() : undefined;
     const userCreation = await this.prisma.user.create({
       data: {
+        ...(id ? { id } : {}),
         username: user.getUsername(),
         email: user.getEmail().toString(),
         password: user.getPassword() ?? undefined,

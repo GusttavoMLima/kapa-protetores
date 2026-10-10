@@ -13,7 +13,7 @@ O repositório utiliza duas branches permanentes:
 | `main` | Entrega e apresentação — versão estável do projeto |
 | `development` | Integração — recebe as features aprovadas antes de ir para `main` |
 
-> Não há branch de homologação (`hml`): o projeto não possui dois ambientes de deploy. A validação acontece na própria `development`.
+> Não há branch `hml`: `development` representa o ambiente de homologação (`staging`) e `main` representa produção.
 
 ## Estratégia de merge
 
@@ -140,7 +140,7 @@ npm run lint --workspace=apps/mobile-web
 npm run lint --workspace=packages/shared
 ```
 
-> **Testes automatizados e pipeline de CI ainda não estão configurados.** A equipe vai definir as ferramentas e os checks obrigatórios; quando isso acontecer, esta seção e a seção [Checks automáticos](#checks-automáticos) serão atualizadas.
+O CI é executado em pushes para `development` e `main`, além de todos os Pull Requests. Antes de abrir um PR, execute localmente `npm run lint`, `npm run type-check` e `npm test`.
 
 ### 4. Publicar os commits
 
@@ -207,7 +207,24 @@ A promoção `development` → `main` **não exige** revisão de outro desenvolv
 
 ### Checks automáticos
 
-Ainda não há pipeline de CI configurado no repositório. Quando a equipe definir as verificações obrigatórias (lint, testes, análise estática), elas serão documentadas nesta seção.
+Consulte também a documentação operacional em [`docs/CI_CD.md`](docs/CI_CD.md).
+
+O workflow [CI](.github/workflows/quality.yml) é executado em pushes para `development` e `main`, além de todos os Pull Requests. Ele executa:
+
+- `npm ci` para instalar as dependências travadas no `package-lock.json`.
+- ESLint em todos os workspaces (`npm run lint`) e type-check dos aplicativos (`npm run type-check`).
+- Testes automatizados e relatório de cobertura LCOV por pacote, com statements, branches, functions e lines comentados no Pull Request.
+- Auditoria de dependências com `npm audit --audit-level=high`.
+- Build da API (`npm run build:server`) e do app web (`npm run build:web`).
+- Semgrep, Trivy e Gitleaks para vulnerabilidades, configurações inseguras e segredos.
+
+O CI apresenta cinco checks no Pull Request: `ESLint`, `Testes`, `Cobertura`, `Dockerfile (build base)` e `Segurança (Semgrep + Trivy + npm audit)`. O type-check executa dentro de `ESLint`; os builds executam dentro de `Testes` e `Dockerfile`; o Gitleaks executa dentro de `Segurança`.
+
+Repositórios pertencentes a uma organização precisam configurar `GITLEAKS_LICENSE`, conforme os requisitos do Gitleaks. O envio de comentários e relatórios do Gitleaks permanece desativado para evitar exposição de conteúdo sensível.
+
+Configure as regras de proteção de `development` e `main` no GitHub para exigir os checks do workflow antes do merge. Após um push aprovado pelo CI, o workflow `CD` publica `development` em homologação e `main` em produção. Os projetos Vercel e serviços Render devem permanecer sem auto-deploy pela integração Git para evitar publicações antes do CI e deploys duplicados. Ambientes de preview completos da API no Render exigem Preview Environments e um Blueprint; essa configuração pode gerar cobrança.
+
+O deploy de aplicativos nativos Android/iOS e envio às lojas não é automático nesta etapa. Builds de distribuição devem ser configurados no EAS quando houver uma entrega que precise deles.
 
 ### Fluxo de revisão
 

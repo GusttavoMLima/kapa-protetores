@@ -1,1 +1,5 @@
-export default function Adopet() {}
+import { AdoptScreen } from "@/screens/adopt";
+
+export default function Adopet() {
+    return <AdoptScreen />
+}

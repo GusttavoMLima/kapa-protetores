@@ -26,6 +26,7 @@ export function CadastroUsuarioScreen() {
   const [role, setRole] = useState<UserRole>('volunteer');
   const [attempted, setAttempted] = useState(false);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [feedback, setFeedback] = useState<
     { kind: 'success' | 'error'; message: string } | undefined
   >();
@@ -45,6 +46,7 @@ export function CadastroUsuarioScreen() {
       : undefined;
 
   function clearForm() {
+    savingRef.current = false;
     setNome('');
     setEmail('');
     setSenha('');
@@ -54,6 +56,8 @@ export function CadastroUsuarioScreen() {
   }
 
   async function handleSave() {
+    if (savingRef.current) return;
+
     setAttempted(true);
     setFeedback(undefined);
     if (
@@ -66,6 +70,7 @@ export function CadastroUsuarioScreen() {
       return;
     }
 
+    savingRef.current = true;
     setSaving(true);
     try {
       await apiRequest<User>('/auth/users', {
@@ -89,6 +94,7 @@ export function CadastroUsuarioScreen() {
           : 'Não foi possível conectar à API.',
       });
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }

@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { prisma } from '../database/PrismaService';
-import { AppError } from '../errors';
+import { UnauthorizedError, ForbiddenError } from '../errors';
 
 export async function communityEventManagerOnlyHandler(
   req: Request,
@@ -8,7 +8,7 @@ export async function communityEventManagerOnlyHandler(
   next: NextFunction,
 ): Promise<void> {
   if (!req.auth) {
-    next(AppError.unauthorized());
+    next(new UnauthorizedError());
     return;
   }
 
@@ -19,12 +19,12 @@ export async function communityEventManagerOnlyHandler(
     });
 
     if (!user) {
-      next(AppError.unauthorized());
+      next(new UnauthorizedError());
       return;
     }
 
     if (user.role !== 'admin' && user.role !== 'protector') {
-      next(AppError.forbidden());
+      next(new ForbiddenError());
       return;
     }
 

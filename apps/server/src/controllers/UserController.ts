@@ -18,7 +18,12 @@ import {
 } from '@kapa/shared';
 import { Jwt } from '../utils/Jwt';
 import { PasswordHasher } from '../security/PasswordHasher';
-import { AppError } from '../errors/AppError';
+import {
+  BadRequestError,
+  NotFoundError,
+  UnauthorizedError,
+  ConflictError,
+} from '../errors';
 
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -69,7 +74,7 @@ export class UserController {
       const params = userIdParams.safeParse(req.params);
 
       if (!params.success) {
-        throw AppError.badRequest(
+        throw new BadRequestError(
           'ID de usuário inválido',
           params.error.format(),
         );
@@ -111,7 +116,7 @@ export class UserController {
       try {
         data = await this.userService.getByIdWithRelationsData(user.sub);
       } catch {
-        throw AppError.notFound('Usuário não foi encontrado');
+        throw new NotFoundError('Usuário não foi encontrado');
       }
 
       const response: ApiResponse<UserWithCountAndDataOfRelations> = {
@@ -135,7 +140,7 @@ export class UserController {
       const parsedBody = signInSchema.safeParse(req.body);
 
       if (!parsedBody.success) {
-        throw AppError.badRequest(
+        throw new BadRequestError(
           'Dados de login inválidos',
           parsedBody.error.format(),
         );
@@ -147,19 +152,19 @@ export class UserController {
       try {
         user = await this.userService.getByEmail(email);
       } catch {
-        throw AppError.unauthorized('E-mail ou senha incorretos');
+        throw new UnauthorizedError('E-mail ou senha incorretos');
       }
 
       const userPassword = user.getPassword();
 
       if (!userPassword) {
-        throw AppError.badRequest(
+        throw new BadRequestError(
           'Esta conta foi criada com o Google. Por favor, entre usando o Google.',
         );
       }
 
       if (!(await new PasswordHasher().verify(password, userPassword))) {
-        throw AppError.unauthorized('E-mail ou senha incorretos');
+        throw new UnauthorizedError('E-mail ou senha incorretos');
       }
 
       const token = Jwt.generateUserToken(user);
@@ -188,7 +193,7 @@ export class UserController {
       const parsedBody = registerSchema.safeParse(req.body);
 
       if (!parsedBody.success) {
-        throw AppError.badRequest(
+        throw new BadRequestError(
           'Dados de cadastro inválidos',
           parsedBody.error.format(),
         );
@@ -205,7 +210,7 @@ export class UserController {
       }
 
       if (existingUser) {
-        throw AppError.conflict(
+        throw new ConflictError(
           'Já existe um usuário cadastrado com este e-mail',
         );
       }
@@ -247,7 +252,7 @@ export class UserController {
       const user = req.user;
 
       if (!user) {
-        throw AppError.unauthorized('Você não está autenticado');
+        throw new UnauthorizedError('Você não está autenticado');
       }
 
       const userInfo = await this.userService.getByIdWithRelationsCount(
@@ -275,13 +280,13 @@ export class UserController {
       const user = req.user;
 
       if (!user) {
-        throw AppError.unauthorized('Você não está autenticado');
+        throw new UnauthorizedError('Você não está autenticado');
       }
 
       const parsedBody = updateUserPasswordSchema.safeParse(req.body);
 
       if (!parsedBody.success) {
-        throw AppError.badRequest(
+        throw new BadRequestError(
           'Dados inválidos para alteração de senha',
           parsedBody.error.format(),
         );
@@ -316,13 +321,13 @@ export class UserController {
       const user = req.user;
 
       if (!user) {
-        throw AppError.unauthorized('Você não está autenticado');
+        throw new UnauthorizedError('Você não está autenticado');
       }
 
       const parsedBody = updateProfileSchema.safeParse(req.body);
 
       if (!parsedBody.success) {
-        throw AppError.badRequest(
+        throw new BadRequestError(
           'Dados inválidos para atualização de perfil',
           parsedBody.error.format(),
         );
@@ -354,7 +359,7 @@ export class UserController {
       const user = req.user;
 
       if (!user) {
-        throw AppError.unauthorized('Você não está autenticado');
+        throw new UnauthorizedError('Você não está autenticado');
       }
 
       await this.userService.deleteById(user.sub);
@@ -380,7 +385,7 @@ export class UserController {
       const params = userIdParams.safeParse(req.params);
 
       if (!params.success) {
-        throw AppError.badRequest(
+        throw new BadRequestError(
           'ID de usuário inválido',
           params.error.format(),
         );
@@ -389,7 +394,7 @@ export class UserController {
       const parsedBody = updateRoleSchema.safeParse(req.body);
 
       if (!parsedBody.success) {
-        throw AppError.badRequest(
+        throw new BadRequestError(
           'Papel (role) de usuário inválido',
           parsedBody.error.format(),
         );
@@ -421,7 +426,7 @@ export class UserController {
       const params = userIdParams.safeParse(req.params);
 
       if (!params.success) {
-        throw AppError.badRequest(
+        throw new BadRequestError(
           'ID de usuário inválido',
           params.error.format(),
         );

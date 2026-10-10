@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AnimalService } from '../services/AnimalService';
-import { AppError } from '../errors/AppError';
+import { BadRequestError } from '../errors';
 import type { ApiResponse } from '@kapa/shared';
 import { animalIdSchema, animalManagementQuerySchema } from '../validation/schemas';
 
@@ -10,7 +10,7 @@ export class AnimalsController {
   public getManagementPage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const parsed = animalManagementQuerySchema.safeParse(req.query);
-      if (!parsed.success) throw AppError.badRequest('Filtros inválidos.');
+      if (!parsed.success) throw new BadRequestError('Filtros inválidos.');
       res.json({ success: true, data: await this.animalService.getManagementPage(parsed.data) });
     } catch (error) { next(error); }
   };
@@ -18,7 +18,7 @@ export class AnimalsController {
   public getManagedById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const parsed = animalIdSchema.safeParse(req.params.id);
-      if (!parsed.success) throw AppError.badRequest('ID inválido.');
+      if (!parsed.success) throw new BadRequestError('ID inválido.');
       res.json({ success: true, data: await this.animalService.getManagedById(parsed.data) });
     } catch (error) { next(error); }
   };
@@ -26,7 +26,7 @@ export class AnimalsController {
   public update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const parsed = animalIdSchema.safeParse(req.params.id);
-      if (!parsed.success) throw AppError.badRequest('ID inválido.');
+      if (!parsed.success) throw new BadRequestError('ID inválido.');
       res.json({ success: true, data: await this.animalService.update(parsed.data, req.body) });
     } catch (error) { next(error); }
   };
@@ -51,7 +51,7 @@ export class AnimalsController {
       const paramId = req.params.id;
       const id = Array.isArray(paramId) ? paramId[0] : paramId;
       if (!id) {
-        throw AppError.badRequest('ID inválido.');
+        throw new BadRequestError('ID inválido.');
       }
       const data = await this.animalService.getById(id);
       const response: ApiResponse<typeof data> = {

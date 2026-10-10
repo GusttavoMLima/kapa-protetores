@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { JwtPayload, UserRole } from '@kapa/shared';
-import { AppError } from '../errors';
+import { UnauthorizedError, BaseError } from '../errors';
 
 type TokenPayload = JwtPayload & { role: UserRole; iss: string; aud: string };
 
@@ -35,12 +35,12 @@ export class JwtService {
 
   public verify(token: string): TokenPayload {
     const parts = token.split('.');
-    if (parts.length !== 3) throw AppError.unauthorized();
+    if (parts.length !== 3) throw new UnauthorizedError();
     const [header, payload, signature] = parts;
     const expected = Buffer.from(this.signature(`${header}.${payload}`));
     const actual = Buffer.from(signature);
     if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
-      throw AppError.unauthorized();
+      throw new UnauthorizedError();
     }
 
     try {
@@ -49,7 +49,7 @@ export class JwtService {
         typ?: string;
       };
       if (parsedHeader.alg !== 'HS256' || parsedHeader.typ !== 'JWT') {
-        throw AppError.unauthorized();
+        throw new UnauthorizedError();
       }
       const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString()) as TokenPayload;
       const now = Math.floor(Date.now() / 1000);
@@ -62,12 +62,12 @@ export class JwtService {
         !parsed.exp ||
         parsed.exp <= now
       ) {
-        throw AppError.unauthorized();
+        throw new UnauthorizedError();
       }
       return parsed;
     } catch (error) {
-      if (error instanceof AppError) throw error;
-      throw AppError.unauthorized();
+      if (error instanceof BaseError) throw error;
+      throw new UnauthorizedError();
     }
   }
 

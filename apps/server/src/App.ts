@@ -1,9 +1,9 @@
-import express, { Application, Request, Response } from 'express';
+import express, { Application, NextFunction, Request, Response } from 'express';
 import cors from 'cors';
 import { Server as HttpServer } from 'http';
 import { ApiRouter } from './routes/ApiRouter';
 import { ErrorHandler } from './middlewares/ErrorHandler';
-import { AppError } from './errors';
+import { ForbiddenError, NotFoundError } from './errors';
 
 export interface AppConfig {
   port: number;
@@ -49,7 +49,7 @@ export class App {
           if (!origin || this.allowedOrigins.has(trimTrailingSlashes(origin))) {
             return callback(null, true);
           }
-          return callback(AppError.forbidden('Origem não permitida.'));
+          return callback(new ForbiddenError('Origem não permitida.'));
         },
         credentials: true,
       }),
@@ -68,8 +68,10 @@ export class App {
     this.app.use('/api', this.apiRouter.router);
 
     // 404 handler
-    this.app.use((_req: Request, res: Response) => {
-      res.status(404).json({ success: false, error: 'Route not found' });
+    this.app.use((_req: Request, res: Response, next: NextFunction) => {
+      const error404 = new NotFoundError();
+
+      next(error404);
     });
   }
 

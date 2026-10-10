@@ -169,6 +169,8 @@ npm run build:server
 npm run build:web
 ```
 
+O funcionamento do GitHub Actions, da cobertura nos Pull Requests e o plano de deploy estão documentados em [CI/CD do Kapa](./docs/CI_CD.md).
+
 ---
 
 ## 🌐 Endpoints da API

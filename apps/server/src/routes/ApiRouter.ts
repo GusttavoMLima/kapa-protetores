@@ -5,6 +5,7 @@ import { AuthRouter } from './AuthRouter';
 import { UserRouter } from './UserRouter';
 import { CommunityEventRouter } from './CommunityEventRouter';
 import { CredentialsRouter } from './CredentialsRouter';
+import { AdopterProfileRouter } from './AdopterProfileRouter';
 
 export class ApiRouter {
   public readonly router: Router = Router();
@@ -16,6 +17,7 @@ export class ApiRouter {
     private readonly userRouter: UserRouter,
     private readonly communityEventRouter: CommunityEventRouter,
     private readonly credentialsRouter: CredentialsRouter,
+    private readonly adopterProfileRouter?: AdopterProfileRouter,
   ) {
     this.initRoutes();
   }
@@ -27,5 +29,8 @@ export class ApiRouter {
     this.router.use('/auth', this.credentialsRouter.router);
     this.router.use('/users', this.userRouter.router);
     this.router.use('/community-events', this.communityEventRouter.router);
+    if (this.adopterProfileRouter) {
+      this.router.use('/adopter-profiles', this.adopterProfileRouter.router);
+    }
   }
 }

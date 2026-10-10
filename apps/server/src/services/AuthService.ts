@@ -1,6 +1,6 @@
 import { DEFAULT_USER_ADOPTER_RULES, type AuthResponse } from '@kapa/shared';
 import type { UserRole } from '@kapa/shared';
-import { AppError } from '../errors';
+import { ConflictError, UnauthorizedError } from '../errors';
 import { Email } from '../domains/Email';
 import { User } from '../models';
 import { UserRepository } from '../repositories/UserRepository';
@@ -22,7 +22,7 @@ export class AuthService {
   }): Promise<AuthResponse> {
     const email = Email.create(input.email);
     if (await this.repository.findByEmail(email)) {
-      throw AppError.conflict('Já existe uma conta com este e-mail.');
+      throw new ConflictError('Já existe uma conta com este e-mail.');
     }
 
     const user = new User();
@@ -43,7 +43,7 @@ export class AuthService {
   }) {
     const email = Email.create(input.email);
     if (await this.repository.findByEmail(email)) {
-      throw AppError.conflict('Já existe uma conta com este e-mail.');
+      throw new ConflictError('Já existe uma conta com este e-mail.');
     }
 
     const user = new User();
@@ -59,14 +59,14 @@ export class AuthService {
     const user = await this.repository.findByEmail(Email.create(input.email));
     const storedHash = user?.getPassword();
     if (!user || !storedHash || !(await this.passwordHasher.verify(input.password, storedHash))) {
-      throw AppError.unauthorized('E-mail ou senha inválidos.');
+      throw new UnauthorizedError('E-mail ou senha inválidos.');
     }
     return this.createResponse(user);
   }
 
   public async getProfile(userId: string) {
     const user = await this.repository.findByIdValue(userId);
-    if (!user) throw AppError.unauthorized();
+    if (!user) throw new UnauthorizedError();
     return user.toDTO();
   }
 

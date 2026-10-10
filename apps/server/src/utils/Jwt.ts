@@ -28,7 +28,7 @@ export interface UserTokenPayload {
 export class Jwt {
   public static generateToken(data: object) {
     const token = jwt.sign(data, getSecret(), {
-      expiresIn: Number(process.env.ACCESS_TOKEN_TTL_SECONDS) || 900,
+      expiresIn: Number(process.env.ACCESS_TOKEN_TTL_SECONDS) || 604800,
       algorithm: 'HS256',
       issuer: process.env.JWT_ISSUER ?? 'kapa-api',
       audience: process.env.JWT_AUDIENCE ?? 'kapa-app',

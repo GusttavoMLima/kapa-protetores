@@ -15,21 +15,24 @@
     "android": "npm run android --workspace=apps/mobile-web",
     "ios": "npm run ios --workspace=apps/mobile-web",
     "web": "npm run web --workspace=apps/mobile-web",
+    "build:shared": "npm run build --workspace=@kapa/shared",
     "build:server": "npm run build --workspace=apps/server",
-    "build:web": "npm run build:web --workspace=apps/mobile-web",
+    "build:web": "npm run build:shared && npm run build:web --workspace=apps/mobile-web",
     "lint": "npm run lint --workspaces --if-present",
     "prisma:generate": "prisma generate",
+    "prisma:seed": "npm run prisma:seed --workspace=apps/server",
     "prisma:studio": "npm run prisma:studio --workspace=apps/server",
-    "type-check": "tsc --noEmit --project apps/server/tsconfig.json && tsc --noEmit --project apps/mobile-web/tsconfig.json",
-    "test": "npm run test --workspace=@kapa/server && npm run test:animal-model",
-    "test:animal-model": "node --import tsx --test apps/mobile-web/tests/animal-management-model.test.mjs apps/mobile-web/tests/api-base-url.test.mjs",
+    "clean:build": "rm -rf apps/mobile-web/android/app/build apps/mobile-web/android/app/.cxx apps/mobile-web/.expo",
+    "clean": "npm run clean:build",
+    "type-check": "tsc --noEmit --project apps/server/tsconfig.json && tsc --noEmit --project apps/server/test/tsconfig.json && tsc --noEmit --project apps/mobile-web/tsconfig.json",
+    "test": "npm run test --workspace=@kapa/server && npm run test --workspace=@kapa/mobile-web",
+    "test:mobile": "npm run test --workspace=@kapa/mobile-web",
+    "test:server": "npm run test --workspace=@kapa/server",
     "test:k6": "npm run test:k6 --workspace=@kapa/server",
-    "test:k6:load": "npm run test:k6:load --workspace=@kapa/server",
-    "prepare": "husky"
+    "test:k6:load": "npm run test:k6:load --workspace=@kapa/server"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
-    "husky": "^9.1.7",
     "prisma": "^7.10.0"
   },
   "allowScripts": {
@@ -38,10 +41,5 @@
     "esbuild": true,
     "prisma": true,
     "unrs-resolver": true
-  },
-  "dependencies": {
-    "expo": "~57.0.15",
-    "react": "19.2.3",
-    "react-native": "0.86.2"
   }
 }

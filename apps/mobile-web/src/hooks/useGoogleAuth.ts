@@ -33,8 +33,16 @@ export function useGoogleAuth() {
   const { handleGoogleLogin } = useAuth();
   const [googleError, setGoogleError] = useState<string | null>(null);
 
-  const [request, response, promptAsync] =
-    Google.useIdTokenAuthRequest(googleClientIds);
+  const redirectUri = Platform.select({
+    android: 'edu.fatec.kapaprotetores:/oauthredirect',
+    ios: 'edu.fatec.kapaprotetores:/oauthredirect',
+    default: undefined,
+  });
+
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    ...googleClientIds,
+    redirectUri,
+  });
 
   useEffect(() => {
     if (response?.type === 'success') {

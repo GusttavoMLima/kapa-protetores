@@ -145,3 +145,7 @@ export type FavoritedAnimal = {
   characteristics: string[];
   photo: string;
 };
+
+export type RecommendedAnimals = FavoritedAnimal & {
+  isFavorited?: boolean;
+};

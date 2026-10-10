@@ -1,6 +1,6 @@
 import { AnimalRepositoryInterface } from '../interfaces/AnimalRepositoryInterface';
 import { Animal } from '../models/Animal';
-import { AppError } from '../errors/AppError';
+import { NotFoundError, BadRequestError } from '../errors';
 import type { CreateAnimalInput, AnimalManagementQuery, UpdateAnimalInput, Animal as AnimalDTO } from '@kapa/shared';
 import { Cuid } from '../domains/Cuid';
 
@@ -14,7 +14,7 @@ export class AnimalService {
 
   public async getById(id: string) {
     const animal = await this.getManagedById(id);
-    if (animal.getStatus() !== 'available') throw AppError.notFound('Animal não encontrado.');
+    if (animal.getStatus() !== 'available') throw new NotFoundError('Animal não encontrado.');
     return this.publicView(animal.toDTO());
   }
 
@@ -34,7 +34,7 @@ export class AnimalService {
   public async update(id: string, input: UpdateAnimalInput): Promise<Animal> {
     Cuid.create(id);
     const animal = await this.animalRepository.update(id, input);
-    if (!animal) throw AppError.notFound('Animal não encontrado.');
+    if (!animal) throw new NotFoundError('Animal não encontrado.');
     return animal;
   }
 
@@ -42,22 +42,22 @@ export class AnimalService {
     Cuid.create(id);
     const animal = await this.animalRepository.findById(id);
     if (!animal) {
-      throw AppError.notFound(`Animal com ID "${id}" não encontrado.`);
+      throw new NotFoundError(`Animal com ID "${id}" não encontrado.`);
     }
     return animal;
   }
 
   public async create(input: CreateAnimalInput): Promise<Animal> {
     if (!input || typeof input !== 'object') {
-      throw AppError.badRequest('Dados do animal inválidos.');
+      throw new BadRequestError('Dados do animal inválidos.');
     }
 
     if (!input.name || !input.name.trim()) {
-      throw AppError.badRequest('O nome do animal é obrigatório.');
+      throw new BadRequestError('O nome do animal é obrigatório.');
     }
 
     if (!input.species) {
-      throw AppError.badRequest('A espécie do animal é obrigatória.');
+      throw new BadRequestError('A espécie do animal é obrigatória.');
     }
 
     const animal = new Animal();

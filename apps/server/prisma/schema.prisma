@@ -7,23 +7,46 @@ datasource db {
 }
 
 model User {
-  id         String                     @id @default(uuid())
-  role       UserRole                   @default(adopter)
-  rules      String[]
-  username   String
-  email      String                     @unique
-  latitude   Decimal?
-  longitude  Decimal?
-  avatar     String?
-  password   String?
-  created_at DateTime                   @default(now()) @map("createdAt")
-  adoptions  Adoptions[]
-  favorites  Favorites[]
-  events     Events[]
-  volunteers CommunityEventVolunteers[]
+  id              String                     @id @default(uuid())
+  role            UserRole                   @default(adopter)
+  rules           String[]
+  username        String
+  email           String                     @unique
+  latitude        Decimal?
+  longitude       Decimal?
+  avatar          String?
+  password        String?
+  created_at      DateTime                   @default(now()) @map("createdAt")
+  adoptions       Adoptions[]
+  favorites       Favorites[]
+  events          Events[]
+  volunteers      CommunityEventVolunteers[]
+  adopter_profile AdopterProfile?
 
   @@index([username])
   @@map("tb_users")
+}
+
+model AdopterProfile {
+  id      String @id @default(uuid())
+  user_id String @unique
+
+  preferred_species      Species?
+  preferred_gender       Genders?
+  preferred_size         Int?
+  preferred_energy       Int?
+  preferred_kid_friendly Int?
+  preferred_noise        Int?
+  preferred_age_stage    Int?
+  lives_in_apartment     Boolean?
+  has_other_pets         Boolean?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("tb_adopter_profiles")
 }
 
 model Animal {
@@ -118,6 +141,8 @@ model Events {
 
   @@index([type])
   @@index([user_id])
+  @@index([animal_id])
+  @@index([user_id, type])
   @@map("tb_events")
 }
 

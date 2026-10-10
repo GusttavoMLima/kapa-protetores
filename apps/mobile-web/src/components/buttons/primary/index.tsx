@@ -134,8 +134,7 @@ export const PrimaryButton = memo(
       sizeClasses,
       fullWidth ? 'w-full' : 'w-auto self-start',
       iconPaddingClasses,
-      !isInteractive ? 'opacity-55' : 'active:scale-[0.99]',
-      !color && 'bg-orange active:bg-orange-dark',
+      !color && 'bg-orange',
       className,
     );
 
@@ -155,6 +154,10 @@ export const PrimaryButton = memo(
           pressedBackgroundColor && state.pressed && isInteractive
             ? { backgroundColor: pressedBackgroundColor }
             : null,
+          state.pressed && isInteractive
+            ? { transform: [{ scale: 0.99 }] }
+            : null,
+          !isInteractive ? { opacity: 0.55 } : null,
           typeof style === 'function' ? style(state) : style,
         ]}
       >
@@ -164,7 +167,7 @@ export const PrimaryButton = memo(
               'absolute top-0 bottom-0 justify-center items-center',
               iconPositionClasses,
             )}
-            pointerEvents="none"
+            style={{ pointerEvents: 'none' }}
           >
             {icon}
           </View>

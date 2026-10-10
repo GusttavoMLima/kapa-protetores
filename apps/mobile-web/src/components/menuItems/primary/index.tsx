@@ -1,10 +1,13 @@
 import type { ElementType } from 'react';
 import { palette } from '@/theme';
 import { CaretRightIcon } from 'phosphor-react-native';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Platform, Text, TouchableOpacity, View } from 'react-native';
 
 interface PrimaryMenuItemProps {
   label: string;
+  description?: string;
+  labelColor?: string;
+  descriptionColor?: string;
   icon: ElementType;
   iconColor?: string;
   iconBgColor?: string;
@@ -12,8 +15,25 @@ interface PrimaryMenuItemProps {
   isDestructive?: boolean;
 }
 
+const menuItemShadowStyle = Platform.select({
+  web: { boxShadow: '0px 2px 8px rgba(18, 18, 18, 0.08)' } as const,
+  default: {
+    shadowColor: '#121212',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+});
+
 export const PrimaryMenuItem = ({
   label,
+  labelColor,
+  description,
+  descriptionColor,
   icon: Icon,
   onPress,
   isDestructive = false,
@@ -26,23 +46,14 @@ export const PrimaryMenuItem = ({
   const safeIconBg = isDestructive
     ? palette.dangerSoft
     : (iconBgColor ?? palette.peach);
-  const textColor = isDestructive ? 'text-danger' : 'text-ink';
+  const textColor = isDestructive ? 'text-danger' : labelColor || 'text-ink';
 
   return (
     <TouchableOpacity
       activeOpacity={0.7}
       onPress={onPress}
       className="w-full flex-row items-center justify-between p-3.5 rounded-xl bg-white active:bg-zinc-100 mb-2"
-      style={{
-        shadowColor: '#121212',
-        shadowOffset: {
-          width: 0,
-          height: 2,
-        },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 2,
-      }}
+      style={menuItemShadowStyle}
     >
       <View className="flex-row items-center gap-3">
         <View
@@ -51,9 +62,12 @@ export const PrimaryMenuItem = ({
         >
           <Icon size={20} color={safeIconColor} weight="bold" />
         </View>
-        <Text className={`font-body-medium text-base ${textColor}`}>
-          {label}
-        </Text>
+        <View>
+          <Text className={`font-body-medium text-base ${textColor}`}>
+            {label}
+          </Text>
+          <Text className={descriptionColor}>{description}</Text>
+        </View>
       </View>
 
       {!isDestructive && (

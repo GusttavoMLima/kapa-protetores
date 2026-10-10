@@ -3,13 +3,13 @@
     "name": "Kapa Protetores",
     "slug": "kapa-protetores",
     "version": "1.0.0",
-    "scheme": "kapa-protetores",
+    "scheme": "edu.fatec.kapaprotetores",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "edu.fatec.kapaprotetores"
+      "bundleIdentifier": "edu.fatec.kapaprotetores.ios"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +19,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "edu.fatec.kapaprotetores"
+      "package": "edu.fatec.kapaprotetores.android"
     },
     "web": {
       "bundler": "metro",

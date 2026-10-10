@@ -8,11 +8,30 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { AuthProvider } from '@/contexts/authProvider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { isAxiosError } from 'axios';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            refetchOnWindowFocus: false,
+            retry: (failureCount, error) => {
+              if (isAxiosError(error) && error.response) {
+                const status = error.response.status;
+                if (status === 401 || status === 403 || status === 404) {
+                  return false;
+                }
+              }
+              return failureCount < 2;
+            },
+          },
+        },
+      }),
+  );
   const [loaded, error] = useFonts({
     'BeVietnamPro-Bold': require('../assets/fonts/BeVietnamPro-Bold.ttf'),
     'BeVietnamPro-ExtraBold': require('../assets/fonts/BeVietnamPro-ExtraBold.ttf'),
@@ -44,6 +63,13 @@ export default function RootLayout() {
             <Stack>
               <Stack.Screen
                 name="(protected)"
+                options={{
+                  headerShown: false,
+                }}
+              />
+
+              <Stack.Screen
+                name="oauthredirect"
                 options={{
                   headerShown: false,
                 }}

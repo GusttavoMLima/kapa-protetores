@@ -26,4 +26,4 @@ export function normalizeApiBaseUrl(configuredUrl: string | undefined): string {
     : `${normalizedBaseUrl}/api`;
 }
 
-export const apiBaseUrl = normalizeApiBaseUrl(process.env.EXPO_PUBLIC_API_URL);
+export const apiBaseUrl = normalizeApiBaseUrl(process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000/api');

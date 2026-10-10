@@ -1,0 +1,13 @@
+# Vulnerabilidades aceitas (HIGH/CRITICAL) — espelha scripts/audit-allowlist.json.
+# Todas são transitivas de toolchain (Expo/Metro) ou do Prisma CLI, sem correção
+# aplicável na linha atual. Remover conforme forem corrigidas.
+CVE-2026-102276
+CVE-2026-102278
+CVE-2026-40345
+CVE-2025-71329
+CVE-2025-71330
+CVE-2026-4800
+GHSA-3f6p-5ww8-9rcr
+CVE-2026-90711
+CVE-2026-102422
+CVE-2026-93749

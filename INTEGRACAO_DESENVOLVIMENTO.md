@@ -40,8 +40,9 @@ O editor envia PATCH apenas dos campos exibidos, preservando `ageStage`, escores
 ### Verificações da funcionalidade
 
 - `npm run type-check` e `npm run lint`.
+- `npm run clean`: remove caches de build nativos (`android/app/build`, `.cxx`) e `.expo`, liberando gigabytes de espaço local sem afetar o repositório.
 - `npm test`: testes da API mais testes do modelo de edição; cobre perfis, revogação, token inválido/expirado, filtros, paginação, PATCH parcial, campos privados e autoelevação no cadastro público.
-- Teste de navegador: iniciar Expo em `localhost:8081` e executar `node apps/mobile-web/tests/animal-management-browser.cjs` com Playwright disponível (ou `PLAYWRIGHT_MODULE_PATH` apontando para uma instalação existente) e Microsoft Edge instalado. `ANIMAL_UI_URL` permite outro endereço. O teste intercepta a API com fixtures isoladas, não altera o banco e grava capturas em `apps/mobile-web/.expo/animal-management-qa/` (ignorado pelo Git). Verifica desktop/celular, busca, filtros, paginação, edição, validação, erros, estado vazio e bloqueio de adotantes.
+- Teste de navegador: iniciar Expo em `localhost:8081` e executar `node apps/mobile-web/test/browser/animal-management-browser.cjs` com Playwright disponível (ou `PLAYWRIGHT_MODULE_PATH` apontando para uma instalação existente) e Microsoft Edge instalado. `ANIMAL_UI_URL` permite outro endereço. O teste intercepta a API com fixtures isoladas, não altera o banco e grava capturas em `apps/mobile-web/.expo/animal-management-qa/` (ignorado pelo Git). Verifica desktop/celular, busca, filtros, paginação, edição, validação, erros, estado vazio e bloqueio de adotantes.
 
 ---
 
@@ -54,6 +55,9 @@ A autenticação é centralizada e compartilhada entre a aplicação mobile/web 
 * **Fluxo no Cliente (`apps/mobile-web`)**:
   * Implementado em [`LoginForm`](apps/mobile-web/src/components/forms/login/index.tsx) através do hook `Google.useIdTokenAuthRequest(...)` da biblioteca `expo-auth-session/providers/google`.
   * Configurado com `WebBrowser.maybeCompleteAuthSession()` para captura e fechamento seguro do popup de autenticação em ambiente web e mobile.
+  * No Vercel, [`vercel.json`](vercel.json) envia `Cross-Origin-Opener-Policy: same-origin-allow-popups` para permitir a comunicação necessária com a popup OAuth e reescreve as rotas da SPA para `index.html`, evitando `404` ao abrir ou recarregar `/signIn` e outras rotas do Expo Router.
+  * Redirecionamento e Deep Linking: URI configurada como `edu.fatec.kapaprotetores:/oauthredirect` no Android/iOS (compatível com os schemes declarados no `app.json` e `AndroidManifest.xml`).
+  * Rota de Redirecionamento dedicada: [`app/oauthredirect.tsx`](apps/mobile-web/app/oauthredirect.tsx) intercepta o retorno do navegador com tela de carregamento da marca (`ActivityIndicator` e mensagem amigável), evitando a exibição indevida da tela 404 / `+not-found.tsx` (`ErrorScreen`) enquanto a validação com a API é concluída.
   * Extração resiliente de token: prioriza o `id_token` JWT retornado pelo Google, mantendo fallback para `response.authentication?.idToken` e `response.params?.access_token`.
   * Conforme as regras do React Compiler / React 19, erros da sessão de autenticação são derivados durante a renderização (`googleAuthError`), evitando atualizações de estado síncronas em efeitos.
 
@@ -308,15 +312,12 @@ configurado como `media` quando o CSS é injetado pelo Metro no navegador.
 
 ---
 
-## 6. Validação de Qualidade, Husky e Testes
+## 6. Validação de Qualidade e Testes
 
-O projeto conta com verificações automatizadas de qualidade através do **Husky** (`.husky/pre-commit`), executando linting, checagem de tipos e testes antes de cada commit:
+O projeto conta com comandos unificados de validação de qualidade para checagem de tipos, linting e testes automatizados:
 
 ```bash
-# 1. Executar os hooks do pre-commit manualmente
-./.husky/pre-commit
-
-# 2. Bateria completa de testes automatizados do backend (60 testes em 17 suítes)
+# 1. Bateria completa de testes automatizados (backend + mobile-web)
 npm test
 
 # 3. Verificação de tipos TypeScript em todos os workspaces
@@ -464,8 +465,275 @@ Os dois fluxos emitem JWT com o mesmo segredo obrigatório, emissor, audiência 
 - Os dados são persistidos nos volumes Docker `database_data`, `redis_data` e `storage_data`.
 - Não houve alteração no schema existente do PostgreSQL.
 
-### CI e analise SonarCloud
+### CI, seguranca e CD
 
-- O workflow `.github/workflows/quality.yml` executa `npm ci`, lint e analise SonarCloud em pull requests.
-- O token deve existir nos secrets do repositorio com o nome `KAPA_SONAR`; o workflow o fornece ao scanner pela variavel `SONAR_TOKEN`. Nunca registrar o valor do token no repositorio ou em logs.
-- A analise usa `sonar.projectKey=GusttavoMLima_kapa-protetores` e `sonar.organization=gusttavomlima`, conforme `sonar-project.properties`.
+- A documentação operacional completa do pipeline e o plano de entrega contínua estão em `docs/CI_CD.md`.
+- O workflow `.github/workflows/quality.yml` roda em pushes para `development` e `main`, em Pull Requests e sob disparo manual. Ele executa lint, type-check, testes, cobertura LCOV, gate de auditoria npm, builds da API e do web, validação da imagem Docker, Semgrep, Trivy, Gitleaks e SonarCloud.
+- A geração do Prisma no CI usa URLs PostgreSQL fictícias em `DATABASE_URL` e `DIRECT_URL` apenas para validação/build. Cada job de testes gera um `JWT_SECRET` efêmero, mascarado no log e descartado ao final da execução. Os testes atuais usam repositórios em memória e mocks; o CI não conecta a banco de dados nem aplica migrations.
+- O relatório LCOV é gerado em `coverage/lcov.info` e armazenado como artefato do workflow. O Quality Gate do SonarCloud exige pelo menos 80% de cobertura no código novo.
+- Em Pull Requests do mesmo repositório, o job `Cobertura` publica um comentário novo a cada push, preservando o histórico, com links para o commit e a execução, além da cobertura de statements, branches, functions e lines agrupada por `mobile-web`, `server`, `shared` e total. PRs de forks não recebem token com permissão de escrita e, por isso, não recebem o comentário.
+- Gitleaks procura segredos no histórico completo do Git. Para repositórios de organizações, configure o secret `GITLEAKS_LICENSE`; não habilite comentários automáticos nem envio de relatórios com conteúdo sensível.
+- O job `Segurança (Semgrep + Trivy + npm audit)` roda o gate `scripts/audit-gate.mjs`, que falha apenas em advisories high/critical fora da allowlist documentada em `scripts/audit-allowlist.json` (as vulnerabilidades pré-existentes, sem correção na linha atual de Prisma/Expo, ficam registradas com motivo). O job também executa Semgrep contra regras de TypeScript, React, JWT, OWASP, segredos e Node.js; em PRs, ele usa o commit-base para reportar apenas achados introduzidos pela mudança e eventuais falsos positivos são suprimidos com `# nosemgrep`. O Trivy varre dependências, segredos e configurações inseguras com severidade alta ou crítica, usando `.trivyignore` para os CVEs já aceitos (o Trivy não lê a allowlist do npm). A travessia ignora diretórios `node_modules`, evitando tratar configurações internas de pacotes externos como código do projeto; as vulnerabilidades das dependências continuam cobertas pelo `package-lock.json` e pelo gate do npm. O Gitleaks procura segredos no histórico. As ferramentas são executadas mesmo quando uma delas encontra um problema, preservando todos os resultados da análise.
+- `apps/server/Dockerfile` cria uma imagem de execução da API em múltiplas etapas, sem copiar arquivos `.env`, chaves ou `node_modules` locais. A imagem exige as variáveis de ambiente de produção no runtime e não aplica migrations. O job `Dockerfile (build base)` valida o build da imagem no CI.
+- `.github/dependabot.yml` agenda atualizações semanais para dependências npm e GitHub Actions, com espera de sete dias após a publicação de uma versão.
+- Para bloquear merges inválidos, configure as proteções das branches `development` e `main` exigindo os seis checks `ESLint`, `Testes`, `Cobertura`, `Dockerfile (build base)`, `Segurança (Semgrep + Trivy + npm audit)` e `SonarCloud`.
+- O modelo de CD usa Vercel para o web e Render para a API, com projetos e serviços separados para `development` e `main`. Cada GitHub Environment fornece o `VERCEL_PROJECT_ID` do seu projeto; o workflow publica como deployment principal dentro do projeto selecionado para atualizar o domínio fixo de staging ou produção. O auto-deploy do Render permanece desligado; o deploy hook é acionado pelo GitHub somente após os checks passarem. A ativação depende de conectar o repositório e configurar serviços, variáveis e secrets nos dashboards dos provedores.
+- O workflow `.github/workflows/cd.yml` aguarda a conclusão bem-sucedida do CI em pushes para `development` e `main`, usa os ambientes GitHub `staging` e `production`, aplica as migrations do Prisma (`prisma migrate deploy`) com `DATABASE_URL`/`DIRECT_URL` do ambiente e aciona o deploy do mesmo commit da API por um deploy hook do Render. O CD aguarda `API_HEALTH_URL` responder HTTP 200 com exatamente o SHA aprovado pelo CI antes de publicar o web no Vercel e registra um resumo no *Step Summary*. Migrations e deploy compartilham o mesmo environment, resultando em uma única aprovação em produção.
+- O endpoint `GET /api/health` retorna o SHA em `data.commit`. No Render, não configure `GIT_SHA` manualmente: `RENDER_GIT_COMMIT` é injetado a cada deploy e identifica o commit realmente em execução.
+- Como eventos `workflow_run` usam a branch padrão em `GITHUB_REF`, o ambiente `staging` não deve ter uma regra que aceite somente a branch `development`. A seleção entre homologação e produção usa `github.event.workflow_run.head_branch`, além dos filtros do próprio evento.
+- A conexão Redis aceita `REDIS_URL` com os protocolos `redis://` ou `rediss://`. `REDIS_PORT` e `REDIS_PASSWORD` permanecem como fallback exclusivo para o Redis local em `localhost`.
+- Preview Environments do Render podem criar cópias de serviços e bancos por PR e têm cobrança própria; só devem ser ativados com um Blueprint e ambiente de dados de teste apropriado. O CI não cria recursos cloud nem altera o schema do PostgreSQL.
+- Builds de distribuição Android/iOS e publicação nas lojas não estão automatizados nesta etapa. Expo EAS pode ser conectado quando o projeto definir o fluxo de release mobile.
+- O arquivo `sonar-project.properties` mantém a configuração do projeto para o SonarCloud, que roda como check separado (`CI / SonarCloud`) nos Pull Requests do próprio repositório e nos pushes para `main`, sendo pulado em PRs de fork e no push de `development`. O plano atual do SonarCloud não permite consultar o Quality Gate de branches secundárias; o PR precisa passar pelo gate antes do merge, e os outros checks são executados novamente sobre o commit integrado em `development`. O job depende de `Cobertura`, baixa o artefato `lcov-report` e aguarda por até cinco minutos o Quality Gate; uma reprovação, inclusive cobertura de código novo abaixo de 80%, falha o CI. `sonar.coverage.exclusions` remove infraestrutura de banco/Redis e telas do app, que não possuem teste unitário.
+
+---
+
+## 9. Busca e Adoção de Animais (`SearchAdoptForm` e `AdoptScreen`)
+
+A aplicação mobile/web implementa o fluxo de busca e filtragem para adoção de animais resgatados na aba Adopet (`/(protected)/(tabs)/adopet` -> `AdoptScreen`):
+
+### 9.1 Componente `SearchAdoptForm`
+Localização: `apps/mobile-web/src/components/forms/searchAdopt/`
+
+* **Campos e Filtros Suportados**:
+  * `breed`: Busca textual por raça ou nome do animal via `SecondaryInputText` com ícone de lupa (`MagnifyingGlassIcon`).
+  * `specie`: Seleção de espécie via `PrimaryChipGroup` (`'all'` / Todos, `'dog'` / Cachorros, `'cat'` / Gatos).
+  * `gender`: Seleção de sexo via `PrimaryChipGroup` (`'all'` / Todos, `'male'` / Machos, `'female'` / Fêmeas).
+  * `size`: Seleção de porte via `PrimaryChipGroup` (`'all'` / Todos, `'small'` / Pequeno, `'medium'` / Médio, `'large'` / Grande).
+* **Desacoplamento e Arquitetura**:
+  * `model.ts`: Schemas Zod (`searchAdoptSchema`), tipos TypeScript estritos, opções padrão e função pura `matchesSearchAdoptFilters(animal, filters)`.
+  * `index.tsx`: Componente de interface React Native/Web com debounce automático de 350ms na digitação de texto, disparo imediato na troca de chips, botão colapsável de filtros secundários (Sexo e Porte) e botão para limpar todos os filtros quando ativos.
+
+### 9.2 Tela `AdoptScreen`
+Localização: `apps/mobile-web/src/screens/adopt/index.tsx`
+
+* **Consumo de API**: Realiza requisição para o endpoint público `GET /api/animals` utilizando `kapaService`.
+* **Tratamento de Estados**:
+  * **Carregamento**: Indicador `ActivityIndicator` com cor da paleta (`palette.orange`).
+  * **Erro**: Exibição de mensagem amigável com botão `PrimaryButton` para tentar novamente.
+  * **Vazio**: Estado diferenciado para quando não há nenhum animal no abrigo vs. quando a busca não encontrou resultados com os filtros selecionados, permitindo resetar os filtros em 1 toque.
+  * **Atualização**: Suporte a *pull-to-refresh* via `RefreshControl`.
+* **Exibição dos Animais**:
+  * Renderização em grade responsiva usando `PetCard`.
+  * Formatação automática de características (sexo, porte e idade formatada).
+  * Imagem padrão de fallback caso o animal não possua foto cadastrada.
+  * Controle de favoritos na interface.
+
+### 9.3 Testes Automatizados
+* **`apps/mobile-web/tests/search-adopt-model.test.mjs`**: Suíte de testes unitários que valida parsing do schema, rejeição de enumerações inválidas e precisão dos filtros (espécie, raça/nome case-insensitive, sexo e mapeamento numérico de porte).
+* Integrado ao pipeline e executado automaticamente via `npm test`.
+
+---
+
+## 10. Arquitetura de Erros da API (`apps/server/src/errors`)
+
+A camada de tratamento e propagação de erros do servidor foi padronizada através de classes de erro dedicadas e extensíveis derivadas de `BaseError`:
+
+* **`BaseError` (`BaseError.ts`)**: Classe base que estende `Error`, armazena `statusCode`, `name`, `message`, `cause` e `details`.
+* **Classes de Erro Especializadas**:
+  * `BadRequestError` (HTTP 400): Entrada de dados malformada ou parâmetros inválidos, com suporte a detalhes de validação (`details`).
+  * `UnauthorizedError` (HTTP 401): Credenciais incorretas, token JWT ausente, inválido ou expirado.
+  * `ForbiddenError` (HTTP 403): Permissão insuficiente de papel ou recurso protegido contra acesso indevido.
+  * `NotFoundError` (HTTP 404): Entidade ou recurso não localizado no banco de dados.
+  * `ConflictError` (HTTP 409): Violação de unicidade (ex: e-mail duplicado) ou regra de negócio concorrente (ex: atividade lotada).
+  * `InternalServerError` (HTTP 500): Falhas internas inesperadas.
+  * `ValidationError` / `DataTypeError` (HTTP 400): Erros de tipagem e formato.
+  * `ServiceError` (HTTP 500): Falha de integração de serviço.
+* **Centralização no `ErrorHandler` (`middlewares/ErrorHandler.ts`)**:
+  * Captura instâncias de `BaseError` com `statusCode < 500` e formata a resposta padronizada `ApiErrorResponse` (`{ success: false, error: message, details }`).
+  * Erros 500 ou desconhecidos são mascarados como `Internal Server Error` para proteger detalhes internos do servidor, com log estruturado via `console.error`.
+
+---
+
+### 11. Conexão de Banco de Dados Remota / Supabase (`PrismaService.ts`)
+
+* **Configuração de Pool Resiliente**:
+  * O `pg.Pool` detecta conexões remotas (URLs contendo `supabase` ou `pooler.supabase.com`, ou ambiente de produção) e ativa automaticamente SSL com `{ rejectUnauthorized: false }`.
+  * `connectionTimeoutMillis` aumentado para `15000` (15 segundos) para suportar latência e handshakes TLS de instâncias em nuvem.
+  * Registro de listener `pool.on('error')` para tratar encerramentos de conexões ociosas (idle) por parte do pooler do Supabase sem derrubar a aplicação.
+  * Recomenda-se utilizar a URL do **Connection Pooler (Supavisor)** do Supabase (porta `5432` Session ou `6543` Transaction com `?sslmode=require`) para compatibilidade com redes locais IPv4.
+
+---
+
+### 12. Tratamento de Expiração de Sessão no Frontend (`apps/mobile-web`)
+
+* **Validação Prévia de Expiração de JWT (`authProvider.tsx`)**:
+  * Ao carregar o estado persistido (`genericStorage`), o frontend decodifica o payload do token (`exp`) e verifica se já expirou (`Date.now() >= exp * 1000`).
+  * Em caso de token expirado, os dados do storage são purgados automaticamente, evitando renderizar telas protegidas com credenciais inválidas.
+* **Interceptor de Resposta Axios (`kapaService.ts`)**:
+  * Adicionado interceptor para capturar status `401` ou `403` (quando indica token inválido ou expirado), disparando o callback de logout para limpar o estado e redirecionar para `/signIn`.
+
+---
+
+### 13. Otimizações de Performance Mobile e Prevenção de Chamadas Duplicadas de API
+
+* **Controle de Retentativas e Foco no TanStack Query (`_layout.tsx` e `useUserProfile.ts`)**:
+  * Configurado `refetchOnWindowFocus: false` globalmente e no hook `useUserProfile` para evitar refetching automático e desnecessário toda vez que o aplicativo mobile ou aba do navegador recupera o foco.
+  * Implementada regra condicional de retentativas (`retry: (failureCount, error) => ...`) que cancela retentativas imediatas em erros `401`, `403` e `404` (onde repetir a mesma requisição sem novas credenciais causava disparos triplos de requisições ao servidor).
+* **Guarda Síncrona contra Duplo Clique / Submissões Duplicadas (`useRef`)**:
+  * Adicionado bloqueio com flag síncrona `inFlightRef.current` / `savingRef.current` nas ações de envio de formulários em `cadastroAnimal`, `cadastroVoluntario`, `activities` e `volunteerActivities` (inscrição).
+  * Previne que toques rápidos múltiplos na tela mobile enviem requisições `POST` concorrentes antes que o estado reativo de `loading` desabilite o botão.
+* **Prevenção de Disparo Prematuro de Filtros (`SearchAdoptForm.tsx`)**:
+  * Adicionado `isFirstRender` para não acionar o timer de debounce de 350ms na montagem inicial da tela de adoção quando os filtros ainda não foram alterados pelo usuário, evitando renderizações em cascata e recálculos desnecessários na lista de pets.
+* **Memoização do Contexto de Autenticação (`authProvider.tsx`)**:
+  * O objeto `value` do `AuthContext.Provider` agora é envolvido em `useMemo`, prevenindo renderizações em cascata por toda a árvore de componentes da aplicação quando o provedor renderiza sem alteração no usuário/estado de login.
+* **Compatibilidade do Motor Yoga / Flexbox Mobile (`HomeScreen.tsx`)**:
+  * Removido o uso de classes CSS Grid (`grid grid-cols-2...`), que não são suportadas pelo motor de layout Yoga no React Native nativo (iOS/Android), substituindo por Flexbox responsivo (`flex-row flex-wrap justify-between gap-4`).
+  * Transformado o link "Ver todos os 45 Pets" em elemento interativo com `router.push('/adopet')`.
+* **Memoização de Lista e Eliminação de Warnings de Sombra (`PetCard` e componentes)**:
+  * `PetCard` encapsulado em `React.memo` com comparador customizado de propriedades (comparando nome, foto, favorito e características), evitando re-renderizar todos os cartões de pets em massa durante pesquisas ou interações.
+  * Substituído o uso de propriedades depreciadas `shadow*` por `Platform.select`: `boxShadow` na Web (eliminando warnings no console), `elevation` no Android e sombras nativas no iOS.
+
+---
+
+### 14. Extensão de Schema e Perfil do Adotante (`tb_adopter_profiles`)
+
+* **Migration `20261007111800_add_adopter_profile_and_indexes`**:
+  * **Tabela `tb_adopter_profiles`**:
+    * Armazena preferências declaradas pelo adotante para matchmaking e filtros recomendados:
+      * `preferred_species` (`Species`: `dog`, `cat`, `other`)
+      * `preferred_gender` (`Genders`: `male`, `female`)
+      * `preferred_size`, `preferred_energy`, `preferred_kid_friendly`, `preferred_noise`, `preferred_age_stage` (`Int`)
+      * `lives_in_apartment` (`Boolean`), `has_other_pets` (`Boolean`)
+    * Vínculo 1:1 único com `tb_users` (`user_id` único com `onDelete: Cascade` e `onUpdate: Cascade`).
+    * Campos de auditoria `created_at` e `updated_at`.
+  * **Índices de Performance em `tb_events`**:
+    * Adicionado índice em `tb_events(animal_id)` (`tb_events_animalId_idx`).
+    * Adicionado índice composto em `tb_events(user_id, type)` (`tb_events_userId_type_idx`) para aceleração de consultas e agregação de histórico/atividades por usuário e tipo.
+  * **Rotas da API (`/api/adopter-profiles`)**:
+    * `GET /api/adopter-profiles/count`: Contagem global de perfis de adotantes.
+    * `GET /api/adopter-profiles/all`: Listagem administrativa restrita (`admin:*`).
+    * `GET /api/adopter-profiles/me`: Consulta do perfil de preferências do adotante autenticado (`user:read:own`).
+    * `PUT /api/adopter-profiles/me`: Upsert (cria se ausente, atualiza se existente) das preferências do adotante (`user:update:own`).
+    * `PATCH /api/adopter-profiles/me`: Atualização parcial das preferências do adotante (`user:update:own`).
+    * `DELETE /api/adopter-profiles/me`: Exclusão das preferências do adotante (`user:delete:own`).
+    * `POST /api/adopter-profiles/preferences/search`: Filtragem composta de adotantes por critérios de preferências.
+    * `GET /api/adopter-profiles/preference`: Consulta rápida por chave e valor individual.
+    * `POST /api/adopter-profiles`: Criação explícita de perfil.
+    * `GET /api/adopter-profiles/:id` e `PATCH /api/adopter-profiles/:id`: Operações por ID do perfil.
+    * `GET /api/adopter-profiles/user/:id`, `PUT /api/adopter-profiles/user/:id`, `PATCH /api/adopter-profiles/user/:id`, `DELETE /api/adopter-profiles/user/:id`: Operações por ID do usuário (administração).
+
+---
+
+### 15. Migração e Reorganização dos Testes do Backend (`apps/server`)
+
+* **Migração de `node:test` para Jest**:
+  * Configurado **Jest** com **`ts-jest`** e `@types/jest` no `apps/server`.
+  * Criação de [`jest.config.ts`](apps/server/jest.config.ts) apontando para a raiz `test/` e combinando arquivos `**/*.spec.ts`.
+  * Criação de [`tsconfig.test.json`](apps/server/tsconfig.test.json) para compilação estrita dos testes sem poluir o diretório de build de produção (`dist/`).
+  * Scripts atualizados no `package.json`: `test` (`jest`), `test:watch` (`jest --watch`), `test:cov` (`jest --coverage`).
+* **Estrutura por Camadas (`apps/server/test/`)**:
+  * **`test/controllers/`**:
+    * `AdopterProfileController.spec.ts`: Testes unitários de todos os endpoints do controlador de perfis de adotantes.
+    * `AuthController.spec.ts`: Validação de login social com Google via ID Token.
+    * `UserController.spec.ts`: Cobertura de registro, login, sanitização de senhas, contagens, edição de perfil e controle de papéis.
+  * **`test/domains/`**:
+    * `Url.spec.ts`: Validações de integridade de Value Objects de URL e preservação de casing/parâmetros.
+  * **`test/integration/`**:
+    * `animalManagement.spec.ts`: Testes integrados de ponta a ponta para gestão de animais, permissões por papel, visibilidade pública vs. privada e paginação.
+  * **`test/middlewares/`**:
+    * `authTokenHandler.spec.ts`: Verificação do middleware de autenticação, cabeçalho `Authorization` e validação de tokens JWT.
+  * **`test/models/`**:
+    * `AdopterProfile.spec.ts`: Validação e invariantes da entidade de domínio `AdopterProfile`.
+    * `User.spec.ts`: Validação de username, regras por papel, avatars e serialização segura sem hashes.
+  * **`test/repositories/`**:
+    * `UserRepository.spec.ts`: Mapeamento de relações, contagens e tratamento seguro de coordenadas nulas.
+  * **`test/routes/`**:
+    * `AdopterProfileRouter.spec.ts`: Verificação de registro e métodos HTTP de rotas de perfil de adotante.
+    * `UserRouter.spec.ts`: Verificação de métodos e endpoints públicos, administrativos e do usuário autenticado.
+    * `appCors.spec.ts`: Testes do servidor HTTP para origens permitidas e rejeição de requisições de origens maliciosas.
+  * **`test/security/`**:
+    * `Jwt.spec.ts`: Testes da utilidade de geração e decodificação de tokens JWT.
+    * `JwtService.spec.ts`: Assinatura e verificação estrita de claims (`issuer`, `audience`, expiração).
+    * `PasswordHasher.spec.ts`: Hashing seguro de senhas com PBKDF2 e timing-safe comparison.
+    * `mergeAuth.spec.ts`: Compatibilidade retroativa entre senhas e tokens emitidos por diferentes fluxos.
+  * **`test/services/`**:
+    * `AdopterProfileService.spec.ts`: Regras de negócio, busca por preferências, upsert e exclusão.
+    * `AnimalPhotoService.spec.ts`: Detecção de magic bytes e validação de MIME types de imagens.
+    * `UserService.spec.ts`: Fluxos de perfil, atualização de senhas, contagem de relacionamentos e autenticação Google.
+  * **`test/validation/`**:
+    * `schemas.spec.ts`: Schemas Zod de criação de usuário, papéis, coordenadas, login e tokens Google.
+
+---
+
+### 16. Configuração de Testes com Jest + Expo em React Native (`apps/mobile-web`)
+
+* **Infraestrutura de Testes com `jest-expo`**:
+  * Configurado **Jest** com o preset oficial **`jest-expo`** compatível com Expo SDK 57 e React Native 0.86.
+  * Instalados como devDependencies: `jest-expo`, `jest`, `@types/jest`, `@react-native/jest-preset@0.86.3`, `@testing-library/react-native` e `test-renderer` (renderizador oficial para React 19).
+  * Arquivo [`apps/mobile-web/jest.config.js`](apps/mobile-web/jest.config.js) configurado com preset `jest-expo`, mapeamento de path alias `^@/(.*)$` e de `expo-modules-core`.
+  * Arquivo [`apps/mobile-web/jest.setup.ts`](apps/mobile-web/jest.setup.ts) para setups e mocks globais do ambiente React Native.
+  * Inclusão do tipo `"jest"` em [`apps/mobile-web/tsconfig.json`](apps/mobile-web/tsconfig.json).
+  * Scripts no `package.json` de `apps/mobile-web`: `"test": "jest"`, `"test:watch": "jest --watch"`.
+  * Scripts unificados no `package.json` da raiz:
+    * `"test"`: executa os testes do servidor e da aplicação mobile/web em cadeia (`npm run test --workspace=@kapa/server && npm run test --workspace=@kapa/mobile-web`).
+    * `"test:mobile"`: executa os testes do mobile/web isoladamente.
+    * `"test:server"`: executa os testes do servidor isoladamente.
+* **Organização das Suítes em `apps/mobile-web/test/`**:
+  * **`test/components/`**:
+    * `PrimaryButton.spec.tsx`: Testes de renderização, acessibilidade, eventos de clique e estado de carregamento do componente de botão utilizando `@testing-library/react-native` (com suporte assíncrono para React 19).
+    * `searchAdoptModel.spec.ts`: Validação de esquema e filtros de busca por nome, raça, porte, espécie e sexo.
+  * **`test/screens/`**:
+    * `animalManagementModel.spec.ts`: Validação do modelo do editor de animais, formatação de pesos decimais brasileiros e paginação.
+  * **`test/services/`**:
+    * `apiBaseUrl.spec.ts`: Testes unitários de normalização de URLs de API, sanitização de barras e validação de HTTPS em produção.
+  * **`test/storage/`**:
+    * `genericStorage.spec.ts`: Testes unitários de armazenamento local usando o mock de `@react-native-async-storage/async-storage`, cobrindo persistência de pares chave-valor, serialização de objetos JSON, recuperação, remoção, limpeza geral e isolamento de estado.
+  * **`test/browser/`**:
+    * `animal-management-browser.cjs`: Script de teste end-to-end de navegador via Playwright / Edge para gestão de animais, consolidado no padrão `test/`.
+
+---
+
+### 17. Persistência de Dados com Testcontainers (PostgreSQL), Prisma e Mock do AsyncStorage
+
+* **Mock do AsyncStorage (`apps/mobile-web`)**:
+  * Configurado em [`apps/mobile-web/jest.setup.ts`](apps/mobile-web/jest.setup.ts) utilizando a implementação oficial de mock `@react-native-async-storage/async-storage/jest/async-storage-mock`.
+  * Garante que chamadas de leitura, gravação e remoção de dados locais (`AsyncStorage.getItem`, `setItem`, `removeItem`, `clear`, `multiGet`) executem de forma síncrona/em memória durante os testes Jest, isolando o ambiente sem dependência de módulos nativos de SO.
+  * Testado e validado em [`apps/mobile-web/test/storage/genericStorage.spec.ts`](apps/mobile-web/test/storage/genericStorage.spec.ts).
+
+* **Testcontainers com PostgreSQL Real (`apps/server`)**:
+  * Dependências adicionadas ao `apps/server`: `@testcontainers/postgresql` e `testcontainers`.
+  * **Helper [`apps/server/test/helpers/postgresContainer.ts`](apps/server/test/helpers/postgresContainer.ts)**:
+    * Criação e inicialização dinâmica de contêiner PostgreSQL efêmero com imagem oficial `postgres:16-alpine`.
+    * Aplicação automatizada das migrações do Prisma com `npx prisma migrate deploy` apontando para a porta e banco dinâmicos do contêiner.
+    * Conexão do `PrismaClient` utilizando `@prisma/adapter-pg` com `pg.Pool` (em conformidade com o driver adapter exigido pelo Prisma v7).
+    * Função `executeSqlFile(prisma, filePath)` para execução de scripts SQL puros (`.sql`) com `prisma.$executeRawUnsafe`.
+    * Gerenciamento de ciclo de vida seguro: método `cleanup()` para encerramento do pool de conexões e destruição do contêiner Docker após a execução das suítes.
+  * **Script SQL de Fixture ([`apps/server/test/fixtures/seed_test_data.sql`](apps/server/test/fixtures/seed_test_data.sql))**:
+    * Insere dados iniciais de teste diretamente via SQL puro em `tb_users` e `tb_adopter_profiles`, respeitando tipos de dados (UUID, arrays PostgreSQL, timestamps e coordenadas).
+  * **Suíte de Testes de Integração ([`apps/server/test/integration/databasePersistence.spec.ts`](apps/server/test/integration/databasePersistence.spec.ts))**:
+    1. **Schema & Execução SQL**: Validação da criação das tabelas no schema `public` (`tb_users`, `tb_adopter_profiles`, `tb_animals`, `tb_events`, `tb_favorites`), execução do script `seed_test_data.sql` e verificação de índices criados pelas migrações em `pg_indexes`.
+    2. **`UserRepository`**: Persistência real de usuário com arrays de regras, coordenadas geográficas, buscas com `hasEvery` em regras, filtros por papel (`role`) e atualização de registros.
+    3. **`AdopterProfileRepository`**: Persistência real vinculada à chave estrangeira `tb_users(id)`, consultas compostas por preferências via `findByPreferences` e atualização de perfis.
+    4. **Integridade e Restrições Estruturais**:
+       * Verificação de rejeição de perfil duplicado para o mesmo usuário via constraint única 1:1 (erro `P2002`).
+       * Verificação de propagação de deleção em cascata (`ON DELETE CASCADE`) na remoção do usuário pai.
+
+---
+
+### 18. Otimização de Peso do Monorepo e Limpeza de Dependências
+
+* **Remoção de `@expo/vector-icons` (`apps/mobile-web`)**:
+  * Removido de `dependencies` (economia de ~6.5 MB no disco e menor overhead no bundling Web/Metro).
+  * O aplicativo padroniza exclusivamente a biblioteca `phosphor-react-native` em todos os ícones da interface.
+* **Remoção de `@prisma/dev` (`apps/server`)**:
+  * Removido de `devDependencies` (economia de ~19 MB no disco).
+  * O monorepo utiliza contêineres PostgreSQL oficiais (`postgres:16-alpine`) para testes e desenvolvimento via Docker Compose e Testcontainers, dispensando os runtimes experimentais PGlite/Bun do `@prisma/dev`.
+* **Eliminação de Redundâncias e Tipagens Legadas**:
+  * Removido `testcontainers` explícito de `apps/server/package.json` (mantendo `@testcontainers/postgresql`, que já fornece a dependência).
+  * Removido `@types/redis` (legado v4) de `apps/server`, visto que `redis` v6 já embute definições TypeScript oficiais em `dist/index.d.ts`.
+  * Removido `@react-native/jest-preset` da raiz `package.json` (gerenciado isoladamente no workspace `apps/mobile-web`).
+* **Otimização de Performance do Testcontainers**:
+  * Adicionadas flags de PostgreSQL em memória (`fsync=off`, `synchronous_commit=off`, `full_page_writes=off`) e `npx --no-install prisma migrate deploy` no helper [`postgresContainer.ts`](apps/server/test/helpers/postgresContainer.ts).
+
+---
+
+### 19. Pipeline de CI/CD e Qualidade (`.github/workflows/quality.yml`)
+
+* **Geração de Prisma Client e Build do Pacote Compartilhado**:
+  * Nos jobs de `lint` e `tests`, as etapas de `npm run prisma:generate --workspace=@kapa/server` e `npm run build:shared` são executadas imediatamente após `npm ci`.
+  * Isso garante que os tipos gerados pelo Prisma Client (`@prisma/client`) e a compilação do pacote `@kapa/shared` estejam prontos antes das etapas de análise estática (`npm run lint`), checagem de tipos estrita (`npm run type-check`) e execução de testes automatizados (`npm test`).
+* **Tipagem Estrita nos Testes de Integração**:
+  * Adicionadas anotações explícitas de tipo em lambdas de queries brutas (`$queryRaw`) em [`apps/server/test/integration/databasePersistence.spec.ts`](apps/server/test/integration/databasePersistence.spec.ts) para conformidade total com o modo `strict` do TypeScript (`noImplicitAny`).
+
+

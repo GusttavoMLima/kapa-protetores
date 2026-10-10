@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { googleAuthSchema } from '../schemas/auth.schema';
 import { UserService } from '../services/UserService';
 import { Jwt } from '../utils/Jwt';
-import { AppError } from '../errors/AppError';
+import { BadRequestError } from '../errors';
 import type { ApiResponse, User as SharedUser } from '@kapa/shared';
 
 export class AuthController {
@@ -17,7 +17,7 @@ export class AuthController {
       const parseResult = googleAuthSchema.safeParse(req.body);
 
       if (!parseResult.success) {
-        throw AppError.badRequest(
+        throw new BadRequestError(
           'idToken é obrigatório para login com Google',
           parseResult.error.format(),
         );

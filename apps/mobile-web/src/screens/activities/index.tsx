@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { isAxiosError } from 'axios';
 import { z } from 'zod';
 import {
@@ -99,6 +99,7 @@ export function ActivitiesScreen() {
   const [activities, setActivities] = useState<CommunityEventListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [feedback, setFeedback] = useState<Feedback>();
   const [attempted, setAttempted] = useState(false);
   const [title, setTitle] = useState('');
@@ -144,6 +145,7 @@ export function ActivitiesScreen() {
   }, []);
 
   function resetForm() {
+    savingRef.current = false;
     setTitle('');
     setDescription('');
     setDate('');
@@ -163,11 +165,14 @@ export function ActivitiesScreen() {
   }
 
   async function handleSave() {
+    if (savingRef.current) return;
+
     setAttempted(true);
     setFeedback(undefined);
 
     if (titleError || dateError || startTimeError || endTimeError || vacanciesError || locationError || cepError) return;
 
+    savingRef.current = true;
     setSaving(true);
     try {
       const startAt = new Date(`${date}T${startTime}:00`);
@@ -197,6 +202,7 @@ export function ActivitiesScreen() {
     } catch (error) {
       setFeedback({ kind: 'error', message: getErrorMessage(error) });
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }

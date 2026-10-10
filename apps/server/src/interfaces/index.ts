@@ -7,4 +7,7 @@ export * from './IEvent';
 export * from './IFavorite';
 export * from './ICommunityEvent';
 export * from './ICommunityEventVolunteer';
+export * from './IAdopterProfile';
+export * from './IAdopterProfileRepository';
 export * from './AnimalRepositoryInterface';
+export * from './IUserRepository';

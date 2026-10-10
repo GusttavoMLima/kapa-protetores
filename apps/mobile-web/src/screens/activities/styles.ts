@@ -1,5 +1,16 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import { palette, typography } from '@/theme';
+
+const cardShadow = Platform.select({
+  web: { boxShadow: '0px 2px 4px rgba(184, 91, 15, 0.04)' } as const,
+  default: {
+    shadowColor: palette.orangeDark,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+});
 
 export const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: palette.cream },
@@ -18,7 +29,7 @@ export const styles = StyleSheet.create({
   emptyTitle: { ...typography.styles.headlineMd, color: palette.ink, textAlign: 'center' },
   emptyText: { ...typography.styles.bodySm, color: palette.inkMuted, textAlign: 'center', maxWidth: 300 },
   list: { gap: 12 },
-  activityCard: { backgroundColor: palette.white, borderRadius: 16, borderWidth: 1, borderColor: palette.line, padding: 16, gap: 12, shadowColor: palette.orangeDark, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
+  activityCard: { backgroundColor: palette.white, borderRadius: 16, borderWidth: 1, borderColor: palette.line, padding: 16, gap: 12, ...cardShadow },
   activityHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   typeTag: { backgroundColor: palette.peach, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
   typeTagText: { ...typography.styles.labelSm, color: palette.denim },
@@ -31,7 +42,7 @@ export const styles = StyleSheet.create({
   backButton: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', paddingVertical: 6, paddingRight: 10 },
   backButtonText: { ...typography.styles.labelMd, color: palette.denim },
   formHeading: { gap: 6 },
-  card: { backgroundColor: palette.white, borderRadius: 16, borderWidth: 1, borderColor: palette.line, padding: 16, gap: 14, shadowColor: palette.orangeDark, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
+  card: { backgroundColor: palette.white, borderRadius: 16, borderWidth: 1, borderColor: palette.line, padding: 16, gap: 14, ...cardShadow },
   section: { ...typography.styles.headlineMd, color: palette.orangeDark },
   fieldLabel: { ...typography.styles.labelMd, color: palette.ink },
   timeRow: { flexDirection: 'row', gap: 12 },

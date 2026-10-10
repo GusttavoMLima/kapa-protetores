@@ -18,6 +18,10 @@ import { AuthMiddleware } from '../middlewares/AuthMiddleware';
 import { AnimalPhotosController } from '../controllers/AnimalPhotosController';
 import { AnimalPhotoService } from '../services/AnimalPhotoService';
 import { animalManagementAccess } from '../middlewares/AnimalManagementMiddleware';
+import { AdopterProfileRepository } from '../repositories/AdopterProfileRepository';
+import { AdopterProfileService } from '../services/AdopterProfileService';
+import { AdopterProfileController } from '../controllers/AdopterProfileController';
+import { AdopterProfileRouter } from './AdopterProfileRouter';
 
 const jwtService = new JwtService(
   process.env.JWT_SECRET ?? '',
@@ -56,6 +60,11 @@ const credentialsRouter = new CredentialsRouter(
   authMiddleware,
 );
 
+const adopterProfileRepository = new AdopterProfileRepository(prisma);
+const adopterProfileService = new AdopterProfileService(adopterProfileRepository);
+const adopterProfileController = new AdopterProfileController(adopterProfileService);
+const adopterProfileRouter = new AdopterProfileRouter(adopterProfileController);
+
 const apiRouterInstance = new ApiRouter(
   healthRouter,
   animalsRouter,
@@ -63,6 +72,7 @@ const apiRouterInstance = new ApiRouter(
   userRouter,
   communityEventRouter,
   credentialsRouter,
+  adopterProfileRouter,
 );
 
 export const apiRouter = apiRouterInstance;

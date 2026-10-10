@@ -7,3 +7,4 @@ export * from './Event';
 export * from './Favorite';
 export * from './CommunityEvent';
 export * from './CommunityEventVolunteer';
+export * from './AdopterProfile';

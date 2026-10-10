@@ -1,29 +1,269 @@
-name: Quality
+name: CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - development
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  DATABASE_URL: postgresql://ci:ci@localhost:5432/kapa?schema=public
+  DIRECT_URL: postgresql://ci:ci@localhost:5432/kapa?schema=public
 
 jobs:
-  sonar:
-    name: Lint and SonarQube
+  lint:
+    name: ESLint
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: actions/setup-node@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: '22'
           cache: npm
 
-      - run: npm ci
-      - run: npm run lint
+      - name: Install dependencies
+        run: npm ci
 
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v6
+      - name: Generate Prisma Client
+        run: npm run prisma:generate --workspace=@kapa/server
+
+      - name: Build shared package
+        run: npm run build:shared
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Check TypeScript types
+        if: always()
+        run: npm run type-check
+
+  tests:
+    name: Testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npm run prisma:generate --workspace=@kapa/server
+
+      - name: Build shared package
+        run: npm run build:shared
+
+      - name: Generate ephemeral test secret
+        shell: bash
+        run: |
+          jwt_secret="$(openssl rand -hex 32)"
+          echo "::add-mask::$jwt_secret"
+          echo "JWT_SECRET=$jwt_secret" >> "$GITHUB_ENV"
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build web app
+        if: always()
+        run: npm run build:web
+
+  coverage:
+    name: Cobertura
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npm run prisma:generate --workspace=@kapa/server
+
+      - name: Build shared package
+        run: npm run build:shared
+
+      - name: Generate ephemeral test secret
+        shell: bash
+        run: |
+          jwt_secret="$(openssl rand -hex 32)"
+          echo "::add-mask::$jwt_secret"
+          echo "JWT_SECRET=$jwt_secret" >> "$GITHUB_ENV"
+
+      - name: Run tests and generate LCOV coverage
+        shell: bash
+        run: |
+          mkdir -p coverage
+          npm --prefix apps/server run test:cov -- --coverageDirectory=../../coverage --coverageReporters=lcov
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: lcov-report
+          path: coverage/lcov.info
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Generate coverage summary
+        if: github.event_name == 'pull_request'
+        run: node scripts/coverage-summary.mjs
+        env:
+          COVERAGE_COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+
+      - name: Comment coverage on Pull Request
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const fs = require('node:fs');
+            const body = fs.readFileSync('coverage/summary.md', 'utf8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+
+  container:
+    name: Dockerfile (build base)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Build API container image
+        run: docker build --target runtime --file apps/server/Dockerfile .
+
+  static-security:
+    name: Segurança (Semgrep + Trivy + npm audit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository history
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit dependencies
+        run: node scripts/audit-gate.mjs
+
+      - name: Run Semgrep
+        if: always()
+        shell: bash
+        run: |
+          baseline_args=()
+          if [ "${{ github.event_name }}" = 'pull_request' ]; then
+            baseline_args=(--baseline-commit "${{ github.event.pull_request.base.sha }}")
+          fi
+          docker run --rm \
+            --volume "${{ github.workspace }}:/src" \
+            --workdir /src \
+            semgrep/semgrep@sha256:ae27024c16f7848cdbfd49c24ed0b78b13f13b85fcd7b87c679aaa8b0c0dce98 \
+            semgrep scan \
+              --config p/typescript \
+              --config p/react \
+              --config p/secrets \
+              --config p/owasp-top-ten \
+              --config p/security-audit \
+              --config p/nodejsscan \
+              --config p/jwt \
+              --error \
+              "${baseline_args[@]}" \
+              .
+
+      - name: Run Trivy
+        if: always()
+        run: |
+          docker run --rm \
+            --volume "${{ github.workspace }}:/src" \
+            --workdir /src \
+            aquasec/trivy@sha256:cffe3f5161a47a6823fbd23d985795b3ed72a4c806da4c4df16266c02accdd6f \
+            fs \
+              --scanners vuln,secret,misconfig \
+              --severity HIGH,CRITICAL \
+              --exit-code 1 \
+              --ignore-unfixed \
+              --ignorefile .trivyignore \
+              --skip-dirs node_modules \
+              --skip-dirs '**/node_modules' \
+              .
+
+      - name: Run Gitleaks
+        if: always()
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+          GITLEAKS_ENABLE_COMMENTS: 'false'
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'false'
+
+  sonar:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: coverage
+    if: >-
+      (github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name == 'push' && github.ref_name == 'main')
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+
+      - name: Download coverage report
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: lcov-report
+          path: coverage
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6
+        with:
+          args: >-
+            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.timeout=300
         env:
           SONAR_TOKEN: ${{ secrets.KAPA_SONAR }}
           SONAR_HOST_URL: https://sonarcloud.io

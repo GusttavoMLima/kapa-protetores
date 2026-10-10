@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { PrismaClient } from '@prisma/client';
-import { AppError } from '../errors/AppError';
+import { BadRequestError, NotFoundError } from '../errors';
 
 const allowedImages = {
   'image/jpeg': { extension: 'jpg', matches: (data: Buffer) => data.length >= 3 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff },
@@ -50,10 +50,10 @@ export class AnimalPhotoService {
 
   public async upload(animalId: string, file: Express.Multer.File): Promise<UploadedAnimalPhoto> {
     const animal = await this.prisma.animal.findUnique({ where: { id: animalId }, select: { id: true } });
-    if (!animal) throw AppError.notFound('Animal não encontrado.');
+    if (!animal) throw new NotFoundError('Animal não encontrado.');
     const detectedMimeType = detectImageContent(file.buffer);
     if (!detectedMimeType) {
-      throw AppError.badRequest('A foto deve ser um arquivo JPEG, PNG ou WebP válido.');
+      throw new BadRequestError('A foto deve ser um arquivo JPEG, PNG ou WebP válido.');
     }
 
     const image = allowedImages[detectedMimeType];

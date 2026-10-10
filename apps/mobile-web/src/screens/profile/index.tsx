@@ -48,7 +48,7 @@ export function ProfileScreen() {
         <ProfileBlob className='absolute top-0 right-0' />
         <Image
           source={{ uri: avatarUri }}
-          className="w-[7.5rem] h-[7.5rem] rounded-full border-[.3rem] border-orange bg-peach"
+          className="w-[7.5rem] h-[7.5rem] rounded-full border-[.3rem] border-orange bg-peach z-20"
           resizeMode="cover"
         />
         <Text className="mt-4 text-lg font-heading-bold text-ink">

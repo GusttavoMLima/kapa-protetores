@@ -1,5 +1,5 @@
 import type { CommunityEventListItem } from '@kapa/shared';
-import { AppError } from '../errors/AppError';
+import { NotFoundError, ConflictError } from '../errors';
 import { CommunityEventRepository } from '../repositories/CommunityEventRepository';
 import type { CreateCommunityEventData } from '../validation/communityEventSchema';
 
@@ -30,16 +30,16 @@ export class CommunityEventService {
       if (!(error instanceof Error)) throw error;
 
       if (error.message === 'COMMUNITY_EVENT_NOT_FOUND') {
-        throw AppError.notFound('Atividade não encontrada.');
+        throw new NotFoundError('Atividade não encontrada.');
       }
       if (error.message === 'COMMUNITY_EVENT_CLOSED') {
-        throw AppError.conflict('As inscrições para esta atividade estão encerradas.');
+        throw new ConflictError('As inscrições para esta atividade estão encerradas.');
       }
       if (error.message === 'COMMUNITY_EVENT_ALREADY_JOINED') {
-        throw AppError.conflict('Você já está inscrito nesta atividade.');
+        throw new ConflictError('Você já está inscrito nesta atividade.');
       }
       if (error.message === 'COMMUNITY_EVENT_FULL') {
-        throw AppError.conflict('As vagas para esta atividade foram preenchidas.');
+        throw new ConflictError('As vagas para esta atividade foram preenchidas.');
       }
       throw error;
     }

@@ -17,8 +17,8 @@ async function main(): Promise<void> {
     throw new Error('Database population must not run in production.');
   }
 
-  const email = getRequiredEnvironmentVariable('SEED_ADMIN_EMAIL');
-  const password = getRequiredEnvironmentVariable('SEED_ADMIN_PASSWORD');
+  const email = getRequiredEnvironmentVariable('SEED_ADMIN_EMAIL') || 'admin@kapa.com';
+  const password = getRequiredEnvironmentVariable('SEED_ADMIN_PASSWORD') || 'admin';
   const passwordHash = await new PasswordHasher().hash(password);
   const prismaService = PrismaService.getInstance();
 

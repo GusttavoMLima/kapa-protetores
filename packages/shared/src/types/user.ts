@@ -1,4 +1,4 @@
-import type { Genders } from './animal';
+import type { Genders, Species } from './animal';
 import type { SystemEvent } from './event';
 
 export type UserRole = 'adopter' | 'protector' | 'admin' | 'volunteer';
@@ -84,3 +84,28 @@ export enum UserRoleEnum {
   'admin' = 'Administrador',
   'volunteer' = 'Voluntário',
 }
+
+export interface AdopterProfile {
+  id: string;
+  userId: string;
+  preferredSpecies?: Species | null;
+  preferredGender?: Genders | null;
+  preferredSize?: number | null;
+  preferredEnergy?: number | null;
+  preferredKidFriendly?: number | null;
+  preferredNoise?: number | null;
+  preferredAgeStage?: number | null;
+  livesInApartment?: boolean | null;
+  hasOtherPets?: boolean | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateAdopterProfileInput = Omit<
+  AdopterProfile,
+  'id' | 'createdAt' | 'updatedAt'
+>;
+
+export type UpdateAdopterProfileInput = Partial<
+  Omit<CreateAdopterProfileInput, 'userId'>
+>;
