@@ -1,29 +1,55 @@
 import { useEffect } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import Logo from '@/../assets/Logo 2.svg';
 import { useAuth } from '@/hooks/useAuth';
-
-WebBrowser.maybeCompleteAuthSession();
+import {
+  GOOGLE_OAUTH_WEB_CHANNEL,
+  type GoogleOAuthWebMessage,
+} from '@/services/googleOAuthWeb';
 
 export default function OAuthRedirectScreen() {
   const { isLogged, isReady } = useAuth();
 
   useEffect(() => {
-    if (isReady && isLogged) {
+    if (Platform.OS !== 'web') return;
+    if (typeof window === 'undefined') return;
+
+    try {
+      const completion = WebBrowser.maybeCompleteAuthSession();
+      if (completion.type === 'success') return;
+    } catch {
+      // Alguns navegadores removem window.opener durante o fluxo OAuth.
+    }
+
+    if (typeof BroadcastChannel === 'undefined') {
+      return;
+    }
+
+    const channel = new BroadcastChannel(GOOGLE_OAUTH_WEB_CHANNEL);
+    const oauthMessage: GoogleOAuthWebMessage = {
+      type: 'google-oauth-result',
+      url: window.location.href,
+    };
+    channel.postMessage(oauthMessage);
+    channel.close();
+
+    const closeTimeout = window.setTimeout(() => window.close(), 250);
+    return () => window.clearTimeout(closeTimeout);
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS === 'web' || !isReady) return;
+
+    if (isLogged) {
       router.replace('/(protected)/(tabs)');
       return;
     }
 
-    const timeout = setTimeout(() => {
-      if (!isLogged) {
-        router.replace('/signIn');
-      }
-    }, 6000);
-
-    return () => clearTimeout(timeout);
+    const redirectTimeout = setTimeout(() => router.replace('/signIn'), 6000);
+    return () => clearTimeout(redirectTimeout);
   }, [isLogged, isReady]);
 
   return (
