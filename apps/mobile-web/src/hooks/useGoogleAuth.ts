@@ -1,4 +1,5 @@
 import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
@@ -33,11 +34,10 @@ export function useGoogleAuth() {
   const { handleGoogleLogin } = useAuth();
   const [googleError, setGoogleError] = useState<string | null>(null);
 
-  const redirectUri = Platform.select({
-    android: 'edu.fatec.kapaprotetores:/oauthredirect',
-    ios: 'edu.fatec.kapaprotetores:/oauthredirect',
-    default: undefined,
-  });
+  const redirectUri =
+    Platform.OS === 'web'
+      ? AuthSession.makeRedirectUri({ path: 'oauthredirect' })
+      : 'edu.fatec.kapaprotetores:/oauthredirect';
 
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     ...googleClientIds,
