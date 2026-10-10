@@ -128,15 +128,10 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          DEPLOY_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
-          environment=preview
-          if [ "$DEPLOY_BRANCH" = 'main' ]; then
-            environment=production
-          fi
           npx --yes vercel@62.5.0 pull \
             --yes \
-            --environment="$environment" \
+            --environment=production \
             --token="$VERCEL_TOKEN"
 
       - name: Build web for Vercel
@@ -145,15 +140,10 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          DEPLOY_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
-          production_args=()
-          if [ "$DEPLOY_BRANCH" = 'main' ]; then
-            production_args=(--prod)
-          fi
           npx --yes vercel@62.5.0 build \
-            --token="$VERCEL_TOKEN" \
-            "${production_args[@]}"
+            --prod \
+            --token="$VERCEL_TOKEN"
 
       - name: Deploy web to Vercel
         shell: bash
@@ -161,16 +151,11 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          DEPLOY_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
-          production_args=()
-          if [ "$DEPLOY_BRANCH" = 'main' ]; then
-            production_args=(--prod)
-          fi
           npx --yes vercel@62.5.0 deploy \
             --prebuilt \
-            --token="$VERCEL_TOKEN" \
-            "${production_args[@]}"
+            --prod \
+            --token="$VERCEL_TOKEN"
 
       - name: Publish deployment summary
         if: always()
