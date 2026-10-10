@@ -4,7 +4,9 @@ import { apiRouter } from './routes';
 import { PrismaService } from './database/PrismaService';
 
 const port = Number(process.env.PORT) || 4000;
-const clientUrl = process.env.CLIENT_URL || 'https://kapa-web-staging.vercel.app/';
+const clientUrl =
+  process.env.CLIENT_URL ||
+  'http://localhost:5173,https://kapa-web-staging.vercel.app';
 
 const application = new App(apiRouter, { port, clientUrl });
 
