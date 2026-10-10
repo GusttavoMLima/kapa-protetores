@@ -30,7 +30,7 @@ Execuções do mesmo PR ou branch usam concorrência. Quando chega um commit mai
 | --- | --- |
 | `CI / ESLint` | Instalação reproduzível com `npm ci`, ESLint, geração do Prisma Client e type-check |
 | `CI / Testes` | Segredo JWT efêmero, testes automatizados, build da API e build web |
-| `CI / Cobertura` | Testes com LCOV, artefato de cobertura e comentário no PR |
+| `CI / Cobertura` | Testes da API e do frontend com LCOV consolidado, artefato de cobertura e comentário no PR |
 | `CI / Dockerfile (build base)` | Build completo da imagem de runtime da API |
 | `CI / Segurança (Semgrep + Trivy + npm audit)` | Gate de auditoria npm (`scripts/audit-gate.mjs` + allowlist), Semgrep, Trivy (com `.trivyignore`) e Gitleaks |
 | `CI / SonarCloud` | Análise estática e espera pelo Quality Gate do SonarCloud, consumindo a cobertura do job `Cobertura` (executa nos PRs do próprio repositório e em pushes para `main`) |
@@ -54,7 +54,7 @@ Em PRs criados dentro do próprio repositório, o workflow publica um comentári
 - cobertura de statements, branches, functions e lines;
 - resultados agrupados em `mobile-web`, `server`, `shared` e total.
 
-O relatório completo `coverage/lcov.info` permanece disponível como artefato por sete dias. PRs de forks executam a cobertura, mas não recebem permissão para publicar comentários.
+O job gera relatórios LCOV para `server` e `mobile-web`, normaliza os caminhos a partir da raiz do monorepo e os consolida em `coverage/lcov.info`. Esse relatório permanece disponível como artefato por sete dias e alimenta o SonarCloud. PRs de forks executam a cobertura, mas não recebem permissão para publicar comentários.
 
 ### Proteção das branches
 
@@ -129,7 +129,7 @@ No Vercel, crie um projeto para cada ambiente com a raiz do monorepo e configure
 
 Cada GitHub Environment deve guardar o `VERCEL_PROJECT_ID` do projeto correspondente: `staging` aponta para o projeto web de homologação e `production` aponta para o projeto web de produção. O workflow usa `--prod` nos dois casos porque cada projeto representa um ambiente isolado; assim, `development` atualiza o domínio fixo do projeto de staging e `main` atualiza o domínio fixo do projeto de produção.
 
-O arquivo [`vercel.json`](../vercel.json) encaminha rotas da SPA, como `/signIn`, para `index.html` e envia `Cross-Origin-Opener-Policy: same-origin-allow-popups`. O cabeçalho permite que o fluxo OAuth consulte e feche a popup do Google sem desativar a política de origem para a página principal.
+O arquivo [`vercel.json`](../vercel.json) encaminha rotas da SPA, como `/signIn`, para `index.html` e envia `Cross-Origin-Opener-Policy: same-origin-allow-popups`. O cabeçalho permite que o fluxo OAuth consulte e feche a popup do Google sem desativar a política de origem para a página principal. Se o navegador ainda remover `window.opener`, o callback usa `BroadcastChannel` entre as duas janelas da mesma origem; a janela principal valida o `state` do OAuth antes de encaminhar o token à API, sem persistir o token nesse canal.
 
 No cliente OAuth 2.0 Web do Google Cloud, cadastre para cada projeto web a origem HTTPS exata, sem barra final, em **Authorized JavaScript origins** e `<origem>/oauthredirect` em **Authorized redirect URIs**. Para staging, os valores são `https://kapa-web-staging.vercel.app` e `https://kapa-web-staging.vercel.app/oauthredirect`. O Client ID desse cliente deve ser o mesmo em `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` no Vercel e `GOOGLE_WEB_CLIENT_ID` no Render.
 

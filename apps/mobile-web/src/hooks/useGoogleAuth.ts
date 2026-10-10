@@ -1,11 +1,12 @@
-import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
+import {
+  GOOGLE_OAUTH_WEB_CHANNEL,
+  isGoogleOAuthWebMessage,
+} from '@/services/googleOAuthWeb';
 import { useAuth } from './useAuth';
-
-WebBrowser.maybeCompleteAuthSession();
 
 const unconfiguredClientId = 'not-configured.apps.googleusercontent.com';
 
@@ -33,6 +34,7 @@ const isGoogleConfigured = Boolean(
 export function useGoogleAuth() {
   const { handleGoogleLogin } = useAuth();
   const [googleError, setGoogleError] = useState<string | null>(null);
+  const handledTokenRef = useRef<string | undefined>(undefined);
 
   const redirectUri =
     Platform.OS === 'web'
@@ -44,38 +46,92 @@ export function useGoogleAuth() {
     redirectUri,
   });
 
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const idToken =
-        response.params?.id_token ??
-        response.authentication?.idToken ??
-        response.params?.access_token;
+  const completeGoogleLogin = useCallback(
+    (authResponse: AuthSession.AuthSessionResult | null) => {
+      if (authResponse?.type !== 'success') return;
 
-      if (idToken) {
-        handleGoogleLogin(idToken).catch((err: unknown) => {
-          const axiosError = err as {
-            response?: {
-              data?: {
-                message?: string;
-                error?: string;
-              };
+      const idToken =
+        authResponse.params?.id_token ??
+        authResponse.authentication?.idToken ??
+        authResponse.params?.access_token;
+
+      if (!idToken || handledTokenRef.current === idToken) return;
+      handledTokenRef.current = idToken;
+
+      handleGoogleLogin(idToken).catch((err: unknown) => {
+        const axiosError = err as {
+          response?: {
+            data?: {
+              message?: string;
+              error?: string;
             };
           };
-          setGoogleError(
-            axiosError?.response?.data?.message ||
-              axiosError?.response?.data?.error ||
-              'Falha na autenticação com o Google.',
-          );
-        });
-      }
+        };
+        setGoogleError(
+          axiosError?.response?.data?.message ||
+            axiosError?.response?.data?.error ||
+            'Falha na autenticação com o Google.',
+        );
+      });
+    },
+    [handleGoogleLogin],
+  );
+
+  useEffect(() => {
+    completeGoogleLogin(response);
+  }, [completeGoogleLogin, response]);
+
+  useEffect(() => {
+    if (
+      Platform.OS !== 'web' ||
+      !request ||
+      typeof BroadcastChannel === 'undefined'
+    ) {
+      return;
     }
-  }, [response, handleGoogleLogin]);
+
+    const channel = new BroadcastChannel(GOOGLE_OAUTH_WEB_CHANNEL);
+    channel.addEventListener('message', (event: MessageEvent<unknown>) => {
+      if (!isGoogleOAuthWebMessage(event.data)) return;
+
+      let callbackUrl: URL;
+      try {
+        callbackUrl = new URL(event.data.url);
+      } catch {
+        setGoogleError('O Google retornou uma URL de autenticação inválida.');
+        return;
+      }
+
+      if (
+        callbackUrl.origin !== window.location.origin ||
+        callbackUrl.pathname !== '/oauthredirect'
+      ) {
+        setGoogleError(
+          'A resposta do Google veio de uma origem de autenticação inválida.',
+        );
+        return;
+      }
+
+      const parsedResponse = request.parseReturnUrl(event.data.url);
+      if (parsedResponse.type === 'error') {
+        setGoogleError(
+          'A resposta do Google não passou pela validação de segurança.',
+        );
+        return;
+      }
+
+      completeGoogleLogin(parsedResponse);
+    });
+
+    return () => channel.close();
+  }, [completeGoogleLogin, request]);
 
   const authSessionError =
     response?.type === 'error' ? 'Falha ao autenticar com o Google.' : null;
 
   const signInWithGoogle = useCallback(async () => {
     setGoogleError(null);
+    handledTokenRef.current = undefined;
     if (!isGoogleConfigured) {
       setGoogleError(
         'O login com Google ainda não está configurado neste ambiente.',
