@@ -68,6 +68,9 @@ model Animal {
   castrated          TriageStatus
   vaccinated         Boolean
   dewormed           TriageStatus
+  v10_doses          Json           @default("[]") @map("v10Doses")
+  rabies_doses       Json           @default("[]") @map("vacinaRaivaDoses")
+  deworming_doses    Json           @default("[]") @map("vermifugoDoses")
   rescued_at         DateTime       @map("rescuedAt")
   place              String
   mood               String

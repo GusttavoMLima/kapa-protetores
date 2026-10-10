@@ -1,6 +1,7 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import { IAnimalRepository } from '../interfaces/AnimalRepositoryInterface';
 import { Animal } from '../models/Animal';
+import { doseRecordsSchema } from '../validation/schemas';
 import type { Animal as PrismaAnimal, AnimalPhotos } from '@prisma/client';
 import type { AnimalManagementQuery, AnimalManagementPage, UpdateAnimalInput } from '@kapa/shared';
 
@@ -27,6 +28,9 @@ export class PostgresAnimalRepository implements IAnimalRepository {
     animal.setCastrated(record.castrated);
     animal.setVaccinated(record.vaccinated);
     animal.setDewormed(record.dewormed);
+    animal.setV10Doses(doseRecordsSchema.parse(record.v10_doses));
+    animal.setVacinaRaivaDoses(doseRecordsSchema.parse(record.rabies_doses));
+    animal.setVermifugoDoses(doseRecordsSchema.parse(record.deworming_doses));
     animal.setRescuedAt(record.rescued_at.toISOString());
     animal.setPlace(record.place);
     animal.setMood(record.mood);
@@ -77,6 +81,9 @@ export class PostgresAnimalRepository implements IAnimalRepository {
         castrated: animal.getCastrated(),
         vaccinated: animal.getVaccinated(),
         dewormed: animal.getDewormed(),
+        v10_doses: animal.getV10Doses().map((dose) => ({ ...dose })),
+        rabies_doses: animal.getVacinaRaivaDoses().map((dose) => ({ ...dose })),
+        deworming_doses: animal.getVermifugoDoses().map((dose) => ({ ...dose })),
         rescued_at: new Date(animal.getRescuedAt()),
         place: animal.getPlace(),
         mood: animal.getMood(),
@@ -122,6 +129,9 @@ export class PostgresAnimalRepository implements IAnimalRepository {
           noise_level: input.noiseLevel, apartment_friendly: input.apartmentFriendly,
           other_pet_friendly: input.otherPetFriendly, health_condition: input.healthCondition,
           castrated: input.castrated, vaccinated: input.vaccinated, dewormed: input.dewormed,
+          v10_doses: input.v10Doses?.map((dose) => ({ ...dose })),
+          rabies_doses: input.vacinaRaivaDoses?.map((dose) => ({ ...dose })),
+          deworming_doses: input.vermifugoDoses?.map((dose) => ({ ...dose })),
           rescued_at: input.rescuedAt === undefined ? undefined : new Date(input.rescuedAt),
           place: input.place, mood: input.mood, observations: input.observations, status: input.status,
         },

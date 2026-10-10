@@ -2,6 +2,7 @@ import '../config/env';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
+import { databaseConnectionConfig } from './connectionConfig';
 
 export class PrismaService {
   private static instance?: PrismaService;
@@ -16,26 +17,10 @@ export class PrismaService {
       );
     }
 
-    const isRemote =
-      connectionString.includes('supabase') ||
-      connectionString.includes('pooler.supabase.com') ||
-      process.env.NODE_ENV === 'production';
+    this.pool = new Pool(databaseConnectionConfig(connectionString, process.env.NODE_ENV));
 
-    const rejectUnauthorized = !isRemote;
-
-    this.pool = new Pool({
-      connectionString,
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 15000,
-      ...(isRemote ? { ssl: { rejectUnauthorized } } : {}),
-    });
-
-    this.pool.on('error', (err) => {
-      console.error(
-        '[PrismaService] Unexpected error on idle PostgreSQL client:',
-        err,
-      );
+    this.pool.on('error', () => {
+      console.error(JSON.stringify({ event: 'database_idle_connection_error' }));
     });
 
     const adapter = new PrismaPg(this.pool);

@@ -134,4 +134,20 @@ describe('animal management authorization, filters, edits and public boundary', 
       expect((await request('', token(role, role), 'POST', input)).status).toBe(201);
     }
   });
+
+  it('creates, reads and replaces dose lists without losing omitted histories', async () => {
+    const doses = [{ status: 'sim', data: '01/10/2026' }, { status: 'nao' }];
+    const response = await request('', token('admin'), 'POST', {
+      ...input, v10Doses: doses, vacinaRaivaDoses: doses, vermifugoDoses: doses,
+    });
+    expect(response.status).toBe(201);
+    const { data: created } = await response.json();
+    const { data: found } = await (await request(`/management/${created.id}`, token('admin'))).json();
+    expect(found.v10Doses).toEqual(doses);
+    const { data: updated } = await (await request(`/management/${created.id}`, token('admin'), 'PATCH', { v10Doses: [] })).json();
+    expect(updated.v10Doses).toEqual([]);
+    expect(updated.vacinaRaivaDoses).toEqual(doses);
+    expect(updated.vermifugoDoses).toEqual(doses);
+    expect((await request(`/management/${created.id}`, token('admin'), 'PATCH', { v10Doses: [{ status: 'sim', data: '31/02/2026' }] })).status).toBe(400);
+  });
 });

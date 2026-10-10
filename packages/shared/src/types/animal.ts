@@ -41,6 +41,9 @@ export interface Animal {
   castrated: TriageStatus;
   vaccinated: boolean;
   dewormed: TriageStatus;
+  v10Doses?: DoseRecord[];
+  vacinaRaivaDoses?: DoseRecord[];
+  vermifugoDoses?: DoseRecord[];
 
   rescuedAt: string;
   place: string;

@@ -266,6 +266,23 @@ Os serviços de banco, cache e armazenamento de arquivos são executados via Doc
 
 ---
 
+### 4.3 Preparação das validações após pull ou merge
+
+Quando a atualização alterar o lockfile, o schema Prisma ou o pacote compartilhado, execute na raiz:
+
+```bash
+npm ci
+npm run prisma:generate --workspace=@kapa/server
+npm run build:shared
+npm run type-check
+npm run lint
+npm test
+```
+
+O `npm ci` instala as versões travadas, incluindo Jest e ESLint. A geração do cliente Prisma atualiza o código e os tipos locais; não aplica migrations nem altera o banco. Configure as variáveis do servidor conforme o `.env.example`, incluindo `DIRECT_URL`, antes de gerar o cliente.
+
+Os testes de persistência exigem o Docker em execução e usam um PostgreSQL descartável via Testcontainers, com as migrations existentes aplicadas apenas nesse contêiner. No Windows, confirme que o Docker Desktop está pronto com `docker info` antes de executar `npm test`.
+
 ## 5. Variáveis de Ambiente
 
 | Variável | Escopo | Descrição |
@@ -737,3 +754,41 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
   * Adicionadas anotações explícitas de tipo em lambdas de queries brutas (`$queryRaw`) em [`apps/server/test/integration/databasePersistence.spec.ts`](apps/server/test/integration/databasePersistence.spec.ts) para conformidade total com o modo `strict` do TypeScript (`noImplicitAny`).
 
 
+
+### 20. Histórico de doses no cadastro de animais (10/10/2026)
+
+- A tela envia as listas de V10, antirrábica e vermífugo, preservando ordem, status sim/nao e data DD/MM/AAAA.
+- A migração 20261010120000_add_animal_doses adiciona três colunas JSONB em tb_animals, com listas vazias para cadastros antigos e restrição de formato array; nenhum histórico é inferido dos indicadores antigos.
+- POST /animals e PATCH /animals/management/:id validam até 100 doses por lista, datas reais obrigatórias para doses aplicadas e ausência de data para doses não aplicadas. Campos omitidos no PATCH são preservados; [] limpa a lista.
+- As listas são retornadas apenas pela gestão autenticada, mantendo a autorização existente e a projeção pública.
+- O adaptador do formulário inclui os registros legados de primeira/segunda dose quando as listas não existem.
+- Aplicação: configurar DIRECT_URL para o PostgreSQL de destino e executar npm run prisma:migrate:deploy --workspace=apps/server; regenerar o cliente Prisma.
+
+### 21. Banco compartilhado de desenvolvimento
+
+- Configuração da equipe documentada em docs/BANCO_COMPARTILHADO.md. DATABASE_URL seleciona o banco; DIRECT_URL é destinada a migrations, com fallback para DATABASE_URL quando ausente.
+- PrismaService agora verifica certificados TLS de conexões remotas, incluindo URLs com sslmode=require; sslrootcert permite CA fornecida pelo provedor. Modos TLS inseguros são rejeitados. Isso substitui a orientação antiga de rejectUnauthorized:false da seção 11.
+- Pool limitado a cinco conexões por API. Falhas de conexões ociosas são registradas como evento sem detalhes sensíveis.
+- Novo db:check valida acesso sem divulgar credenciais; dev:local inicia PostgreSQL e Redis, enquanto dev continua iniciando somente Redis. Nenhum comando troca DATABASE_URL automaticamente.
+- Não foram criadas novas migrations nesta adaptação nem alteradas credenciais locais. O Supabase precisa ser provisionado e configurado pelo responsável; dados locais e fotos não são transferidos automaticamente.
+
+### 22. Ativação do Supabase de desenvolvimento
+
+- DATABASE_URL e DIRECT_URL do .env local foram configuradas para o Session pooler com sslmode=verify-full e sslrootcert apontando para a CA baixada do painel. Credenciais permanecem fora do Git.
+- Conexão TLS verificada com db:check; as cinco migrations existentes foram aplicadas ao banco remoto, incluindo histórico de doses.
+- Cada integrante precisa configurar sua conexão e o caminho local do certificado. Dados do PostgreSQL local e fotos não foram transferidos.
+
+### 23. Verificação da transferência local para Supabase
+
+- As dez tabelas de domínio foram verificadas em snapshot local somente leitura. O PostgreSQL local continha uma conta e nenhum animal, dose, foto, adoção, favorito, perfil ou evento.
+- A conta local já existia no Supabase pelo mesmo e-mail; a conta remota foi preservada sem duplicação. A operação foi concluída em transação sem novos registros. Nenhum dado local foi apagado.
+
+### 24. Cadastros de demonstração do abrigo
+
+- Foram inseridos e verificados em transação dez cães disponíveis: Barto, Beto, Bóris, Cícero, Cigana, Duque, Emílio, Glória, Safira e Yoshi. Nomes e disponibilidade vieram das pastas do ZIP fornecido.
+- Demais atributos são fictícios autorizados pelo usuário e identificados nas observações; nenhum histórico de doses foi inventado. Fotos não foram enviadas, pois o armazenamento configurado ainda é local. Nenhuma alteração de schema foi necessária.
+
+### 25. Fotos compartilhadas dos cães
+
+- Configurado Supabase Storage S3 no .env local, bucket público kapa-public e região us-east-1. Chaves permanecem fora do Git.
+- Dez fotos JPEG originais foram lidas diretamente do ZIP, enviadas com chaves únicas e vinculadas em tb_animal_photos após verificar o acesso público HTTP. Uma foto por cão de demonstração. Nenhuma alteração de schema.

@@ -104,6 +104,7 @@ Certifique-se de ter instalado em seu ambiente:
 ## 📦 Instalação e Configuração
 
 Para a configuração completa do PostgreSQL, Redis e MinIO com Docker, consulte [Integração e ambiente de desenvolvimento](./INTEGRACAO_DESENVOLVIMENTO.md).
+Para compartilhar os mesmos dados entre os integrantes usando Supabase, consulte [Banco de desenvolvimento compartilhado](./docs/BANCO_COMPARTILHADO.md).
 
 1. **Clone o repositório**:
    ```bash

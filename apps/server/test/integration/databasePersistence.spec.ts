@@ -6,6 +6,8 @@ import { AdopterProfileRepository } from '../../src/repositories/AdopterProfileR
 import { User } from '../../src/models/User';
 import { AdopterProfile } from '../../src/models/AdopterProfile';
 import { UUID } from '../../src/domains/UUID';
+import { PostgresAnimalRepository } from '../../src/repositories/PostgresAnimalRepository';
+import { AnimalService } from '../../src/services/AnimalService';
 
 // Aumenta o timeout do Jest para permitir a inicialização do contêiner e migrações
 jest.setTimeout(60000);
@@ -76,6 +78,27 @@ describe('Database Persistence - Testcontainers (PostgreSQL) + Prisma + Scripts 
       expect(indexNames).toContain('tb_events_animalId_idx');
       expect(indexNames).toContain('tb_events_userId_type_idx');
     });
+  });
+
+  it('persists dose history in PostgreSQL and preserves omitted lists on update', async () => {
+    const repository = new PostgresAnimalRepository(ctx.prisma);
+    const animal = await new AnimalService(repository).create({
+      name: 'Dose test', breed: 'SRD', species: 'dog', gender: 'male', weightKg: 10,
+      age: 2, ageStage: 2, size: 3, energyLevel: 3, kidFriendly: 3, noiseLevel: 3,
+      apartmentFriendly: false, otherPetFriendly: true, healthCondition: 'healthy',
+      castrated: 'unknown', vaccinated: false, dewormed: 'unknown',
+      rescuedAt: '2026-10-10T00:00:00.000Z', place: 'Test', mood: 'Calm', status: 'rescued',
+    });
+    const animalId = animal.getId().getValue();
+    const doses = [{ status: 'sim' as const, data: '10/10/2026' }, { status: 'nao' as const }];
+    expect(animal.toDTO().v10Doses).toEqual([]);
+    await repository.update(animalId, { v10Doses: doses, vacinaRaivaDoses: doses, vermifugoDoses: doses });
+    expect((await repository.findById(animalId))?.toDTO().v10Doses).toEqual(doses);
+    await repository.update(animalId, { v10Doses: [] });
+    const found = (await repository.findById(animalId))?.toDTO();
+    expect(found?.v10Doses).toEqual([]);
+    expect(found?.vacinaRaivaDoses).toEqual(doses);
+    expect(found?.vermifugoDoses).toEqual(doses);
   });
 
   describe('2. UserRepository - Persistência Real no PostgreSQL', () => {

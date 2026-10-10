@@ -83,6 +83,9 @@ export class AnimalService {
     if (input.castrated !== undefined) animal.setCastrated(input.castrated);
     if (input.vaccinated !== undefined) animal.setVaccinated(input.vaccinated);
     if (input.dewormed !== undefined) animal.setDewormed(input.dewormed);
+    if (input.v10Doses !== undefined) animal.setV10Doses(input.v10Doses);
+    if (input.vacinaRaivaDoses !== undefined) animal.setVacinaRaivaDoses(input.vacinaRaivaDoses);
+    if (input.vermifugoDoses !== undefined) animal.setVermifugoDoses(input.vermifugoDoses);
     if (input.rescuedAt !== undefined) animal.setRescuedAt(input.rescuedAt);
     if (input.place !== undefined) animal.setPlace(input.place);
     if (input.mood !== undefined) animal.setMood(input.mood);

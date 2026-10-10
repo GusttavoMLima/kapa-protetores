@@ -30,6 +30,19 @@ export const loginSchema = z.object({
   password: z.string().min(1).max(128),
 }).strict();
 
+export const doseRecordsSchema = z.array(z.discriminatedUnion('status', [
+  z.object({ status: z.literal('nao') }).strict(),
+  z.object({
+    status: z.literal('sim'),
+    data: z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/).refine((value) => {
+      const [day, month, year] = value.split('/').map(Number);
+      const date = new Date(Date.UTC(year, month - 1, day));
+      return year >= 1900 && date.getUTCFullYear() === year
+        && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+    }, 'Data de aplicação inválida.'),
+  }).strict(),
+])).max(100);
+
 export const createAnimalSchema = z.object({
   name: z.string().trim().min(1).max(120),
   breed: z.string().trim().max(120),
@@ -48,6 +61,9 @@ export const createAnimalSchema = z.object({
   castrated: z.enum(['yes', 'no', 'unknown']),
   vaccinated: z.boolean(),
   dewormed: z.enum(['yes', 'no', 'unknown']),
+  v10Doses: doseRecordsSchema.optional(),
+  vacinaRaivaDoses: doseRecordsSchema.optional(),
+  vermifugoDoses: doseRecordsSchema.optional(),
   rescuedAt: z.string().datetime(),
   place: z.string().trim().max(240),
   mood: z.string().trim().min(1).max(120),

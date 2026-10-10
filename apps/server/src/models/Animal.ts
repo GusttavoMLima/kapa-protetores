@@ -6,6 +6,7 @@ import type {
   AnimalStatus,
   Animal as IAnimalDTO,
   AnimalPhoto,
+  DoseRecord,
 } from '@kapa/shared';
 import { IAnimal } from '../interfaces/IAnimal';
 import { Cuid } from '../domains/Cuid';
@@ -37,6 +38,15 @@ export class Animal implements IAnimal {
   private status: AnimalStatus = 'rescued';
   private createdAt!: string;
   private photos: AnimalPhoto[] = [];
+  private v10Doses: DoseRecord[] = [];
+  public getV10Doses(): DoseRecord[] { return this.v10Doses.map((dose) => ({ ...dose })); }
+  public setV10Doses(doses: DoseRecord[]): void { this.v10Doses = doses.map((dose) => ({ ...dose })); }
+  private vacinaRaivaDoses: DoseRecord[] = [];
+  public getVacinaRaivaDoses(): DoseRecord[] { return this.vacinaRaivaDoses.map((dose) => ({ ...dose })); }
+  public setVacinaRaivaDoses(doses: DoseRecord[]): void { this.vacinaRaivaDoses = doses.map((dose) => ({ ...dose })); }
+  private vermifugoDoses: DoseRecord[] = [];
+  public getVermifugoDoses(): DoseRecord[] { return this.vermifugoDoses.map((dose) => ({ ...dose })); }
+  public setVermifugoDoses(doses: DoseRecord[]): void { this.vermifugoDoses = doses.map((dose) => ({ ...dose })); }
 
   public setPhotos(photos: AnimalPhoto[]): void {
     this.photos = photos;
@@ -285,6 +295,9 @@ export class Animal implements IAnimal {
       castrated: this.castrated,
       vaccinated: this.vaccinated,
       dewormed: this.dewormed,
+      v10Doses: this.getV10Doses(),
+      vacinaRaivaDoses: this.getVacinaRaivaDoses(),
+      vermifugoDoses: this.getVermifugoDoses(),
       rescuedAt: this.rescuedAt,
       place: this.place,
       mood: this.mood,
