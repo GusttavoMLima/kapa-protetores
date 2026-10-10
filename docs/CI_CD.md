@@ -30,7 +30,7 @@ Execuções do mesmo PR ou branch usam concorrência. Quando chega um commit mai
 | --- | --- |
 | `CI / ESLint` | Instalação reproduzível com `npm ci`, ESLint, geração do Prisma Client e type-check |
 | `CI / Testes` | Segredo JWT efêmero, testes automatizados, build da API e build web |
-| `CI / Cobertura` | Testes com LCOV, artefato de cobertura e comentário no PR |
+| `CI / Cobertura` | Testes da API e do frontend com LCOV consolidado, artefato de cobertura e comentário no PR |
 | `CI / Dockerfile (build base)` | Build completo da imagem de runtime da API |
 | `CI / Segurança (Semgrep + Trivy + npm audit)` | Gate de auditoria npm (`scripts/audit-gate.mjs` + allowlist), Semgrep, Trivy (com `.trivyignore`) e Gitleaks |
 | `CI / SonarCloud` | Análise estática e espera pelo Quality Gate do SonarCloud, consumindo a cobertura do job `Cobertura` (executa nos PRs do próprio repositório e em pushes para `main`) |
@@ -54,7 +54,7 @@ Em PRs criados dentro do próprio repositório, o workflow publica um comentári
 - cobertura de statements, branches, functions e lines;
 - resultados agrupados em `mobile-web`, `server`, `shared` e total.
 
-O relatório completo `coverage/lcov.info` permanece disponível como artefato por sete dias. PRs de forks executam a cobertura, mas não recebem permissão para publicar comentários.
+O job gera relatórios LCOV para `server` e `mobile-web`, normaliza os caminhos a partir da raiz do monorepo e os consolida em `coverage/lcov.info`. Esse relatório permanece disponível como artefato por sete dias e alimenta o SonarCloud. PRs de forks executam a cobertura, mas não recebem permissão para publicar comentários.
 
 ### Proteção das branches
 

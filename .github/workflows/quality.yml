@@ -123,8 +123,11 @@ jobs:
       - name: Run tests and generate LCOV coverage
         shell: bash
         run: |
-          mkdir -p coverage
-          npm --prefix apps/server run test:cov -- --coverageDirectory=../../coverage --coverageReporters=lcov
+          mkdir -p coverage/server coverage/mobile
+          npm --prefix apps/server run test:cov -- --coverageDirectory=../../coverage/server --coverageReporters=lcov
+          npm --prefix apps/mobile-web test -- --coverage --coverageDirectory=../../coverage/mobile --coverageReporters=lcov
+          sed 's|^SF:|SF:apps/server/|' coverage/server/lcov.info > coverage/lcov.info
+          sed 's|^SF:|SF:apps/mobile-web/|' coverage/mobile/lcov.info >> coverage/lcov.info
 
       - name: Upload coverage report
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
