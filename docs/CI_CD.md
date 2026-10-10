@@ -131,6 +131,8 @@ Cada GitHub Environment deve guardar o `VERCEL_PROJECT_ID` do projeto correspond
 
 O arquivo [`vercel.json`](../vercel.json) encaminha rotas da SPA, como `/signIn`, para `index.html` e envia `Cross-Origin-Opener-Policy: same-origin-allow-popups`. O cabeçalho permite que o fluxo OAuth consulte e feche a popup do Google sem desativar a política de origem para a página principal.
 
+No cliente OAuth 2.0 Web do Google Cloud, cadastre para cada projeto web a origem HTTPS exata, sem barra final, em **Authorized JavaScript origins** e `<origem>/oauthredirect` em **Authorized redirect URIs**. Para staging, os valores são `https://kapa-web-staging.vercel.app` e `https://kapa-web-staging.vercel.app/oauthredirect`. O Client ID desse cliente deve ser o mesmo em `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` no Vercel e `GOOGLE_WEB_CLIENT_ID` no Render.
+
 Use projetos sem auto-deploy pelo Git ou desative os builds automáticos da integração para não publicar antes do CI nem criar deploys duplicados. Copie os IDs do projeto e da organização para os respectivos ambientes do GitHub.
 
 No Render, crie um Web Service Docker para cada ambiente com:
