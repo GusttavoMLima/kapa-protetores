@@ -27,6 +27,8 @@ yarn-error.*
 # OS
 .DS_Store
 *.pem
+*.crt
+*.cer
 
 # Environment variables
 .env

@@ -16,6 +16,8 @@ coverage
 npm-debug.log
 *.log
 *.pem
+*.crt
+*.cer
 *.key
 *.p8
 *.p12

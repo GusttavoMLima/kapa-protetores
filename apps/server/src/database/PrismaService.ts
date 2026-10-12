@@ -1,7 +1,18 @@
 import '../config/env';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool } from 'pg';
+import { Pool, type PoolConfig } from 'pg';
+
+export function createPostgresPoolConfig(
+  connectionString: string,
+): PoolConfig {
+  return {
+    connectionString,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 15000,
+  };
+}
 
 export class PrismaService {
   private static instance?: PrismaService;
@@ -16,20 +27,9 @@ export class PrismaService {
       );
     }
 
-    const isRemote =
-      connectionString.includes('supabase') ||
-      connectionString.includes('pooler.supabase.com') ||
-      process.env.NODE_ENV === 'production';
-
-    const rejectUnauthorized = !isRemote;
-
-    this.pool = new Pool({
-      connectionString,
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 15000,
-      ...(isRemote ? { ssl: { rejectUnauthorized } } : {}),
-    });
+    // `pg` reads sslmode and sslrootcert from the connection string. Adding an
+    // `ssl` object here would create a second, conflicting TLS configuration.
+    this.pool = new Pool(createPostgresPoolConfig(connectionString));
 
     this.pool.on('error', (err) => {
       console.error(

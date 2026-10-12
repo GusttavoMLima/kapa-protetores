@@ -151,7 +151,9 @@ Para o banco, crie **dois projetos Supabase** (homologação e produção). Cada
 - `DATABASE_URL`: conexão via pooler (usada pela API em runtime);
 - `DIRECT_URL`: conexão usada pelas migrations do Prisma.
 
-As migrations rodam no próprio workflow de deploy (`prisma migrate deploy`), antes de acionar o Render — por isso o banco precisa estar acessível a partir do runner do GitHub Actions. Como os runners do GitHub Actions e o Render usam IPv4, em projetos Supabase que não oferecem conexão direta por IPv4, use a URI do **Session pooler**, porta `5432`, tanto em `DATABASE_URL` quanto em `DIRECT_URL`, acrescentando `?sslmode=require`. Cadastre os valores nos environments `staging` e `production`, com bancos distintos por ambiente.
+As migrations rodam no próprio workflow de deploy (`prisma migrate deploy`), antes de acionar o Render — por isso o banco precisa estar acessível a partir do runner do GitHub Actions. Como os runners do GitHub Actions e o Render usam IPv4, em projetos Supabase que não oferecem conexão direta por IPv4, use a URI do **Session pooler**, porta `5432`, tanto em `DATABASE_URL` quanto em `DIRECT_URL`. Cadastre os valores nos environments `staging` e `production`, com bancos distintos por ambiente.
+
+No runtime da API, cadastre no Render o certificado raiz baixado em **Supabase > Database > Settings > SSL Configuration** como Secret File chamado `supabase-ca.crt`. O arquivo fica disponível em `/etc/secrets/supabase-ca.crt`. Configure somente a `DATABASE_URL` do Render com `sslmode=verify-full&sslrootcert=/etc/secrets/supabase-ca.crt`, preservando os demais componentes e parâmetros da URL. O `pg` lê a CA pela connection string e verifica o certificado e o hostname. Não replique esse caminho nas secrets do GitHub, pois o arquivo do Render não existe no runner das migrations.
 
 ### Onde cada valor é configurado
 

@@ -547,11 +547,13 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 
 ### 11. Conexão de Banco de Dados Remota / Supabase (`PrismaService.ts`)
 
-* **Configuração de Pool Resiliente**:
-  * O `pg.Pool` detecta conexões remotas (URLs contendo `supabase` ou `pooler.supabase.com`, ou ambiente de produção) e ativa automaticamente SSL com `{ rejectUnauthorized: false }`.
+* **Configuração de Pool Resiliente e TLS verificado**:
+  * O `pg.Pool` recebe a connection string sem sobrescrever as opções TLS. Em Render, a `DATABASE_URL` usa `sslmode=verify-full&sslrootcert=/etc/secrets/supabase-ca.crt`; o parser do `pg` carrega a CA do Supabase e mantém a validação do certificado e do hostname ativa.
+  * O certificado é cadastrado como Secret File `supabase-ca.crt` no Render e não é armazenado no repositório. Extensões de certificado também são ignoradas por Git e Docker.
+  * O PostgreSQL local continua usando sua URL sem parâmetros SSL. Não use `rejectUnauthorized: false`, `NODE_TLS_REJECT_UNAUTHORIZED=0` ou `sslmode=disable` para contornar falhas de certificado.
   * `connectionTimeoutMillis` aumentado para `15000` (15 segundos) para suportar latência e handshakes TLS de instâncias em nuvem.
   * Registro de listener `pool.on('error')` para tratar encerramentos de conexões ociosas (idle) por parte do pooler do Supabase sem derrubar a aplicação.
-  * Recomenda-se utilizar a URL do **Connection Pooler (Supavisor)** do Supabase (porta `5432` Session ou `6543` Transaction com `?sslmode=require`) para compatibilidade com redes locais IPv4.
+  * Recomenda-se utilizar a URL do **Session Pooler (Supavisor)** do Supabase, porta `5432`, para compatibilidade com redes IPv4 do Render.
 
 ---
 
