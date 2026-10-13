@@ -1,6 +1,26 @@
-import { shouldClearSession } from '../../src/services/kapaService';
+import type { AxiosAdapter } from 'axios';
+import {
+  kapaService,
+  setOnUnauthorizedCallback,
+  shouldClearSession,
+} from '../../src/services/kapaService';
+
+function rejectingAdapter(
+  status: number,
+  data: { error?: string; message?: string },
+): AxiosAdapter {
+  return (config) =>
+    Promise.reject(
+      Object.assign(new Error('Request failed'), {
+        config,
+        response: { status, data },
+      }),
+    );
+}
 
 describe('shouldClearSession', () => {
+  afterEach(() => setOnUnauthorizedCallback(null));
+
   it.each(['/auth/login', '/auth/register', '/auth/google'])(
     'keeps the authentication form mounted for a 401 from %s',
     (requestUrl) => {
@@ -34,5 +54,33 @@ describe('shouldClearSession', () => {
     expect(shouldClearSession(403, 'Acesso negado', '/animals/management')).toBe(
       false,
     );
+  });
+
+  it('does not invoke the logout callback after failed credentials', async () => {
+    const onUnauthorized = jest.fn();
+    setOnUnauthorizedCallback(onUnauthorized);
+
+    await expect(
+      kapaService.post('/auth/login', undefined, {
+        adapter: rejectingAdapter(401, {
+          message: 'E-mail ou senha inválidos.',
+        }),
+      }),
+    ).rejects.toThrow('Request failed');
+
+    expect(onUnauthorized).not.toHaveBeenCalled();
+  });
+
+  it('invokes the logout callback after a protected request returns 401', async () => {
+    const onUnauthorized = jest.fn();
+    setOnUnauthorizedCallback(onUnauthorized);
+
+    await expect(
+      kapaService.get('/users/me', {
+        adapter: rejectingAdapter(401, { error: 'UnauthorizedError' }),
+      }),
+    ).rejects.toThrow('Request failed');
+
+    expect(onUnauthorized).toHaveBeenCalledTimes(1);
   });
 });

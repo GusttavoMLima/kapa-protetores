@@ -19,10 +19,7 @@ function isPublicAuthenticationRequest(requestUrl: string | undefined): boolean 
   if (!requestUrl) return false;
 
   try {
-    const pathname = new URL(requestUrl, 'https://kapa.local').pathname.replace(
-      /\/+$/,
-      '',
-    );
+    const pathname = new URL(requestUrl, 'https://kapa.local').pathname;
     const normalizedPath = pathname.startsWith('/api/')
       ? pathname.slice('/api'.length)
       : pathname;
