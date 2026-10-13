@@ -111,8 +111,9 @@ A sessão é gerenciada pelo `AuthProvider` e mantida no armazenamento do dispos
 * **Ciclo de Vida**:
   1. **Inicialização (`loadStorageState`)**: Ao abrir ou recarregar a aplicação, recupera o token e o perfil do usuário. Se válidos, injeta automaticamente o cabeçalho padrão `Authorization: Bearer <token>` na instância do `kapaService` (Axios) e define `isLogged = true`.
   2. **Login com Sucesso**: Tanto `signIn(email, password)` quanto `handleGoogleLogin(idToken)` salvam a sessão, atualizam o estado e redirecionam o usuário para a área protegida `/(protected)/(tabs)`.
-  3. **Logout (`signOut`)**: A opção **Sair** na tela de perfil limpa os estados em memória, apaga o cabeçalho `Authorization` do Axios, remove as chaves do `AsyncStorage` e redireciona para `/signIn`.
-  4. **Feedback de Erro Visual**: O formulário exibe um banner de alerta baseado no Material Design (`#FFDAD6` com texto `#93000A`) caso as credenciais estejam erradas ou ocorra erro de rede.
+  3. **Falhas de autenticação**: respostas `401` dos endpoints públicos `/auth/login`, `/auth/register` e `/auth/google` permanecem no formulário para exibir a mensagem da API. O encerramento automático da sessão continua reservado a respostas de autenticação provenientes de rotas protegidas.
+  4. **Logout (`signOut`)**: A opção **Sair** na tela de perfil limpa os estados em memória, apaga o cabeçalho `Authorization` do Axios, remove as chaves do `AsyncStorage` e redireciona para `/signIn`.
+  5. **Feedback de Erro Visual**: O formulário exibe um banner de alerta baseado no Material Design (`#FFDAD6` com texto `#93000A`) caso as credenciais estejam erradas ou ocorra erro de rede.
 
 ---
 
