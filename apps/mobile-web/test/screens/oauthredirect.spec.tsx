@@ -60,16 +60,19 @@ describe('OAuthRedirectScreen on web', () => {
     });
   });
 
-  it('keeps the standard Expo completion flow when the opener is available', async () => {
+  it('notifies the same-origin channel even when Expo reports success', async () => {
     mockMaybeCompleteAuthSession.mockReturnValue({ type: 'success' });
 
     await render(<OAuthRedirectScreen />);
 
     expect(mockMaybeCompleteAuthSession).toHaveBeenCalledTimes(1);
-    expect(BroadcastChannelMock.instances).toHaveLength(0);
+    expect(BroadcastChannelMock.instances[0]?.postMessage).toHaveBeenCalledWith({
+      type: 'google-oauth-result',
+      url: 'https://kapa.test/oauthredirect?id_token=google-token',
+    });
   });
 
-  it('sends the callback through a same-origin channel when Expo cannot complete it', async () => {
+  it('sends the callback through a same-origin channel when Expo reports failure', async () => {
     mockMaybeCompleteAuthSession.mockReturnValue({ type: 'failed' });
 
     const screen = await render(<OAuthRedirectScreen />);

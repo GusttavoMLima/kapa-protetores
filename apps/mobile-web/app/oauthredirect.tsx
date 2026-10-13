@@ -17,24 +17,25 @@ export default function OAuthRedirectScreen() {
     if (Platform.OS !== 'web') return;
     if (typeof window === 'undefined') return;
 
+    let sentThroughChannel = false;
+    if (typeof BroadcastChannel !== 'undefined') {
+      const channel = new BroadcastChannel(GOOGLE_OAUTH_WEB_CHANNEL);
+      const oauthMessage: GoogleOAuthWebMessage = {
+        type: 'google-oauth-result',
+        url: window.location.href,
+      };
+      channel.postMessage(oauthMessage);
+      channel.close();
+      sentThroughChannel = true;
+    }
+
     try {
-      const completion = WebBrowser.maybeCompleteAuthSession();
-      if (completion.type === 'success') return;
+      WebBrowser.maybeCompleteAuthSession();
     } catch {
-      // Alguns navegadores removem window.opener durante o fluxo OAuth.
+      // O BroadcastChannel acima não depende de window.opener.
     }
 
-    if (typeof BroadcastChannel === 'undefined') {
-      return;
-    }
-
-    const channel = new BroadcastChannel(GOOGLE_OAUTH_WEB_CHANNEL);
-    const oauthMessage: GoogleOAuthWebMessage = {
-      type: 'google-oauth-result',
-      url: window.location.href,
-    };
-    channel.postMessage(oauthMessage);
-    channel.close();
+    if (!sentThroughChannel) return;
 
     const closeTimeout = window.setTimeout(() => window.close(), 250);
     return () => window.clearTimeout(closeTimeout);
