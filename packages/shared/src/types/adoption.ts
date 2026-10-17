@@ -17,12 +17,33 @@ export interface Adoption {
   updatedAt: string;
   animal?: Animal;
   adopter?: User;
+  application?: AdoptionApplication;
+}
+
+export interface AdoptionApplication {
+  fullName: string;
+  birthDate: string;
+  phone: string;
+  postalCode: string;
+  street: string;
+  number: string;
+  neighborhood: string;
+  city: string;
+  housingType: 'house' | 'apartment' | 'farm' | 'rural';
+  housingSituation: 'own' | 'rented' | 'loaned';
+  residenceProtection: 'yes' | 'partial' | 'no';
+  hasChildren: 'yes' | 'no';
+  childrenAges?: string;
+  hasOtherPets: 'yes' | 'no';
+  otherPetsDetails?: string;
+  residentsAgree: 'yes' | 'no';
+  freeStreetAccess: 'yes' | 'no';
+  awareOfResponsibilities: 'yes' | 'no';
 }
 
 export interface CreateAdoptionInput {
   animalId: string;
-  adopterId?: string;
-  notes?: string;
+  application: AdoptionApplication;
 }
 
 export interface UpdateAdoptionStatusInput {

@@ -3,22 +3,13 @@ import { colors, palette } from '@/theme';
 import { generatePlaceholder } from '@/utils/placeholder';
 import { Image, ScrollView, View, Text } from 'react-native';
 import { UnauthorizedScreen } from '@/screens/unauthorized';
-import { FavoritedAnimal, UserRoleEnum } from '@kapa/shared';
+import { UserRoleEnum } from '@kapa/shared';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { GearIcon, HandHeartIcon, SignOutIcon, UserIcon } from 'phosphor-react-native';
+import { GearIcon, HandHeartIcon, SignOutIcon, UserIcon, ClipboardTextIcon } from 'phosphor-react-native';
+import { router } from 'expo-router';
 import { PrimaryMenuItem } from '@/components/menuItems/primary';
 import { PetCard } from '@/components/cards/pet';
 import ProfileBlob from '@/../assets/profile-blob.svg'
-
-const mockFavorited: FavoritedAnimal[] = [
-  {
-    id: 'eqewq',
-    name: 'Gilda',
-    photo:
-      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRVc2eHkzKA26dGfeGx7aTgRLX7bYAGfmcEbwvEyWNp5w&s=10',
-    characteristics: ['Filhote', 'Fêmea'],
-  },
-];
 
 export function ProfileScreen() {
   const { user, isLogged, signOut } = useAuth();
@@ -85,6 +76,16 @@ export function ProfileScreen() {
           iconColor={colors.onSecondaryContainer}
           iconBgColor={colors.secondaryContainer}
         />
+        {user.role === 'adopter' && (
+          <PrimaryMenuItem
+            label="Minhas solicitações"
+            description="Acompanhe suas fichas de adoção"
+            icon={ClipboardTextIcon}
+            iconColor={palette.denim}
+            iconBgColor="#E4EEFA"
+            onPress={() => router.push('/(protected)/my-adoptions')}
+          />
+        )}
         <PrimaryMenuItem
           label="Ajustes"
           icon={GearIcon}
@@ -110,15 +111,15 @@ export function ProfileScreen() {
         </View>
 
         <View className="w-full overflow-hidden gap-2 p-2">
-          {mockFavorited.map((pet) => (
-            <PetCard
-              key={pet.id}
-              name={pet.name}
-              imgUrl={pet.photo}
-              characteristics={pet.characteristics}
+          {data?.favorites.length ? data.favorites.map((favorite) => (
+            favorite.animal ? <PetCard
+              key={favorite.animalId}
+              name={favorite.animal.name}
+              imgUrl={favorite.animal.photo ?? generatePlaceholder(palette.peach, palette.orange, 300, 300, favorite.animal.name.slice(0, 2), 'Montserrat')}
+              characteristics={[favorite.animal.gender === 'female' ? 'Fêmea' : 'Macho', `${favorite.animal.age} ${favorite.animal.age === 1 ? 'ano' : 'anos'}`]}
               isFavorited
-            />
-          ))}
+            /> : null
+          )) : <Text className="font-body text-sm text-ink-muted">Você ainda não favoritou nenhum pet.</Text>}
         </View>
       </View>
 

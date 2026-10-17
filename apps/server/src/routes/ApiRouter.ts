@@ -6,6 +6,8 @@ import { UserRouter } from './UserRouter';
 import { CommunityEventRouter } from './CommunityEventRouter';
 import { CredentialsRouter } from './CredentialsRouter';
 import { AdopterProfileRouter } from './AdopterProfileRouter';
+import { AdoptionRouter } from './AdoptionRouter';
+import { FavoriteRouter } from './FavoriteRouter';
 
 export class ApiRouter {
   public readonly router: Router = Router();
@@ -18,6 +20,8 @@ export class ApiRouter {
     private readonly communityEventRouter: CommunityEventRouter,
     private readonly credentialsRouter: CredentialsRouter,
     private readonly adopterProfileRouter?: AdopterProfileRouter,
+    private readonly adoptionRouter?: AdoptionRouter,
+    private readonly favoriteRouter?: FavoriteRouter,
   ) {
     this.initRoutes();
   }
@@ -31,6 +35,12 @@ export class ApiRouter {
     this.router.use('/community-events', this.communityEventRouter.router);
     if (this.adopterProfileRouter) {
       this.router.use('/adopter-profiles', this.adopterProfileRouter.router);
+    }
+    if (this.adoptionRouter) {
+      this.router.use('/adoptions', this.adoptionRouter.router);
+    }
+    if (this.favoriteRouter) {
+      this.router.use('/favorites', this.favoriteRouter.router);
     }
   }
 }

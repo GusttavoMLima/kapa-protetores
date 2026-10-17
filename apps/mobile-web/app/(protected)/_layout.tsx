@@ -21,6 +21,10 @@ export default function ProtectedLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="adopet/[id]" />
+      <Stack.Screen name="adopet/[id]/application" />
+      <Stack.Screen name="my-adoptions" />
+      <Stack.Screen name="gestao/solicitacoes" />
       <Stack.Screen name="manage-activities" />
       <Stack.Screen name="adopter-profile" />
     </Stack>

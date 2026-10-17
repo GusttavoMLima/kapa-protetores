@@ -7,8 +7,9 @@ import {
   Text,
   View,
 } from 'react-native';
-import { PawPrintIcon } from 'phosphor-react-native';
+import { ArrowLeftIcon, PawPrintIcon } from 'phosphor-react-native';
 import { isAxiosError } from 'axios';
+import { router } from 'expo-router';
 import type { Animal } from '@kapa/shared';
 import { palette } from '@/theme';
 import {
@@ -19,6 +20,8 @@ import {
 } from '@/components/forms/searchAdopt';
 import { PetCard } from '@/components/cards/pet';
 import { PrimaryButton } from '@/components/buttons/primary';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { useToggleFavorite } from '@/hooks/useFavorites';
 
 const DEFAULT_PET_PHOTO =
   'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80';
@@ -53,7 +56,12 @@ export function AdoptScreen() {
   const [filters, setFilters] = useState<SearchAdoptFilters>(
     defaultSearchAdoptFilters,
   );
-  const [favoritedIds, setFavoritedIds] = useState<Set<string>>(new Set());
+  const { data: profile } = useUserProfile();
+  const { mutate: toggleFavorite } = useToggleFavorite();
+  const favoritedIds = useMemo(
+    () => new Set(profile?.favorites.map((favorite) => favorite.animalId) ?? []),
+    [profile?.favorites],
+  );
 
   const {
     filteredAnimals,
@@ -80,16 +88,8 @@ export function AdoptScreen() {
   }, [error]);
 
   const handleToggleFavorite = useCallback((id: string) => {
-    setFavoritedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
+    toggleFavorite(id);
+  }, [toggleFavorite]);
 
   const handleSearch = useCallback((newFilters: SearchAdoptFilters) => {
     setFilters(newFilters);
@@ -109,6 +109,15 @@ export function AdoptScreen() {
         />
       }
     >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Voltar para o início"
+        className="min-h-10 self-start flex-row items-center gap-2 py-2 pr-4"
+        onPress={() => router.replace('/(protected)/(tabs)')}
+      >
+        <ArrowLeftIcon size={18} color={palette.denim} />
+        <Text className="font-body-medium text-sm text-denim">Voltar ao início</Text>
+      </Pressable>
       <SearchAdoptForm onSearch={handleSearch} initialFilters={filters} />
 
       <View className="flex-row items-center justify-between border-t border-line pt-4">
@@ -181,6 +190,12 @@ export function AdoptScreen() {
               imgUrl={animal.photos?.[0]?.photoUrl ?? DEFAULT_PET_PHOTO}
               characteristics={formatPetCharacteristics(animal)}
               isFavorited={favoritedIds.has(animal.id)}
+              onPress={() =>
+                router.push({
+                  pathname: '/adopet/[id]',
+                  params: { id: animal.id },
+                })
+              }
               onToggleFavorite={() => handleToggleFavorite(animal.id)}
             />
           ))}

@@ -32,6 +32,14 @@ import { CommunityEventRepository } from '../repositories/CommunityEventReposito
 import { CommunityEventService } from '../services/CommunityEventService';
 import { CommunityEventController } from '../controllers/CommunityEventController';
 import { CommunityEventRouter } from './CommunityEventRouter';
+import { AdoptionRepository } from '../repositories/AdoptionRepository';
+import { AdoptionService } from '../services/AdoptionService';
+import { AdoptionController } from '../controllers/AdoptionController';
+import { AdoptionRouter } from './AdoptionRouter';
+import { FavoriteRepository } from '../repositories/FavoriteRepository';
+import { FavoriteService } from '../services/FavoriteService';
+import { FavoriteController } from '../controllers/FavoriteController';
+import { FavoriteRouter } from './FavoriteRouter';
 
 const jwtService = new JwtService(
   process.env.JWT_SECRET ?? '',
@@ -98,6 +106,16 @@ const adopterProfileRouter = new AdopterProfileRouter(
   authMiddleware,
 );
 
+const adoptionRouter = new AdoptionRouter(
+  new AdoptionController(new AdoptionService(new AdoptionRepository(prisma))),
+  authMiddleware,
+);
+
+const favoriteRouter = new FavoriteRouter(
+  new FavoriteController(new FavoriteService(new FavoriteRepository(prisma))),
+  authMiddleware,
+);
+
 const repository = new CommunityEventRepository(prisma);
 const service = new CommunityEventService(repository);
 const controller = new CommunityEventController(service);
@@ -115,6 +133,8 @@ const apiRouterInstance = new ApiRouter(
   communityEventRouter,
   credentialsRouter,
   adopterProfileRouter,
+  adoptionRouter,
+  favoriteRouter,
 );
 
 export const apiRouter = apiRouterInstance;

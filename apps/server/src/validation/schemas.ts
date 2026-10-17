@@ -18,6 +18,34 @@ export const animalManagementQuerySchema = z.object({
 
 export const animalIdSchema = z.string().cuid();
 
+export const createAdoptionSchema = z.object({
+  animalId: z.string().cuid(),
+  application: z.object({
+    fullName: z.string().trim().min(3).max(120),
+    birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    phone: z.string().trim().min(10).max(20),
+    postalCode: z.string().regex(/^\d{5}-?\d{3}$/),
+    street: z.string().trim().min(3).max(120),
+    number: z.string().trim().min(1).max(20),
+    neighborhood: z.string().trim().min(2).max(120),
+    city: z.string().trim().min(2).max(120),
+    housingType: z.enum(['house', 'apartment', 'farm', 'rural']),
+    housingSituation: z.enum(['own', 'rented', 'loaned']),
+    residenceProtection: z.enum(['yes', 'partial', 'no']),
+    hasChildren: z.enum(['yes', 'no']),
+    childrenAges: z.string().trim().max(240).optional(),
+    hasOtherPets: z.enum(['yes', 'no']),
+    otherPetsDetails: z.string().trim().max(240).optional(),
+    residentsAgree: z.enum(['yes', 'no']),
+    freeStreetAccess: z.enum(['yes', 'no']),
+    awareOfResponsibilities: z.enum(['yes', 'no']),
+  }).strict(),
+}).strict();
+
+export const updateAdoptionStatusSchema = z.object({
+  status: z.enum(['interviewing', 'approved', 'rejected']),
+}).strict();
+
 export const adminCreateUserSchema = z.object({
   username: z.string().trim().min(3).max(80),
   email: z.string().trim().email().max(254).transform((value) => value.toLowerCase()),

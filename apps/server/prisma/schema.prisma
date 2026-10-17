@@ -119,6 +119,7 @@ model Adoptions {
   adopter_id String         @map("adopterId")
   animal_id  String         @map("animalId")
   status     AdoptionStatus @default(pending)
+  application_data Json?    @map("applicationData")
   applied_at DateTime       @default(now()) @map("appliedAt")
   updated_at DateTime       @updatedAt @map("updatedAt")
 

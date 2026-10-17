@@ -6,6 +6,7 @@ export const DEFAULT_USER_ADOPTER_RULES = new Set<string>([
   'animal:read',
   'favorites:read:own',
   'adoption:read:own',
+  'adoption:create',
   'community_event:read',
   'community_event:read:own',
   'events:read:own',
