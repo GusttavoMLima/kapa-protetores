@@ -9,6 +9,15 @@ const clientUrl = process.env.CLIENT_URL || 'http://localhost:8081';
 
 const application = new App(apiRouter, { port, clientUrl });
 
+void PrismaService.getInstance()
+  .connect()
+  .then(() => {
+    logger.info('Successfully connected to PostgreSQL Pool');
+  })
+  .catch((err: unknown) => {
+    logger.error({ err }, 'Failed to warm up PostgreSQL Pool');
+  });
+
 application.listen();
 
 const handleShutdown = async (signal: string): Promise<void> => {

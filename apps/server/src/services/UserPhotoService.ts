@@ -3,6 +3,11 @@ import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client
 import { PrismaClient } from '@prisma/client';
 import { BadRequestError, NotFoundError } from '../errors';
 import { allowedImages, detectImageContent } from './AnimalPhotoService';
+import {
+  buildUserCountsCacheKey,
+  buildUserProfileCacheKey,
+} from './UserService';
+import type { CacheProvider } from './RedisService';
 
 export class UserPhotoService {
   private readonly client: S3Client;
@@ -15,6 +20,7 @@ export class UserPhotoService {
     region: string,
     accessKeyId: string,
     secretAccessKey: string,
+    private readonly cache?: CacheProvider,
   ) {
     this.client = new S3Client({
       endpoint,
@@ -63,6 +69,12 @@ export class UserPhotoService {
         where: { id: userId },
         data: { avatar: avatarUrl },
       });
+      if (this.cache) {
+        await Promise.all([
+          this.cache.deleteCache(buildUserProfileCacheKey(userId)),
+          this.cache.deleteCache(buildUserCountsCacheKey(userId)),
+        ]);
+      }
 
       return { avatarUrl };
     } catch (error) {

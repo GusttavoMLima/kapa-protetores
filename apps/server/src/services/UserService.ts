@@ -2,6 +2,7 @@ import {
   CreateUserInput,
   UserRole,
   UserWithRelationsCount,
+  UserWithCountAndDataOfRelations,
   DEFAULT_USER_ADOPTER_RULES,
 } from '@kapa/shared';
 import { OAuth2Client } from 'google-auth-library';
@@ -20,11 +21,25 @@ import { Email } from '../domains/Email';
 import { UUID } from '../domains/UUID';
 import { Url } from '../domains/Url';
 import { PasswordHasher } from '../security/PasswordHasher';
+import type { CacheProvider } from './RedisService';
+
+export function buildUserProfileCacheKey(userId: string): string {
+  return `user:profile:${userId}`;
+}
+
+export function buildUserCountsCacheKey(userId: string): string {
+  return `user:counts:${userId}`;
+}
+
+const USER_PROFILE_CACHE_TTL_SECONDS = 60;
 
 const googleClient = new OAuth2Client();
 
 export class UserService {
-  constructor(private readonly repository: UserRepository) {}
+  constructor(
+    private readonly repository: UserRepository,
+    private readonly cache?: CacheProvider,
+  ) {}
 
   public async authenticateWithGoogle(idToken: string) {
     const audiences = [
@@ -134,6 +149,15 @@ export class UserService {
     id: string,
   ): Promise<UserWithRelationsCount> {
     const safeId = UUID.create(id);
+    const cacheKey = buildUserCountsCacheKey(safeId.toString());
+
+    if (this.cache) {
+      const cached =
+        await this.cache.getCache<UserWithRelationsCount>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
 
     const user = await this.repository.findByIdCountingRelations(safeId);
 
@@ -141,16 +165,42 @@ export class UserService {
       throw new NotFoundError(`User with ID: ${id} not found`);
     }
 
+    if (this.cache) {
+      await this.cache.setCache(
+        cacheKey,
+        user,
+        USER_PROFILE_CACHE_TTL_SECONDS,
+      );
+    }
+
     return user;
   }
 
   public async getByIdWithRelationsData(id: string) {
     const safeId = UUID.create(id);
+    const cacheKey = buildUserProfileCacheKey(safeId.toString());
+
+    if (this.cache) {
+      const cached =
+        await this.cache.getCache<UserWithCountAndDataOfRelations>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
+
     const user =
       await this.repository.findByIdCountingAndDataOfRelations(safeId);
 
     if (!user) {
       throw new NotFoundError(`User With ID: ${id} not found`);
+    }
+
+    if (this.cache) {
+      await this.cache.setCache(
+        cacheKey,
+        user,
+        USER_PROFILE_CACHE_TTL_SECONDS,
+      );
     }
 
     return user;
@@ -241,6 +291,13 @@ export class UserService {
 
     if (!user) {
       throw new NotFoundError(`User Could not updated.`);
+    }
+
+    if (this.cache) {
+      await Promise.all([
+        this.cache.deleteCache(buildUserProfileCacheKey(safeId.toString())),
+        this.cache.deleteCache(buildUserCountsCacheKey(safeId.toString())),
+      ]);
     }
 
     return user;
@@ -336,6 +393,13 @@ export class UserService {
       throw new InternalServerError('Erro ao atualizar dados do usuário');
     }
 
+    if (this.cache) {
+      await Promise.all([
+        this.cache.deleteCache(buildUserProfileCacheKey(safeId.toString())),
+        this.cache.deleteCache(buildUserCountsCacheKey(safeId.toString())),
+      ]);
+    }
+
     return updatedUser;
   }
 
@@ -354,6 +418,13 @@ export class UserService {
       throw new InternalServerError('Erro ao atualizar papel do usuário');
     }
 
+    if (this.cache) {
+      await Promise.all([
+        this.cache.deleteCache(buildUserProfileCacheKey(safeId.toString())),
+        this.cache.deleteCache(buildUserCountsCacheKey(safeId.toString())),
+      ]);
+    }
+
     return updatedUser;
   }
 
@@ -365,6 +436,15 @@ export class UserService {
       throw new NotFoundError(`Usuário não encontrado`);
     }
 
-    return this.repository.deleteById(safeId);
+    const deleted = await this.repository.deleteById(safeId);
+
+    if (this.cache) {
+      await Promise.all([
+        this.cache.deleteCache(buildUserProfileCacheKey(safeId.toString())),
+        this.cache.deleteCache(buildUserCountsCacheKey(safeId.toString())),
+      ]);
+    }
+
+    return deleted;
   }
 }

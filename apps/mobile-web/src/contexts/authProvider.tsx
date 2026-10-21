@@ -242,7 +242,7 @@ export function AuthProvider({ children }: AuthProviderProp) {
               setHasAdopterProfileState(storedProfileStatus);
             }
 
-            if (storedUser.role === 'adopter') {
+            if (storedUser.role === 'adopter' && storedProfileStatus !== true) {
               void checkAdopterProfile();
             }
           }

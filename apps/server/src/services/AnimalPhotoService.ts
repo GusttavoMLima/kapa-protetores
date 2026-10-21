@@ -2,6 +2,11 @@ import { randomUUID } from 'node:crypto';
 import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { PrismaClient } from '@prisma/client';
 import { BadRequestError, NotFoundError } from '../errors';
+import {
+  AVAILABLE_ANIMALS_CACHE_KEY,
+  buildPublicAnimalCacheKey,
+} from './AnimalService';
+import type { CacheProvider } from './RedisService';
 
 export const allowedImages = {
   'image/jpeg': { extension: 'jpg', matches: (data: Buffer) => data.length >= 3 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff },
@@ -39,6 +44,7 @@ export class AnimalPhotoService {
     region: string,
     accessKeyId: string,
     secretAccessKey: string,
+    private readonly cache?: CacheProvider,
   ) {
     this.client = new S3Client({
       endpoint,
@@ -74,6 +80,12 @@ export class AnimalPhotoService {
       const photo = await this.prisma.animalPhotos.create({
         data: { animal_id: animalId, photo_url: photoUrl },
       });
+      if (this.cache) {
+        await Promise.all([
+          this.cache.deleteCache(AVAILABLE_ANIMALS_CACHE_KEY),
+          this.cache.deleteCache(buildPublicAnimalCacheKey(animalId)),
+        ]);
+      }
       return { id: photo.id, photoUrl: photo.photo_url, animalId: photo.animal_id, uploadedAt: photo.uploaded_at.toISOString() };
     } catch (error) {
       await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key })).catch(() => undefined);

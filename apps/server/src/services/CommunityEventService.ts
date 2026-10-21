@@ -2,9 +2,16 @@ import type { CommunityEventListItem } from '@kapa/shared';
 import { NotFoundError, ConflictError } from '../errors';
 import { CommunityEventRepository } from '../repositories/CommunityEventRepository';
 import type { CreateCommunityEventData } from '../validation/communityEventSchema';
+import type { CacheProvider } from './RedisService';
+
+const COMMUNITY_EVENTS_MANAGER_CACHE_KEY = 'community-events:manager';
+const COMMUNITY_EVENTS_CACHE_TTL_SECONDS = 60;
 
 export class CommunityEventService {
-  constructor(private readonly repository: CommunityEventRepository) {}
+  constructor(
+    private readonly repository: CommunityEventRepository,
+    private readonly cache?: CacheProvider,
+  ) {}
 
   public listUpcomingForVolunteer(
     volunteerId: string,
@@ -12,12 +19,35 @@ export class CommunityEventService {
     return this.repository.listUpcomingForVolunteer(volunteerId);
   }
 
-  public listUpcomingForManager(): Promise<CommunityEventListItem[]> {
-    return this.repository.listUpcomingForManager();
+  public async listUpcomingForManager(): Promise<CommunityEventListItem[]> {
+    if (this.cache) {
+      const cached = await this.cache.getCache<CommunityEventListItem[]>(
+        COMMUNITY_EVENTS_MANAGER_CACHE_KEY,
+      );
+      if (cached) {
+        return cached;
+      }
+    }
+
+    const events = await this.repository.listUpcomingForManager();
+    if (this.cache) {
+      await this.cache.setCache(
+        COMMUNITY_EVENTS_MANAGER_CACHE_KEY,
+        events,
+        COMMUNITY_EVENTS_CACHE_TTL_SECONDS,
+      );
+    }
+    return events;
   }
 
-  public create(input: CreateCommunityEventData): Promise<CommunityEventListItem> {
-    return this.repository.create(input);
+  public async create(
+    input: CreateCommunityEventData,
+  ): Promise<CommunityEventListItem> {
+    const created = await this.repository.create(input);
+    if (this.cache) {
+      await this.cache.deleteCache(COMMUNITY_EVENTS_MANAGER_CACHE_KEY);
+    }
+    return created;
   }
 
   public async signUp(
@@ -25,7 +55,14 @@ export class CommunityEventService {
     communityEventId: string,
   ): Promise<CommunityEventListItem> {
     try {
-      return await this.repository.signUp(volunteerId, communityEventId);
+      const updated = await this.repository.signUp(
+        volunteerId,
+        communityEventId,
+      );
+      if (this.cache) {
+        await this.cache.deleteCache(COMMUNITY_EVENTS_MANAGER_CACHE_KEY);
+      }
+      return updated;
     } catch (error) {
       if (!(error instanceof Error)) throw error;
 

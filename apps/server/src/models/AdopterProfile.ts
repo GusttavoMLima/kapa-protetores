@@ -170,6 +170,24 @@ export class AdopterProfile implements IAdopterProfile {
     };
   }
 
+  public static fromDTO(dto: SharedAdopterProfile): AdopterProfile {
+    const profile = new AdopterProfile();
+    if (dto.id) profile.setId(dto.id);
+    if (dto.userId) profile.setUserId(dto.userId);
+    profile.setPreferredSpecies(dto.preferredSpecies ?? null);
+    profile.setPreferredGender(dto.preferredGender ?? null);
+    profile.setPreferredSize(dto.preferredSize ?? null);
+    profile.setPreferredEnergy(dto.preferredEnergy ?? null);
+    profile.setPreferredKidFriendly(dto.preferredKidFriendly ?? null);
+    profile.setPreferredNoise(dto.preferredNoise ?? null);
+    profile.setPreferredAgeStage(dto.preferredAgeStage ?? null);
+    profile.setLivesInApartment(dto.livesInApartment ?? null);
+    profile.setHasOtherPets(dto.hasOtherPets ?? null);
+    if (dto.createdAt) profile.setCreatedAt(dto.createdAt);
+    if (dto.updatedAt) profile.setUpdatedAt(dto.updatedAt);
+    return profile;
+  }
+
   public toJSON(): SharedAdopterProfile {
     return this.toDTO();
   }

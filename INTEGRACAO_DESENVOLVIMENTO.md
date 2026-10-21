@@ -1007,3 +1007,23 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
   * Substituídas chamadas `console.*` por `logger` em [`index.ts`](apps/server/src/index.ts), [`PrismaService.ts`](apps/server/src/database/PrismaService.ts) e [`RedisService.ts`](apps/server/src/services/RedisService.ts).
 * **Testes Automatizados**:
   * [`apps/server/test/config/logger.spec.ts`](apps/server/test/config/logger.spec.ts) e [`apps/server/test/middlewares/requestLogger.spec.ts`](apps/server/test/middlewares/requestLogger.spec.ts).
+
+---
+
+### 35. Otimização de Performance da Tela Inicial e Cache Redis (`apps/server` e `apps/mobile-web`)
+
+* **Warm-up do Pool PostgreSQL no Boot ([`apps/server/src/index.ts`](apps/server/src/index.ts))**:
+  * O servidor agora estabelece proativamente a conexão inicial do pool PostgreSQL (`PrismaService.getInstance().connect()`) na inicialização, eliminando a latência de cold-start (handshake TCP + TLS com o Supabase de ~500-700ms) nas primeiras requisições recebidas.
+* **Cache Redis com Invalidação Automática (`CacheProvider` / [`RedisService.ts`](apps/server/src/services/RedisService.ts))**:
+  * **`GET /api/animals` e `GET /api/animals/:id` ([`AnimalService.ts`](apps/server/src/services/AnimalService.ts))**: armazena em cache a listagem pública (`animals:available`, TTL 60s) e detalhes individuais (`animal:public:${id}`, TTL 60s), com invalidação automática em `AnimalService.create`, `AnimalService.update`, `AnimalPhotoService.upload` e `AdoptionService.updateStatus`.
+  * **`GET /api/users/me/profile`, `GET /api/users/me` e `GET /api/users/:id/counts` ([`UserService.ts`](apps/server/src/services/UserService.ts))**: armazena em cache o perfil com relações (`user:profile:${userId}`, TTL 60s) e contagens (`user:counts:${userId}`, TTL 60s), com invalidação automática em `UserService.updateProfile`, `UserService.updateAvatar`, `UserService.updateRole`, `UserService.deleteById`, `UserPhotoService.upload`, `FavoriteService.toggle`, `AdoptionService.create` e `AdoptionService.updateStatus`.
+  * **`GET /api/adopter-profiles/me`, `GET /api/adopter-profiles/user/:id` e `GET /api/adopter-profiles/:id` ([`AdopterProfileService.ts`](apps/server/src/services/AdopterProfileService.ts))**: armazena em cache o perfil de preferências por usuário (`adopter-profile:user:${userId}`, TTL 300s) e por ID (`adopter-profile:id:${id}`, TTL 300s), reconstruindo a entidade com `AdopterProfile.fromDTO` e atualizando/invalidando em `create`, `update`, `updateByUserId`, `upsert`, `delete` e `deleteByUserId`.
+  * **`GET /api/adoptions/mine` e `GET /api/adoptions` ([`AdoptionService.ts`](apps/server/src/services/AdoptionService.ts))**: armazena em cache as solicitações do adotante (`adoptions:user:${adopterId}`, TTL 60s) e a listagem administrativa (`adoptions:admin:all`, TTL 60s), invalidando em `create` e `updateStatus`.
+  * **`GET /api/community-events/management` ([`CommunityEventService.ts`](apps/server/src/services/CommunityEventService.ts))**: armazena em cache as atividades futuras (`community-events:manager`, TTL 60s), invalidando em `create` e `signUp`.
+* **Otimização da Listagem Pública de Animais ([`PostgresAnimalRepository.ts`](apps/server/src/repositories/PostgresAnimalRepository.ts))**:
+  * `findAll()` ignora a validação Zod (`doseRecordsSchema.parse`) das 3 colunas JSONB de doses (`v10_doses`, `rabies_doses`, `deworming_doses`), visto que tais campos são omitidos na projeção pública `AnimalService.publicView`.
+* **Cache de Preflight CORS e Limpeza de Logs ([`App.ts`](apps/server/src/App.ts) e [`requestLogger.ts`](apps/server/src/middlewares/requestLogger.ts))**:
+  * Adicionado `maxAge: 86400` (24h) na configuração de CORS para cachear respostas `OPTIONS` no navegador.
+  * Requisições `OPTIONS` bem-sucedidas são registradas em nível `debug` em vez de `info`, evitando poluir os arquivos `logs/app.*.log`.
+* **Eliminação de Chamada Redundante de Perfil no Reload ([`authProvider.tsx`](apps/mobile-web/src/contexts/authProvider.tsx))**:
+  * Quando o estado `@kapa:has-adopter-profile` já está persistido como `true`, o `AuthProvider` não dispara uma nova requisição `GET /api/adopter-profiles/me` a cada recarregamento da página inicial.

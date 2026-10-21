@@ -3,19 +3,73 @@ import { Animal } from '../models/Animal';
 import { NotFoundError, BadRequestError } from '../errors';
 import type { CreateAnimalInput, AnimalManagementQuery, UpdateAnimalInput, Animal as AnimalDTO } from '@kapa/shared';
 import { Cuid } from '../domains/Cuid';
+import type { CacheProvider } from './RedisService';
+
+export const AVAILABLE_ANIMALS_CACHE_KEY = 'animals:available';
+const AVAILABLE_ANIMALS_CACHE_TTL_SECONDS = 60;
+
+export function buildPublicAnimalCacheKey(id: string): string {
+  return `animal:public:${id}`;
+}
 
 export class AnimalService {
-  constructor(private readonly animalRepository: AnimalRepositoryInterface) {}
+  constructor(
+    private readonly animalRepository: AnimalRepositoryInterface,
+    private readonly cache?: CacheProvider,
+  ) {}
 
   public async getAll() {
+    if (this.cache) {
+      const cached = await this.cache.getCache<ReturnType<AnimalService['publicView']>[]>(
+        AVAILABLE_ANIMALS_CACHE_KEY,
+      );
+      if (cached) {
+        return cached;
+      }
+    }
+
     const animals = await this.animalRepository.findAll();
-    return animals.filter((animal) => animal.getStatus() === 'available').map((animal) => this.publicView(animal.toDTO()));
+    const publicAnimals = animals
+      .filter((animal) => animal.getStatus() === 'available')
+      .map((animal) => this.publicView(animal.toDTO()));
+
+    if (this.cache) {
+      await this.cache.setCache(
+        AVAILABLE_ANIMALS_CACHE_KEY,
+        publicAnimals,
+        AVAILABLE_ANIMALS_CACHE_TTL_SECONDS,
+      );
+    }
+
+    return publicAnimals;
   }
 
   public async getById(id: string) {
+    Cuid.create(id);
+    const cacheKey = buildPublicAnimalCacheKey(id);
+    if (this.cache) {
+      const cached =
+        await this.cache.getCache<ReturnType<AnimalService['publicView']>>(
+          cacheKey,
+        );
+      if (cached) {
+        return cached;
+      }
+    }
+
     const animal = await this.getManagedById(id);
     if (animal.getStatus() !== 'available') throw new NotFoundError('Animal não encontrado.');
-    return this.publicView(animal.toDTO());
+    const view = this.publicView(animal.toDTO());
+
+    if (this.cache) {
+      await this.cache.setCache(
+        cacheKey,
+        view,
+        AVAILABLE_ANIMALS_CACHE_TTL_SECONDS,
+      );
+    }
+
+    return view;
   }
 
   private publicView(animal: AnimalDTO) {
@@ -35,6 +89,12 @@ export class AnimalService {
     Cuid.create(id);
     const animal = await this.animalRepository.update(id, input);
     if (!animal) throw new NotFoundError('Animal não encontrado.');
+    if (this.cache) {
+      await Promise.all([
+        this.cache.deleteCache(AVAILABLE_ANIMALS_CACHE_KEY),
+        this.cache.deleteCache(buildPublicAnimalCacheKey(id)),
+      ]);
+    }
     return animal;
   }
 
@@ -93,6 +153,10 @@ export class AnimalService {
       animal.setObservations(input.observations);
     if (input.status !== undefined) animal.setStatus(input.status);
 
-    return this.animalRepository.create(animal);
+    const created = await this.animalRepository.create(animal);
+    if (this.cache) {
+      await this.cache.deleteCache(AVAILABLE_ANIMALS_CACHE_KEY);
+    }
+    return created;
   }
 }

@@ -1,6 +1,7 @@
 import {
   CreateAdopterProfileInput,
   UpdateAdopterProfileInput,
+  AdopterProfile as SharedAdopterProfile,
 } from '@kapa/shared';
 import { UUID } from '../domains/UUID';
 import {
@@ -13,9 +14,59 @@ import {
   IAdopterProfileRepository,
 } from '../interfaces';
 import { AdopterProfile } from '../models';
+import type { CacheProvider } from './RedisService';
+
+const ADOPTER_PROFILE_CACHE_TTL_SECONDS = 300;
+
+export function buildAdopterProfileUserCacheKey(userId: string): string {
+  return `adopter-profile:user:${userId}`;
+}
+
+export function buildAdopterProfileIdCacheKey(id: string): string {
+  return `adopter-profile:id:${id}`;
+}
 
 export class AdopterProfileService {
-  constructor(private readonly repository: IAdopterProfileRepository) {}
+  constructor(
+    private readonly repository: IAdopterProfileRepository,
+    private readonly cache?: CacheProvider,
+  ) {}
+
+  private async cacheProfile(profile: AdopterProfile): Promise<void> {
+    if (!this.cache) return;
+    const dto = profile.toDTO();
+    await Promise.all([
+      dto.userId
+        ? this.cache.setCache(
+            buildAdopterProfileUserCacheKey(dto.userId),
+            dto,
+            ADOPTER_PROFILE_CACHE_TTL_SECONDS,
+          )
+        : Promise.resolve(),
+      dto.id
+        ? this.cache.setCache(
+            buildAdopterProfileIdCacheKey(dto.id),
+            dto,
+            ADOPTER_PROFILE_CACHE_TTL_SECONDS,
+          )
+        : Promise.resolve(),
+    ]);
+  }
+
+  private async invalidateProfileCache(
+    profile: AdopterProfile,
+  ): Promise<void> {
+    if (!this.cache) return;
+    const dto = profile.toDTO();
+    await Promise.all([
+      dto.userId
+        ? this.cache.deleteCache(buildAdopterProfileUserCacheKey(dto.userId))
+        : Promise.resolve(),
+      dto.id
+        ? this.cache.deleteCache(buildAdopterProfileIdCacheKey(dto.id))
+        : Promise.resolve(),
+    ]);
+  }
 
   private applyPreferences(
     profile: AdopterProfile,
@@ -59,12 +110,22 @@ export class AdopterProfileService {
     }
 
     const safeId = UUID.create(id);
+    if (this.cache) {
+      const cached = await this.cache.getCache<SharedAdopterProfile>(
+        buildAdopterProfileIdCacheKey(safeId.getValue()),
+      );
+      if (cached) {
+        return AdopterProfile.fromDTO(cached);
+      }
+    }
+
     const profile = await this.repository.findById(safeId);
 
     if (!profile) {
       throw new NotFoundError('Adopter Profile not found with id: ' + id);
     }
 
+    await this.cacheProfile(profile);
     return profile;
   }
 
@@ -74,6 +135,15 @@ export class AdopterProfileService {
     }
 
     const safeUserId = UUID.create(userId);
+    if (this.cache) {
+      const cached = await this.cache.getCache<SharedAdopterProfile>(
+        buildAdopterProfileUserCacheKey(safeUserId.getValue()),
+      );
+      if (cached) {
+        return AdopterProfile.fromDTO(cached);
+      }
+    }
+
     const profile = await this.repository.findByUserId(safeUserId);
 
     if (!profile) {
@@ -82,6 +152,7 @@ export class AdopterProfileService {
       );
     }
 
+    await this.cacheProfile(profile);
     return profile;
   }
 
@@ -124,7 +195,9 @@ export class AdopterProfileService {
     profile.setUserId(safeUserId);
     this.applyPreferences(profile, input);
 
-    return this.repository.create(profile);
+    const created = await this.repository.create(profile);
+    await this.cacheProfile(created);
+    return created;
   }
 
   async update(
@@ -138,7 +211,9 @@ export class AdopterProfileService {
     const profile = await this.getById(id);
     this.applyPreferences(profile, input);
 
-    return this.repository.update(profile);
+    const updated = await this.repository.update(profile);
+    await this.cacheProfile(updated);
+    return updated;
   }
 
   async updateByUserId(
@@ -152,7 +227,9 @@ export class AdopterProfileService {
     const profile = await this.getByUserId(userId);
     this.applyPreferences(profile, input);
 
-    return this.repository.update(profile);
+    const updated = await this.repository.update(profile);
+    await this.cacheProfile(updated);
+    return updated;
   }
 
   async upsert(
@@ -168,7 +245,9 @@ export class AdopterProfileService {
 
     if (existing) {
       this.applyPreferences(existing, input);
-      return this.repository.update(existing);
+      const updated = await this.repository.update(existing);
+      await this.cacheProfile(updated);
+      return updated;
     }
 
     return this.create({
@@ -189,6 +268,7 @@ export class AdopterProfileService {
       throw new NotFoundError('Adopter Profile not found with id: ' + id);
     }
 
+    await this.invalidateProfileCache(deleted);
     return deleted;
   }
 
@@ -206,6 +286,7 @@ export class AdopterProfileService {
       );
     }
 
+    await this.invalidateProfileCache(deleted);
     return deleted;
   }
 }

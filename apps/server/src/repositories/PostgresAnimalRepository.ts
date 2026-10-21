@@ -8,7 +8,10 @@ import type { AnimalManagementQuery, AnimalManagementPage, UpdateAnimalInput } f
 export class PostgresAnimalRepository implements IAnimalRepository {
   constructor(private readonly prismaClient: PrismaClient) {}
 
-  private mapToDomain(record: PrismaAnimal & { photos?: AnimalPhotos[] }): Animal {
+  private mapToDomain(
+    record: PrismaAnimal & { photos?: AnimalPhotos[] },
+    options?: { includeDoses?: boolean },
+  ): Animal {
     const animal = new Animal();
     animal.setId(record.id);
     animal.setName(record.name);
@@ -28,9 +31,11 @@ export class PostgresAnimalRepository implements IAnimalRepository {
     animal.setCastrated(record.castrated);
     animal.setVaccinated(record.vaccinated);
     animal.setDewormed(record.dewormed);
-    animal.setV10Doses(doseRecordsSchema.parse(record.v10_doses));
-    animal.setVacinaRaivaDoses(doseRecordsSchema.parse(record.rabies_doses));
-    animal.setVermifugoDoses(doseRecordsSchema.parse(record.deworming_doses));
+    if (options?.includeDoses !== false) {
+      animal.setV10Doses(doseRecordsSchema.parse(record.v10_doses));
+      animal.setVacinaRaivaDoses(doseRecordsSchema.parse(record.rabies_doses));
+      animal.setVermifugoDoses(doseRecordsSchema.parse(record.deworming_doses));
+    }
     animal.setRescuedAt(record.rescued_at.toISOString());
     animal.setPlace(record.place);
     animal.setMood(record.mood);
@@ -49,7 +54,9 @@ export class PostgresAnimalRepository implements IAnimalRepository {
       include: { photos: { orderBy: { uploaded_at: 'desc' } } },
       orderBy: { created_at: 'desc' },
     });
-    return records.map((record) => this.mapToDomain(record));
+    return records.map((record) =>
+      this.mapToDomain(record, { includeDoses: false }),
+    );
   }
 
   public async findById(id: string): Promise<Animal | null> {

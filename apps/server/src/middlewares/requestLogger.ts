@@ -57,6 +57,8 @@ export function createRequestLogger(log: Logger = defaultLogger) {
         log.error(logPayload, message);
       } else if (statusCode >= 400) {
         log.warn(logPayload, message);
+      } else if (req.method === 'OPTIONS') {
+        log.debug(logPayload, message);
       } else {
         log.info(logPayload, message);
       }

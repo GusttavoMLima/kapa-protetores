@@ -79,9 +79,10 @@ const userPhotoService = new UserPhotoService(
   s3Region,
   s3AccessKey,
   s3SecretKey,
+  redisService,
 );
 
-const userService = new UserService(userRepository);
+const userService = new UserService(userRepository, redisService);
 const userController = new UserController(userService, userPhotoService);
 const userRouter = new UserRouter(userController, authMiddleware);
 
@@ -89,7 +90,7 @@ const authController = new AuthController(userService);
 const authRouter = new AuthRouter(authController);
 
 const animalRepository = new PostgresAnimalRepository(prisma);
-const animalService = new AnimalService(animalRepository);
+const animalService = new AnimalService(animalRepository, redisService);
 const animalPhotoService = new AnimalPhotoService(
   prisma,
   s3Bucket,
@@ -98,6 +99,7 @@ const animalPhotoService = new AnimalPhotoService(
   s3Region,
   s3AccessKey,
   s3SecretKey,
+  redisService,
 );
 
 const animalsRouter = new AnimalsRouter(
@@ -121,6 +123,7 @@ const credentialsRouter = new CredentialsRouter(
 const adopterProfileRepository = new AdopterProfileRepository(prisma);
 const adopterProfileService = new AdopterProfileService(
   adopterProfileRepository,
+  redisService,
 );
 
 const adopterProfileController = new AdopterProfileController(
@@ -133,17 +136,21 @@ const adopterProfileRouter = new AdopterProfileRouter(
 );
 
 const adoptionRouter = new AdoptionRouter(
-  new AdoptionController(new AdoptionService(new AdoptionRepository(prisma))),
+  new AdoptionController(
+    new AdoptionService(new AdoptionRepository(prisma), redisService),
+  ),
   authMiddleware,
 );
 
 const favoriteRouter = new FavoriteRouter(
-  new FavoriteController(new FavoriteService(new FavoriteRepository(prisma))),
+  new FavoriteController(
+    new FavoriteService(new FavoriteRepository(prisma), redisService),
+  ),
   authMiddleware,
 );
 
 const repository = new CommunityEventRepository(prisma);
-const service = new CommunityEventService(repository);
+const service = new CommunityEventService(repository, redisService);
 const controller = new CommunityEventController(service);
 
 const communityEventRouter = new CommunityEventRouter(

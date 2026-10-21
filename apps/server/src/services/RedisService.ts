@@ -33,11 +33,23 @@ pool.on('error', (err: Error) => {
   logger.error({ err }, 'Redis error');
 });
 
-export class RedisService {
+export interface CacheProvider {
+  getCache<T>(cacheKey: string): Promise<T | null>;
+  setCache<T>(
+    cacheKey: string,
+    cacheData: T,
+    EX?: number,
+  ): Promise<string | null | undefined>;
+  deleteCache(cacheKey: string): Promise<void>;
+}
+
+export class RedisService implements CacheProvider {
   private pool: RedisClientPoolType = pool;
 
   constructor() {
-    this.connectRedis();
+    if (process.env.NODE_ENV !== 'test') {
+      void this.connectRedis();
+    }
   }
 
   private async connectRedis() {
@@ -116,7 +128,18 @@ export class RedisService {
       }
     } catch (err) {
       logger.error({ err, cacheKey }, 'Error retrieving cache');
-      throw err;
+      return null;
+    }
+  }
+
+  public async deleteCache(cacheKey: string): Promise<void> {
+    try {
+      if (!cacheKey) {
+        return;
+      }
+      await this.pool.del(cacheKey);
+    } catch (err) {
+      logger.error({ err, cacheKey }, 'Error deleting cache');
     }
   }
 

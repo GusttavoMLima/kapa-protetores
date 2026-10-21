@@ -56,6 +56,7 @@ export class App {
           return callback(new ForbiddenError('Origem não permitida.'));
         },
         credentials: true,
+        maxAge: 86400,
       }),
     );
 
