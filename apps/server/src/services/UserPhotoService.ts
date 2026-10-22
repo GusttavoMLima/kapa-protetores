@@ -1,5 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import { PrismaClient } from '@prisma/client';
 import { BadRequestError, NotFoundError } from '../errors';
 import { allowedImages, detectImageContent } from './AnimalPhotoService';
@@ -30,13 +34,22 @@ export class UserPhotoService {
     });
   }
 
+  private extractS3Key(avatarUrl: string): string | null {
+    try {
+      const match = avatarUrl.match(/avatars\/.+/);
+      return match ? match[0] : null;
+    } catch {
+      return null;
+    }
+  }
+
   public async upload(
     userId: string,
     file: Express.Multer.File,
   ): Promise<{ avatarUrl: string }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true },
+      select: { id: true, avatar: true },
     });
     if (!user) throw new NotFoundError('Usuário não encontrado.');
 
@@ -48,27 +61,48 @@ export class UserPhotoService {
     }
 
     const image = allowedImages[detectedMimeType];
-    const key = `avatars/${userId}/${randomUUID()}.${image.extension}`;
+    const newKey = `avatars/${userId}/${randomUUID()}.${image.extension}`;
+
+    if (user.avatar) {
+      const oldKey = this.extractS3Key(user.avatar);
+      if (oldKey) {
+        try {
+          await this.client.send(
+            new DeleteObjectCommand({
+              Bucket: this.bucket,
+              Key: oldKey,
+            }),
+          );
+        } catch (deleteError) {
+          console.error(
+            `Failed to delete old avatar key (${oldKey}):`,
+            deleteError,
+          );
+        }
+      }
+    }
+
     await this.client.send(
       new PutObjectCommand({
         Bucket: this.bucket,
-        Key: key,
+        Key: newKey,
         Body: file.buffer,
         ContentType: detectedMimeType,
         CacheControl: 'public, max-age=31536000, immutable',
       }),
     );
 
-    const base = this.publicUrl.replace(/\/+$/, '');
+    const base = this.publicUrl.replace(/\/+\$/, '');
     const avatarUrl = base.endsWith(`/${this.bucket}`)
-      ? `${base}/${key}`
-      : `${base}/${this.bucket}/${key}`;
+      ? `${base}/${newKey}`
+      : `${base}/${this.bucket}/${newKey}`;
 
     try {
       await this.prisma.user.update({
         where: { id: userId },
         data: { avatar: avatarUrl },
       });
+
       if (this.cache) {
         await Promise.all([
           this.cache.deleteCache(buildUserProfileCacheKey(userId)),
@@ -79,7 +113,7 @@ export class UserPhotoService {
       return { avatarUrl };
     } catch (error) {
       await this.client
-        .send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }))
+        .send(new DeleteObjectCommand({ Bucket: this.bucket, Key: newKey }))
         .catch(() => undefined);
       throw error;
     }
