@@ -8,7 +8,7 @@ import { AnimalPhotosController } from '../controllers/AnimalPhotosController';
 
 const photoUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+  limits: { fileSize: 5 * 1024 * 1024, files: 5 },
 });
 
 export class AnimalsRouter {
@@ -40,7 +40,10 @@ export class AnimalsRouter {
       '/:id/photos',
       this.auth.authenticate,
       this.managementAccess,
-      photoUpload.single('photo'),
+      photoUpload.fields([
+        { name: 'photo', maxCount: 1 },
+        { name: 'photos', maxCount: 5 },
+      ]),
       this.photosController.upload,
     );
   }

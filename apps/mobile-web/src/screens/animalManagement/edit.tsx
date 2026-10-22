@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Modal, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, ScrollView, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Animal } from '@kapa/shared';
 import { PrimaryButton } from '@/components/buttons/primary';
 import { PrimaryInputText } from '@/components/inputText/primary';
+import { MultiFotoPicker } from '@/components/photoPicker/animal';
 import { fetchManagedAnimal, updateManagedAnimal } from '@/services/animalManagement';
+import { uploadAnimalPhotos } from '@/storage/animals';
 import { ApiError } from '@/services/api';
 import { palette } from '@/theme';
 import { AnimalThumbnail, BackLink, ChoiceGroup, Notice, StatusBadge, TextButton } from './components';
@@ -26,6 +28,7 @@ export function EditAnimalScreen() {
 function AnimalEditor({ id }: { id: string }) {
   const [animal, setAnimal] = useState<Animal | null>(null);
   const [values, setValues] = useState<AnimalEditorValues | null>(null);
+  const [newPhotoUris, setNewPhotoUris] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -46,7 +49,8 @@ function AnimalEditor({ id }: { id: string }) {
     }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [id, retry]);
-  const dirty = Boolean(animal && values && JSON.stringify(editorValues(animal)) !== JSON.stringify(values));
+  const hasValueChanges = Boolean(animal && values && JSON.stringify(editorValues(animal)) !== JSON.stringify(values));
+  const dirty = hasValueChanges || newPhotoUris.length > 0;
   const leave = () => router.canGoBack() ? router.back() : router.replace('/gestao/animais');
   const requestLeave = () => { if (dirty) setConfirmLeave(true); else leave(); };
   const change = <K extends keyof AnimalEditorValues>(key: K, value: AnimalEditorValues[K]) => {
@@ -64,7 +68,15 @@ function AnimalEditor({ id }: { id: string }) {
     }
     saveInFlight.current = true; setSaving(true); setError(''); setErrors({}); setSuccess(false);
     try {
-      const result = await updateManagedAnimal(id, parsed.data);
+      let result = await updateManagedAnimal(id, parsed.data);
+      if (newPhotoUris.length > 0) {
+        const uploadResult = await uploadAnimalPhotos(id, newPhotoUris);
+        setNewPhotoUris([]);
+        result = await fetchManagedAnimal(id);
+        if (uploadResult.failed > 0) {
+          setError(`Dados salvos, mas apenas ${uploadResult.uploaded} de ${newPhotoUris.length} novas fotos foram enviadas.`);
+        }
+      }
       setAnimal(result); setValues(editorValues(result)); setSuccess(true);
     } catch (err: unknown) {
       setError(err instanceof ApiError && [401, 403].includes(err.status) ? 'Você não tem acesso para salvar. Entre novamente; suas alterações ainda estão nesta tela.'
@@ -87,6 +99,28 @@ function AnimalEditor({ id }: { id: string }) {
             <View className="flex-row items-center gap-4 rounded-lg bg-peach p-5">
               <AnimalThumbnail animal={animal} /><View className="flex-1 gap-2"><Text className="font-heading-bold text-xl text-ink">{animal.name}</Text><StatusBadge status={animal.status} /></View>
             </View>
+            <Section title="Fotos" description="Visualize as fotos atuais e adicione novas imagens do animal.">
+              {animal.photos && animal.photos.length > 0 ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+                  {animal.photos.map((photo, index) => (
+                    <View key={photo.id} className="w-24 h-24 rounded-xl overflow-hidden border border-border bg-cream">
+                      <Image source={{ uri: photo.photoUrl }} accessibilityLabel={`Foto atual ${index + 1} de ${animal.name}`} className="w-full h-full" style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                    </View>
+                  ))}
+                </ScrollView>
+              ) : (
+                <Text className="font-body text-sm text-ink-muted">Nenhuma foto enviada até o momento.</Text>
+              )}
+              <MultiFotoPicker
+                uris={newPhotoUris}
+                disabled={saving}
+                label="Novas fotos"
+                onChange={(nextUris) => {
+                  setNewPhotoUris(nextUris);
+                  setSuccess(false);
+                }}
+              />
+            </Section>
             <Section title="Identificação" description="As informações essenciais para reconhecer e acompanhar o animal.">
               <View className="flex-col md:flex-row gap-4">
                 <PrimaryInputText className="flex-1" label="Nome *" value={values.name} onChangeText={(value) => change('name', value)} erro={errors.name} maxLength={120} editable={!saving} />

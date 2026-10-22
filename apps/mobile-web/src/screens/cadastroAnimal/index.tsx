@@ -10,8 +10,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryInputText } from '@/components/inputText/primary';
 import { PrimaryChipGroup } from '@/components/chips/primaryChip';
-import { FotoPicker } from '@/components/photoPicker/profile';
-import { saveAnimal, uploadAnimalPhoto } from '@/storage/animals';
+import { MultiFotoPicker } from '@/components/photoPicker/animal';
+import { saveAnimal, uploadAnimalPhotos } from '@/storage/animals';
 import { PrimaryButton } from '@/components/buttons/primary';
 import { palette } from '@/theme';
 import type {
@@ -88,7 +88,7 @@ function DoseField({ label, dose, erro, onChange, onRemove }: DoseFieldProps) {
 }
 
 export function CadastroAnimalScreen() {
-  const [fotoUri, setFotoUri] = useState<string>();
+  const [fotosUris, setFotosUris] = useState<string[]>([]);
   const [nome, setNome] = useState('');
   const [raca, setRaca] = useState('');
   const [especie, setEspecie] = useState<Especie>('cao');
@@ -150,7 +150,7 @@ export function CadastroAnimalScreen() {
   ];
 
   function limpar() {
-    setFotoUri(undefined);
+    setFotosUris([]);
     setNome('');
     setRaca('');
     setEspecie('cao');
@@ -243,24 +243,34 @@ export function CadastroAnimalScreen() {
         humor,
         publicacoes: publicacoes.trim(),
         observacoes: observacoes.trim(),
-        fotoUri,
+        fotoUri: fotosUris[0],
+        fotosUris,
         status,
         createdAt: new Date().toISOString(),
       });
 
-      let fotoEnviada = false;
-      if (fotoUri) {
-        try {
-          await uploadAnimalPhoto(animalSalvo.id, fotoUri);
-          fotoEnviada = true;
-        } catch {
-          setErroSalvar('O animal foi cadastrado, mas não foi possível enviar a foto.');
+      let fotosEnviadas = 0;
+      if (fotosUris.length > 0) {
+        const result = await uploadAnimalPhotos(animalSalvo.id, fotosUris);
+        fotosEnviadas = result.uploaded;
+        if (result.failed > 0) {
+          setErroSalvar(
+            result.uploaded === 0
+              ? 'O animal foi cadastrado, mas não foi possível enviar as fotos.'
+              : `O animal foi cadastrado, mas apenas ${result.uploaded} de ${fotosUris.length} fotos foram enviadas.`,
+          );
         }
       }
 
       const nomeSalvo = nome.trim() || 'O animal';
       limpar();
-      setSucesso(`${nomeSalvo} foi cadastrado${fotoEnviada ? ' com a foto' : ''}.`);
+      const sufixoFotos =
+        fotosEnviadas === 1
+          ? ' com 1 foto'
+          : fotosEnviadas > 1
+            ? ` com ${fotosEnviadas} fotos`
+            : '';
+      setSucesso(`${nomeSalvo} foi cadastrado${sufixoFotos}.`);
       scrollRef.current?.scrollTo({ y: 0, animated: true });
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
@@ -329,10 +339,11 @@ export function CadastroAnimalScreen() {
             </View>
           ) : null}
 
-          <FotoPicker
-            uri={fotoUri}
-            onChange={(uri) => {
-              setFotoUri(uri);
+          <MultiFotoPicker
+            uris={fotosUris}
+            disabled={salvando}
+            onChange={(nextUris) => {
+              setFotosUris(nextUris);
               setSucesso(undefined);
             }}
           />

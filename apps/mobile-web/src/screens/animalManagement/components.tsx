@@ -44,7 +44,7 @@ export function AnimalThumbnail({ animal }: { animal: Animal }) {
   const [failed, setFailed] = useState(false);
   const uri = animal.photos?.[0]?.photoUrl;
   return <View className="w-16 h-16 rounded-lg bg-peach items-center justify-center overflow-hidden">
-    {uri && !failed ? <Image source={{ uri }} onError={() => setFailed(true)} accessibilityLabel={`Foto de ${animal.name}`} className="w-full h-full" resizeMode="cover" />
+    {uri && !failed ? <Image source={{ uri }} onError={() => setFailed(true)} accessibilityLabel={`Foto de ${animal.name}`} className="w-full h-full" style={{ width: '100%', height: '100%' }} resizeMode="cover" />
       : <PawPrintIcon size={28} weight="duotone" color={palette.denim} />}
   </View>;
 }

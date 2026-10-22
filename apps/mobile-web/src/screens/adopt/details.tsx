@@ -4,6 +4,7 @@ import {
   Pressable,
   ScrollView,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -52,6 +53,8 @@ function HealthItem({ label, value }: { label: string; value: string }) {
 }
 
 function PetPhotos({ animal }: { animal: Animal }) {
+  const { width } = useWindowDimensions();
+  const carouselHeight = width >= 768 ? 440 : 340;
   const photos =
     animal.photos && animal.photos.length > 0
       ? animal.photos.map((photo) => ({
@@ -61,8 +64,8 @@ function PetPhotos({ animal }: { animal: Animal }) {
       : [{ id: 'default', photoUrl: DEFAULT_PET_PHOTO }];
 
   return (
-    <View className="overflow-hidden rounded-2xl">
-      <PhotoCarousel photos={photos} dots />
+    <View className="overflow-hidden rounded-2xl border border-line bg-peach">
+      <PhotoCarousel photos={photos} height={carouselHeight} dots />
     </View>
   );
 }

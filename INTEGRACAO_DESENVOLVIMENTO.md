@@ -1027,3 +1027,36 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
   * Requisições `OPTIONS` bem-sucedidas são registradas em nível `debug` em vez de `info`, evitando poluir os arquivos `logs/app.*.log`.
 * **Eliminação de Chamada Redundante de Perfil no Reload ([`authProvider.tsx`](apps/mobile-web/src/contexts/authProvider.tsx))**:
   * Quando o estado `@kapa:has-adopter-profile` já está persistido como `true`, o `AuthProvider` não dispara uma nova requisição `GET /api/adopter-profiles/me` a cada recarregamento da página inicial.
+
+---
+
+### 36. Múltiplas Fotos no Cadastro e Edição de Animais (Issue #48)
+
+* **Componente `MultiFotoPicker` ([`apps/mobile-web/src/components/photoPicker/animal/index.tsx`](apps/mobile-web/src/components/photoPicker/animal/index.tsx))**:
+  * Permite selecionar até 5 fotos por animal (`DEFAULT_MAX_ANIMAL_PHOTOS = 5`) via galeria (`allowsMultipleSelection: true`, `selectionLimit`) ou câmera (`expo-image-picker`).
+  * Exibe galeria horizontal de miniaturas com selo `"Capa"` na primeira imagem e botão individual de remoção acessível.
+* **Integração no Cadastro e na Edição (`apps/mobile-web`)**:
+  * [`CadastroAnimalScreen`](apps/mobile-web/src/screens/cadastroAnimal/index.tsx) e [`EditAnimalScreen`](apps/mobile-web/src/screens/animalManagement/edit.tsx) utilizam `MultiFotoPicker` e a função `uploadAnimalPhotos(animalId, uris)` ([`apps/mobile-web/src/storage/animals.ts`](apps/mobile-web/src/storage/animals.ts)), preservando a foto de capa na ordenação `uploaded_at DESC`.
+* **Suporte a Múltiplos Arquivos na API (`POST /api/animals/:id/photos`)**:
+  * [`AnimalsRouter.ts`](apps/server/src/routes/AnimalsRouter.ts) e [`AnimalPhotosController.ts`](apps/server/src/controllers/AnimalPhotosController.ts) aceitam tanto upload individual (`photo`) quanto múltiplos arquivos (`photos`, até 5 arquivos por requisição).
+* **Testes Automatizados**:
+  * [`apps/mobile-web/test/components/MultiFotoPicker.spec.tsx`](apps/mobile-web/test/components/MultiFotoPicker.spec.tsx).
+
+---
+
+### 37. Aprimoramento de Visualização de Imagens em `PetCard` e `PhotoCarousel` (`apps/mobile-web`)
+
+* **`PetCard` ([`apps/mobile-web/src/components/cards/pet/index.tsx`](apps/mobile-web/src/components/cards/pet/index.tsx))**:
+  * Aumentada a altura da área de foto para `h-52 sm:h-60` (proporção quadrada/vertical adequada para retratos de pets).
+  * **Detecção Inteligente de Proporção (Orientação)**:
+    * Fotos **horizontais ou quadradas (`width >= height`)**: exibidas com `resizeMode="cover"` ocupando 100% do quadro sem plano de fundo desfocado.
+    * Fotos **verticais (`height > width`)**: exibidas com `resizeMode="contain"` sobre um plano de fundo desfocado de preenchimento (`resizeMode="cover"`, `blurRadius={14}`, `opacity: 0.35`), garantindo que o pet apareça inteiro sem cortar cabeça ou patas.
+  * Adicionado tratamento de falha de carregamento (`onError`) com fallback visual (`PawPrintIcon` sobre `bg-peach`).
+* **`PhotoCarousel` ([`apps/mobile-web/src/components/carousels/photo/index.tsx`](apps/mobile-web/src/components/carousels/photo/index.tsx)) e `AdoptPetDetailsScreen` ([`apps/mobile-web/src/screens/adopt/details.tsx`](apps/mobile-web/src/screens/adopt/details.tsx))**:
+  * **Detecção Inteligente de Proporção por Slide (`CarouselSlide`)**:
+    * Fotos **horizontais (`width > height`)**: exibidas com `resizeMode="cover"` preenchendo o slide sem fundo desfocado.
+    * Fotos **verticais ou quadradas (`height >= width`)**: exibidas centralizadas em `resizeMode="contain"` com plano de fundo desfocado (`resizeMode="cover"`, `blurRadius={18}`), eliminando cortes severos em telas largas (Web/Desktop) e preservando 100% da fotografia original.
+  * Altura responsiva na tela de detalhes (`440px` em telas `>= 768px` e `340px` em dispositivos móveis).
+  * Proteção contra sobrescrita do índice ativo (`isProgrammaticScrollRef`) durante animações de rolagem acionadas pelos botões anterior/próxima ou pelos indicadores de paginação (`dots`).
+* **Testes Automatizados**:
+  * [`apps/mobile-web/test/components/PetCard.spec.tsx`](apps/mobile-web/test/components/PetCard.spec.tsx) e [`apps/mobile-web/test/components/PhotoCarousel.spec.tsx`](apps/mobile-web/test/components/PhotoCarousel.spec.tsx).

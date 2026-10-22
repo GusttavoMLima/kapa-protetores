@@ -138,6 +138,7 @@ export interface LegacyAnimal {
   publicacoes?: string;
   observacoes: string;
   fotoUri?: string;
+  fotosUris?: string[];
   status: StatusAnimal;
   createdAt: string;
 }

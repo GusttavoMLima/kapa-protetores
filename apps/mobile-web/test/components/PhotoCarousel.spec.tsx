@@ -14,11 +14,21 @@ describe('PhotoCarousel', () => {
     expect(toJSON()).toBeNull();
   });
 
-  it('renders a single photo without navigation controls', async () => {
+  it('renders a single photo without navigation controls and switches to cover when horizontal', async () => {
     await render(<PhotoCarousel photos={[samplePhotos[0]]} />);
-    expect(screen.getAllByLabelText('Foto do animal')).toHaveLength(1);
+    const photos = screen.getAllByLabelText('Foto do animal');
+    expect(photos).toHaveLength(1);
+    expect(photos[0].props.resizeMode).toBe('contain');
     expect(screen.queryByLabelText('Foto anterior')).toBeNull();
     expect(screen.queryByLabelText('Próxima foto')).toBeNull();
+
+    await fireEvent(photos[0], 'load', {
+      nativeEvent: { source: { width: 1600, height: 900 } },
+    });
+
+    expect(screen.getByLabelText('Foto do animal').props.resizeMode).toBe(
+      'cover',
+    );
   });
 
   it('updates counter and buttons when navigating or dragging', async () => {

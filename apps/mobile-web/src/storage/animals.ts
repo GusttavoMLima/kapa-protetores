@@ -49,6 +49,27 @@ export async function uploadAnimalPhoto(animalId: string, uri: string): Promise<
   await apiRequest(`/animals/${encodeURIComponent(animalId)}/photos`, { method: 'POST', body: form });
 }
 
+export async function uploadAnimalPhotos(
+  animalId: string,
+  uris: string[],
+): Promise<{ uploaded: number; failed: number }> {
+  let uploaded = 0;
+  let failed = 0;
+
+  // Upload in reverse so `uris[0]` (marked as "Capa") gets the most recent
+  // `uploaded_at` timestamp and is returned first by `orderBy: { uploaded_at: 'desc' }`.
+  for (const uri of [...uris].reverse()) {
+    try {
+      await uploadAnimalPhoto(animalId, uri);
+      uploaded += 1;
+    } catch {
+      failed += 1;
+    }
+  }
+
+  return { uploaded, failed };
+}
+
 function extensionForMime(mimeType: string): string {
   if (mimeType === 'image/png') return 'png';
   if (mimeType === 'image/webp') return 'webp';
