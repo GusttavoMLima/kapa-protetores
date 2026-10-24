@@ -62,6 +62,14 @@ export class UserRouter {
       rulesHandler('user:read:own'),
       this.controller.getProfile,
     );
+    if (this.controller.getMyEvents) {
+      this.router.get(
+        '/me/events',
+        this.authController.authenticate,
+        rulesHandler('user:read:own'),
+        this.controller.getMyEvents,
+      );
+    }
     this.router.patch(
       '/me/password',
       this.authController.authenticate,

@@ -12,6 +12,7 @@ import {
   DEFAULT_USER_ADOPTER_RULES,
   UserRole,
   type ApiResponse,
+  type PaginatedSystemEvents,
   type User as SharedUser,
   type UserWithRelationsCount,
   type UserWithCountAndDataOfRelations,
@@ -26,11 +27,14 @@ import {
   InternalServerError,
 } from '../errors';
 import type { UserPhotoService } from '../services/UserPhotoService';
+import type { EventsService } from '../services/EventsService';
+import { userEventsQuerySchema } from '../schemas/event.schema';
 
 export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly userPhotoService?: UserPhotoService,
+    private readonly eventsService?: EventsService,
   ) {}
 
   public countAll = async (req: Request, res: Response, next: NextFunction) => {
@@ -131,6 +135,49 @@ export class UserController {
       };
 
       return res.status(200).json(response);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public getMyEvents = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const user = req.user;
+
+      if (!user) {
+        throw new UnauthorizedError('Você não está autenticado');
+      }
+
+      const parsedQuery = userEventsQuerySchema.safeParse(req.query ?? {});
+      if (!parsedQuery.success) {
+        throw new BadRequestError(
+          'Parâmetros de paginação ou filtro inválidos',
+          parsedQuery.error.format(),
+        );
+      }
+
+      if (!this.eventsService) {
+        throw new InternalServerError('Serviço de eventos não configurado.');
+      }
+
+      const data = await this.eventsService.getUserEvents({
+        userId: user.sub,
+        page: parsedQuery.data.page,
+        limit: parsedQuery.data.limit,
+        type: parsedQuery.data.type,
+      });
+
+      const response: ApiResponse<PaginatedSystemEvents> = {
+        success: true,
+        message: 'Eventos do usuário obtidos com sucesso',
+        data,
+      };
+
+      res.status(200).json(response);
     } catch (err) {
       next(err);
     }

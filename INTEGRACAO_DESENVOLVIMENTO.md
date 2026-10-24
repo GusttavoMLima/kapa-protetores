@@ -1060,3 +1060,31 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
   * Proteção contra sobrescrita do índice ativo (`isProgrammaticScrollRef`) durante animações de rolagem acionadas pelos botões anterior/próxima ou pelos indicadores de paginação (`dots`).
 * **Testes Automatizados**:
   * [`apps/mobile-web/test/components/PetCard.spec.tsx`](apps/mobile-web/test/components/PetCard.spec.tsx) e [`apps/mobile-web/test/components/PhotoCarousel.spec.tsx`](apps/mobile-web/test/components/PhotoCarousel.spec.tsx).
+
+---
+
+### 38. Serviço de Auditoria e Eventos do Sistema (`tb_events` / Issue #50)
+
+* **Padronização de Tipos e Payloads (`@kapa/shared` — [`packages/shared/src/types/event.ts`](packages/shared/src/types/event.ts))**:
+  * Definido o enum `SystemEventTypes` (`ADOPTION_REQUESTED`, `ADOPTION_APPROVED`, `ADOPTION_REJECTED`, `ADOPTION_CANCELED`, `ANIMAL_CREATED`, `ANIMAL_STATUS_UPDATED`, `VOLUNTEER_REGISTERED`, `PET_FAVORITED`, `PET_UNFAVORITED`, `USER_REGISTERED`).
+  * Criadas interfaces estritas de snapshot para cada tipo de evento e o mapa discriminado `SystemEventPayloadMap`, garantindo tipagem em tempo de compilação em `CreateSystemEventInput<T>`.
+* **Esquemas de Validação Zod ([`apps/server/src/schemas/event.schema.ts`](apps/server/src/schemas/event.schema.ts))**:
+  * Schemas `.strict()` para cada tipo de evento (`eventPayloadSchemas`) e funções `validateEventPayload` / `validateCreateEventInput` que rejeitam tipos desconhecidos, IDs malformados ou payloads inválidos lançando `ValidationError` (impedindo falhas silenciosas).
+  * Schema `userEventsQuerySchema` para validação de paginação (`page`, `limit` de 1 a 100) e filtro opcional por `type`.
+* **Camada de Serviço (`EventsService` — [`apps/server/src/services/EventsService.ts`](apps/server/src/services/EventsService.ts))**:
+  * `createEvent(input, tx?)`: valida a entrada e persiste o evento em `tb_events` aceitando opcionalmente `Prisma.TransactionClient` (`tx`) para execução atômica dentro de transações do Prisma.
+  * `getUserEvents({ userId, type?, page?, limit? })`: consulta paginada ordenada por `emitted_at DESC`, filtrando pelo índice composto `[user_id, type]` (`tb_events_userId_type_idx`).
+* **Endpoint Autenticado (`GET /api/users/me/events`)**:
+  * Registrado em [`UserRouter.ts`](apps/server/src/routes/UserRouter.ts) e implementado em [`UserController.ts`](apps/server/src/controllers/UserController.ts) (`getMyEvents`) com exigência de autenticação e permissão `user:read:own`.
+* **Emissão Automática nos Serviços de Domínio e Exibição no Perfil**:
+  * [`AdoptionService`](apps/server/src/services/AdoptionService.ts) emite `ADOPTION_REQUESTED`, `ADOPTION_APPROVED`, `ADOPTION_REJECTED` e `ADOPTION_CANCELED`.
+  * [`FavoriteService`](apps/server/src/services/FavoriteService.ts) emite `PET_FAVORITED` e `PET_UNFAVORITED`.
+  * [`CommunityEventService`](apps/server/src/services/CommunityEventService.ts) emite `VOLUNTEER_REGISTERED` na inscrição em atividades.
+  * [`AnimalService`](apps/server/src/services/AnimalService.ts) emite `ANIMAL_CREATED` e `ANIMAL_STATUS_UPDATED`.
+  * [`UserService`](apps/server/src/services/UserService.ts) emite `USER_REGISTERED` na criação de conta.
+  * [`ProfileScreen`](apps/mobile-web/src/screens/profile/index.tsx) renderiza apenas os 5 últimos eventos na seção **Atividade Recente** (`data?.events.slice(0, 5)`) e disponibiliza o botão **Ver todos** navegando para `/(protected)/my-events`.
+  * [`MyEventsScreen`](apps/mobile-web/src/screens/myEvents/index.tsx) (`apps/mobile-web/app/(protected)/my-events.tsx`) e o hook [`useUserEvents`](apps/mobile-web/src/hooks/useUserEvents.ts) consomem `GET /api/users/me/events` com filtros por tipo de evento (`type`), paginação (`page`, `limit`), *pull-to-refresh* e navegação direta para o pet relacionado (`animalId`).
+* **Testes Automatizados**:
+  * [`apps/server/test/services/EventsService.spec.ts`](apps/server/test/services/EventsService.spec.ts), [`apps/server/test/controllers/UserController.spec.ts`](apps/server/test/controllers/UserController.spec.ts), [`apps/server/test/routes/UserRouter.spec.ts`](apps/server/test/routes/UserRouter.spec.ts) e [`apps/mobile-web/test/screens/MyEventsScreen.spec.tsx`](apps/mobile-web/test/screens/MyEventsScreen.spec.tsx).
+* **Atualização de Segurança de CI (`scripts/audit-allowlist.json` e `.trivyignore`)**:
+  * Sincronizados os novos advisories publicados no GitHub Advisory Database (`GHSA-27r3-jxmh-p828` em `body-parser`, `GHSA-q7qp-rjg7-q26m` em `multer`, `GHSA-xjj6-f33q-929c` em `undici` de dev/test e `GHSA-mrhx-c7xc-m3w5` em `zod` 3.x) em [`scripts/audit-allowlist.json`](scripts/audit-allowlist.json) e seus respectivos CVEs (`CVE-2026-111181`, `CVE-2026-113872`, `CVE-2023-54404`) em [`.trivyignore`](.trivyignore), mantendo as justificativas técnicas e mitigações ativas da API.

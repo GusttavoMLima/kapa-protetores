@@ -2,11 +2,14 @@ import { UUID } from '../domains/UUID';
 import { Cuid } from '../domains/Cuid';
 import { IEvent } from '../interfaces/IEvent';
 import { ValidationError } from '../errors';
-import type { SystemEvent } from '@kapa/shared';
+import {
+  SystemEventTypes,
+  type SystemEvent,
+} from '@kapa/shared';
 
 export class Event implements IEvent {
   private id!: Cuid;
-  private type!: string;
+  private type!: SystemEventTypes;
   private userId: UUID | null = null;
   private animalId: Cuid | null = null;
   private payload: Record<string, unknown> | null = null;
@@ -16,7 +19,7 @@ export class Event implements IEvent {
     return this.id;
   }
 
-  public getType(): string {
+  public getType(): SystemEventTypes {
     return this.type;
   }
 
@@ -43,11 +46,11 @@ export class Event implements IEvent {
     this.id = id instanceof Cuid ? id : Cuid.create(id);
   }
 
-  public setType(type: string): void {
-    if (!type || !type.trim()) {
-      throw new ValidationError('Event type cannot be empty');
+  public setType(type: SystemEventTypes): void {
+    if (!type || !Object.values(SystemEventTypes).includes(type)) {
+      throw new ValidationError('Invalid event type');
     }
-    this.type = type.trim();
+    this.type = type;
   }
 
   public setUserId(userId: string | UUID | null): void {
@@ -92,4 +95,3 @@ export class Event implements IEvent {
     return this.toDTO();
   }
 }
-

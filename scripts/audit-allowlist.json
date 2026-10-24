@@ -76,5 +76,29 @@
     "package": "braces",
     "severity": "high",
     "reason": "Transitiva de toolchain (glob). DoS local; baixo risco no build."
+  },
+  {
+    "id": "GHSA-27r3-jxmh-p828",
+    "package": "body-parser",
+    "severity": "high",
+    "reason": "Transitiva via express 4.x. Mitigado por limites estritos de tamanho de payload na API; atualização do lock bloqueada por conflito de peer no workspace mobile."
+  },
+  {
+    "id": "GHSA-q7qp-rjg7-q26m",
+    "package": "multer",
+    "severity": "high",
+    "reason": "Afeta apenas fileFilter assíncrono pendente após teardown; o servidor utiliza memoryStorage sem fileFilter assíncrono e valida magic bytes no serviço."
+  },
+  {
+    "id": "GHSA-xjj6-f33q-929c",
+    "package": "undici",
+    "severity": "high",
+    "reason": "Transitiva de dev/test (@testcontainers). Não utilizada em runtime de produção."
+  },
+  {
+    "id": "GHSA-mrhx-c7xc-m3w5",
+    "package": "zod",
+    "severity": "high",
+    "reason": "Correção exige upgrade major para Zod 4.x (incompatível com resolvers 3.x). Mitigado por limites de tamanho de body e .max() explícito nas coleções."
   }
 ]

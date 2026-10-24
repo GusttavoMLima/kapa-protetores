@@ -1,15 +1,116 @@
 import { useAuth } from '@/hooks/useAuth';
 import { colors, palette } from '@/theme';
 import { generatePlaceholder } from '@/utils/placeholder';
-import { Image, ScrollView, View, Text } from 'react-native';
+import { Image, Pressable, ScrollView, View, Text } from 'react-native';
 import { router } from 'expo-router';
 import { UnauthorizedScreen } from '@/screens/unauthorized';
-import { UserRoleEnum } from '@kapa/shared';
+import { SystemEventTypes, UserRoleEnum, type SystemEvent } from '@kapa/shared';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { GearIcon, HandHeartIcon, SignOutIcon, UserIcon, ClipboardTextIcon } from 'phosphor-react-native';
+import {
+  GearIcon,
+  HandHeartIcon,
+  SignOutIcon,
+  UserIcon,
+  ClipboardTextIcon,
+  HeartIcon,
+  PawPrintIcon,
+  CalendarCheckIcon,
+} from 'phosphor-react-native';
 import { PrimaryMenuItem } from '@/components/menuItems/primary';
 import { PetCard } from '@/components/cards/pet';
-import ProfileBlob from '@/../assets/profile-blob.svg'
+import ProfileBlob from '@/../assets/profile-blob.svg';
+
+function formatEventLabel(event: SystemEvent): {
+  title: string;
+  subtitle: string;
+} {
+  const payload =
+    event.payload && typeof event.payload === 'object'
+      ? (event.payload as Record<string, unknown>)
+      : {};
+  const animalName =
+    typeof payload.animalName === 'string' ? payload.animalName : undefined;
+  const eventTitle =
+    typeof payload.eventTitle === 'string' ? payload.eventTitle : undefined;
+
+  switch (event.type) {
+    case SystemEventTypes.ADOPTION_REQUESTED:
+      return {
+        title: 'Solicitação de adoção enviada',
+        subtitle: animalName
+          ? `Ficha enviada para adotar ${animalName}`
+          : 'Você enviou uma nova ficha de adoção',
+      };
+    case SystemEventTypes.ADOPTION_APPROVED:
+      return {
+        title: 'Adoção aprovada!',
+        subtitle: animalName
+          ? `Sua solicitação para ${animalName} foi aprovada`
+          : 'Sua solicitação de adoção foi aprovada',
+      };
+    case SystemEventTypes.ADOPTION_REJECTED:
+      return {
+        title: 'Solicitação de adoção atualizada',
+        subtitle: 'Confira os detalhes em Minhas solicitações',
+      };
+    case SystemEventTypes.ADOPTION_CANCELED:
+      return {
+        title: 'Solicitação de adoção cancelada',
+        subtitle: 'O processo de adoção foi encerrado',
+      };
+    case SystemEventTypes.PET_FAVORITED:
+      return {
+        title: 'Pet favoritado',
+        subtitle: animalName
+          ? `${animalName} foi adicionado aos seus favoritos`
+          : 'Você adicionou um pet aos favoritos',
+      };
+    case SystemEventTypes.PET_UNFAVORITED:
+      return {
+        title: 'Pet removido dos favoritos',
+        subtitle: animalName
+          ? `${animalName} foi removido dos seus favoritos`
+          : 'Você removeu um pet dos favoritos',
+      };
+    case SystemEventTypes.VOLUNTEER_REGISTERED:
+      return {
+        title: 'Inscrição em atividade voluntária',
+        subtitle: eventTitle
+          ? `Inscrito em: ${eventTitle}`
+          : 'Você se inscreveu em uma atividade do abrigo',
+      };
+    case SystemEventTypes.ANIMAL_CREATED:
+      return {
+        title: 'Animal cadastrado no abrigo',
+        subtitle: animalName ? `Cadastro de ${animalName}` : 'Novo animal registrado',
+      };
+    case SystemEventTypes.ANIMAL_STATUS_UPDATED:
+      return {
+        title: 'Status de animal atualizado',
+        subtitle: 'O acompanhamento do animal foi atualizado',
+      };
+    case SystemEventTypes.USER_REGISTERED:
+      return {
+        title: 'Conta criada no Kapa',
+        subtitle: 'Bem-vindo(a) à nossa comunidade de proteção animal',
+      };
+    default:
+      return {
+        title: 'Atividade registrada',
+        subtitle: String(event.type),
+      };
+  }
+}
+
+function formatEventDate(isoString: string): string {
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
 
 export function ProfileScreen() {
   const { user, isLogged, signOut } = useAuth();
@@ -124,14 +225,77 @@ export function ProfileScreen() {
         </View>
       </View>
 
-      <View className="w-full md:w-1/2 md:mx-auto p-4">
+      <View className="w-full md:w-1/2 md:mx-auto p-4 pb-10">
         <View className="flex-row items-center justify-between mb-4">
           <Text className="font-heading font-bold text-denim text-xl">
             Atividade Recente
           </Text>
-          <Text className="font-heading font-medium text-orange text-base hover:underline cursor-pointer">
-            Ver todos
-          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Ver todas as atividades"
+            onPress={() => router.push('/(protected)/my-events')}
+          >
+            <Text className="font-heading font-medium text-orange text-base hover:underline cursor-pointer">
+              Ver todos
+            </Text>
+          </Pressable>
+        </View>
+
+        <View className="w-full gap-3">
+          {data?.events.length ? (
+            data.events.slice(0, 5).map((event) => {
+              const { title, subtitle } = formatEventLabel(event);
+              const isFavoriteEvent =
+                event.type === SystemEventTypes.PET_FAVORITED ||
+                event.type === SystemEventTypes.PET_UNFAVORITED;
+              const isVolunteerEvent =
+                event.type === SystemEventTypes.VOLUNTEER_REGISTERED;
+
+              return (
+                <View
+                  key={event.id}
+                  className="flex-row items-center gap-3.5 rounded-2xl border border-line bg-white p-4"
+                >
+                  <View className="size-10 rounded-full bg-peach items-center justify-center">
+                    {isFavoriteEvent ? (
+                      <HeartIcon
+                        size={20}
+                        color={palette.orange}
+                        weight="fill"
+                      />
+                    ) : isVolunteerEvent ? (
+                      <CalendarCheckIcon
+                        size={20}
+                        color={palette.denim}
+                        weight="fill"
+                      />
+                    ) : (
+                      <PawPrintIcon
+                        size={20}
+                        color={palette.denim}
+                        weight="fill"
+                      />
+                    )}
+                  </View>
+                  <View className="flex-1 gap-0.5">
+                    <Text className="font-heading-bold text-sm text-ink">
+                      {title}
+                    </Text>
+                    <Text className="font-body text-xs text-ink-muted">
+                      {subtitle}
+                    </Text>
+                  </View>
+                  <Text className="font-body text-xs text-ink-muted">
+                    {formatEventDate(event.emittedAt)}
+                  </Text>
+                </View>
+              );
+            })
+          ) : (
+            <Text className="font-body text-sm text-ink-muted">
+              Nenhuma atividade recente registrada.
+            </Text>
+          )}
         </View>
       </View>
     </ScrollView>

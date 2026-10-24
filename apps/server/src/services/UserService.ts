@@ -1,5 +1,6 @@
 import {
   CreateUserInput,
+  SystemEventTypes,
   UserRole,
   UserWithRelationsCount,
   UserWithCountAndDataOfRelations,
@@ -22,6 +23,7 @@ import { UUID } from '../domains/UUID';
 import { Url } from '../domains/Url';
 import { PasswordHasher } from '../security/PasswordHasher';
 import type { CacheProvider } from './RedisService';
+import type { EventsService } from './EventsService';
 
 export function buildUserProfileCacheKey(userId: string): string {
   return `user:profile:${userId}`;
@@ -39,6 +41,7 @@ export class UserService {
   constructor(
     private readonly repository: UserRepository,
     private readonly cache?: CacheProvider,
+    private readonly eventsService?: EventsService,
   ) {}
 
   public async authenticateWithGoogle(idToken: string) {
@@ -281,7 +284,18 @@ export class UserService {
     user.setLatitude(input.latitude);
     user.setLongitude(input.longitude);
 
-    return this.repository.create(user);
+    const created = await this.repository.create(user);
+    if (this.eventsService) {
+      await this.eventsService.createEvent({
+        type: SystemEventTypes.USER_REGISTERED,
+        userId: created.getId().toString(),
+        payload: {
+          role: created.getRole(),
+          provider: input.password ? 'local' : 'google',
+        },
+      });
+    }
+    return created;
   }
 
   public async updateAvatar(id: string, url: string) {

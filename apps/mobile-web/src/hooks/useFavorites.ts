@@ -46,6 +46,9 @@ export function useToggleFavorite() {
         queryClient.setQueryData(['user', 'profile'], context.previousProfile);
       }
     },
-    onSettled: () => void queryClient.invalidateQueries({ queryKey: ['user', 'profile'] }),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+      void queryClient.invalidateQueries({ queryKey: ['user', 'events'] });
+    },
   });
 }

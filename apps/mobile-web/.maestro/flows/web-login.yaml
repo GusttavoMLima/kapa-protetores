@@ -1,0 +1,23 @@
+url: http://localhost:8081/signIn
+name: Login Screen Test (Web)
+tags:
+  - smoke
+  - web
+---
+- launchApp
+- assertVisible: "Bem-vindo de volta"
+- assertVisible: "Entre para acompanhar suas adoções e favoritos."
+- tapOn: "kapa@gmail.com"
+- inputText: "johndoe@gmail.com"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Digite sua senha"
+    direction: DOWN
+- tapOn: "Digite sua senha"
+- inputText: "123456"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Entrar"
+    direction: DOWN
+- tapOn: "Entrar"
+- waitForAnimationToEnd

@@ -714,4 +714,65 @@ describe('UserController', () => {
     const typedBody = responseBody as { success: boolean };
     expect(typedBody.success).toBe(true);
   });
+
+  it('getMyEvents should return paginated user events', async () => {
+    const mockEventsService = {
+      getUserEvents: jest.fn().mockResolvedValue({
+        items: [
+          {
+            id: 'cjld2cyuq0000t3rmniod1foy',
+            type: 'PET_FAVORITED',
+            userId: '123e4567-e89b-12d3-a456-426614174000',
+            animalId: 'cjld2cjxh0000qzrmn831i7rn',
+            payload: { animalName: 'Thor' },
+            emittedAt: '2026-10-24T12:00:00.000Z',
+          },
+        ],
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+      }),
+    } as unknown as import('../../src/services/EventsService').EventsService;
+
+    const controller = new UserController(
+      {} as UserService,
+      undefined,
+      mockEventsService,
+    );
+
+    const req = {
+      user: { sub: '123e4567-e89b-12d3-a456-426614174000' },
+      query: { page: '1', limit: '10', type: 'PET_FAVORITED' },
+    } as unknown as Request;
+
+    let statusCode: number | undefined;
+    let responseBody: unknown;
+    const res = {
+      status(code: number) {
+        statusCode = code;
+        return this;
+      },
+      json(data: unknown) {
+        responseBody = data;
+        return this;
+      },
+    } as unknown as Response;
+
+    await controller.getMyEvents(req, res, () => {});
+    expect(statusCode).toBe(200);
+    expect(mockEventsService.getUserEvents).toHaveBeenCalledWith({
+      userId: '123e4567-e89b-12d3-a456-426614174000',
+      page: 1,
+      limit: 10,
+      type: 'PET_FAVORITED',
+    });
+    const typedBody = responseBody as {
+      success: boolean;
+      data: { total: number; items: Array<{ type: string }> };
+    };
+    expect(typedBody.success).toBe(true);
+    expect(typedBody.data.total).toBe(1);
+    expect(typedBody.data.items[0].type).toBe('PET_FAVORITED');
+  });
 });

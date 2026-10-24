@@ -1,4 +1,8 @@
-import type { Adoption, AdoptionApplication } from '@kapa/shared';
+import {
+  SystemEventTypes,
+  type Adoption,
+  type AdoptionApplication,
+} from '@kapa/shared';
 import { ConflictError, NotFoundError } from '../errors';
 import { AdoptionRepository } from '../repositories/AdoptionRepository';
 import {
@@ -10,6 +14,7 @@ import {
   buildUserProfileCacheKey,
 } from './UserService';
 import type { CacheProvider } from './RedisService';
+import type { EventsService } from './EventsService';
 
 const ADOPTIONS_CACHE_TTL_SECONDS = 60;
 const ADMIN_ADOPTIONS_CACHE_KEY = 'adoptions:admin:all';
@@ -22,11 +27,20 @@ export class AdoptionService {
   constructor(
     private readonly repository: AdoptionRepository,
     private readonly cache?: CacheProvider,
+    private readonly eventsService?: EventsService,
   ) {}
 
   public async create(adopterId: string, animalId: string, application: AdoptionApplication): Promise<Adoption> {
     try {
       const created = await this.repository.create(adopterId, animalId, application);
+      if (this.eventsService) {
+        await this.eventsService.createEvent({
+          type: SystemEventTypes.ADOPTION_REQUESTED,
+          userId: adopterId,
+          animalId,
+          payload: { adoptionId: created.id },
+        });
+      }
       if (this.cache) {
         await Promise.all([
           this.cache.deleteCache(buildAdopterAdoptionsCacheKey(adopterId)),
@@ -94,6 +108,30 @@ export class AdoptionService {
 
   public async updateStatus(id: string, status: Adoption['status']): Promise<Adoption> {
     const updated = await this.repository.updateStatus(id, status);
+    if (this.eventsService) {
+      if (status === 'approved') {
+        await this.eventsService.createEvent({
+          type: SystemEventTypes.ADOPTION_APPROVED,
+          userId: updated.adopterId,
+          animalId: updated.animalId,
+          payload: { adoptionId: updated.id },
+        });
+      } else if (status === 'rejected') {
+        await this.eventsService.createEvent({
+          type: SystemEventTypes.ADOPTION_REJECTED,
+          userId: updated.adopterId,
+          animalId: updated.animalId,
+          payload: { adoptionId: updated.id },
+        });
+      } else if (status === 'canceled') {
+        await this.eventsService.createEvent({
+          type: SystemEventTypes.ADOPTION_CANCELED,
+          userId: updated.adopterId,
+          animalId: updated.animalId,
+          payload: { adoptionId: updated.id },
+        });
+      }
+    }
     if (this.cache) {
       await Promise.all([
         this.cache.deleteCache(ADMIN_ADOPTIONS_CACHE_KEY),

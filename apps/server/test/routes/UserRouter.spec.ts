@@ -12,6 +12,7 @@ describe('UserRouter Endpoints Coverage', () => {
       updateProfile: () => {},
       deleteMe: () => {},
       getProfile: () => {},
+      getMyEvents: () => {},
       updatePassword: () => {},
       uploadAvatar: () => {},
       getById: () => {},
@@ -46,6 +47,7 @@ describe('UserRouter Endpoints Coverage', () => {
     expect(registered.some((r) => r.path === '/me/avatar' && r.methods?.post)).toBe(true);
     expect(registered.some((r) => r.path === '/me/delete' || (r.path === '/me' && r.methods?.delete))).toBe(true);
     expect(registered.some((r) => r.path === '/me/profile' && r.methods?.get)).toBe(true);
+    expect(registered.some((r) => r.path === '/me/events' && r.methods?.get)).toBe(true);
     expect(registered.some((r) => r.path === '/me/password' && r.methods?.patch)).toBe(true);
 
     // Individual user routes

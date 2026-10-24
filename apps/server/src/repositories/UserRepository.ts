@@ -1,4 +1,5 @@
 import {
+  SystemEventTypes,
   UserRole,
   UserWithRelationsCount,
   UserWithCountAndDataOfRelations,
@@ -143,7 +144,8 @@ export class UserRepository implements IUserRepository {
           },
         },
         events: {
-          take: 2,
+          take: 5,
+          orderBy: { emitted_at: 'desc' },
         },
         _count: {
           select: {
@@ -182,7 +184,7 @@ export class UserRepository implements IUserRepository {
       })),
       events: data.events.map((evt) => ({
         id: evt.id,
-        type: evt.type,
+        type: evt.type as SystemEventTypes,
         userId: evt.user_id,
         animalId: evt.animal_id,
         payload: evt.payload as Record<string, unknown> | null,

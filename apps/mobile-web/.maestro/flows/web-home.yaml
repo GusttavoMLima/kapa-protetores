@@ -1,0 +1,16 @@
+url: http://localhost:8081
+name: Home Screen
+tags:
+  - web
+  - home
+---
+- runFlow:
+    file: web-login.yaml
+
+- assertVisible: "Adotar Agora"
+- scrollUntilVisible:
+    element:
+      text: "Macho"
+      caseSensitive: false
+    direction: DOWN
+    centerElement: true

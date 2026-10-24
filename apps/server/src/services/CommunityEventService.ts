@@ -1,8 +1,13 @@
-import type { CommunityEventListItem } from '@kapa/shared';
+import { SystemEventTypes, type CommunityEventListItem } from '@kapa/shared';
 import { NotFoundError, ConflictError } from '../errors';
 import { CommunityEventRepository } from '../repositories/CommunityEventRepository';
 import type { CreateCommunityEventData } from '../validation/communityEventSchema';
 import type { CacheProvider } from './RedisService';
+import type { EventsService } from './EventsService';
+import {
+  buildUserCountsCacheKey,
+  buildUserProfileCacheKey,
+} from './UserService';
 
 const COMMUNITY_EVENTS_MANAGER_CACHE_KEY = 'community-events:manager';
 const COMMUNITY_EVENTS_CACHE_TTL_SECONDS = 60;
@@ -11,6 +16,7 @@ export class CommunityEventService {
   constructor(
     private readonly repository: CommunityEventRepository,
     private readonly cache?: CacheProvider,
+    private readonly eventsService?: EventsService,
   ) {}
 
   public listUpcomingForVolunteer(
@@ -59,8 +65,22 @@ export class CommunityEventService {
         volunteerId,
         communityEventId,
       );
+      if (this.eventsService) {
+        await this.eventsService.createEvent({
+          type: SystemEventTypes.VOLUNTEER_REGISTERED,
+          userId: volunteerId,
+          payload: {
+            communityEventId,
+            eventTitle: updated.title,
+          },
+        });
+      }
       if (this.cache) {
-        await this.cache.deleteCache(COMMUNITY_EVENTS_MANAGER_CACHE_KEY);
+        await Promise.all([
+          this.cache.deleteCache(COMMUNITY_EVENTS_MANAGER_CACHE_KEY),
+          this.cache.deleteCache(buildUserProfileCacheKey(volunteerId)),
+          this.cache.deleteCache(buildUserCountsCacheKey(volunteerId)),
+        ]);
       }
       return updated;
     } catch (error) {

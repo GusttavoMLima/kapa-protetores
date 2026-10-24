@@ -9,8 +9,14 @@ async function createAdoption(input: CreateAdoptionInput): Promise<Adoption> {
 }
 
 export function useCreateAdoption() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createAdoption,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['adoptions', 'mine'] });
+      void queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+      void queryClient.invalidateQueries({ queryKey: ['user', 'events'] });
+    },
   });
 }
 

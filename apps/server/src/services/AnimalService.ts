@@ -1,9 +1,16 @@
 import { AnimalRepositoryInterface } from '../interfaces/AnimalRepositoryInterface';
 import { Animal } from '../models/Animal';
 import { NotFoundError, BadRequestError } from '../errors';
-import type { CreateAnimalInput, AnimalManagementQuery, UpdateAnimalInput, Animal as AnimalDTO } from '@kapa/shared';
+import {
+  SystemEventTypes,
+  type CreateAnimalInput,
+  type AnimalManagementQuery,
+  type UpdateAnimalInput,
+  type Animal as AnimalDTO,
+} from '@kapa/shared';
 import { Cuid } from '../domains/Cuid';
 import type { CacheProvider } from './RedisService';
+import type { EventsService } from './EventsService';
 
 export const AVAILABLE_ANIMALS_CACHE_KEY = 'animals:available';
 const AVAILABLE_ANIMALS_CACHE_TTL_SECONDS = 60;
@@ -16,6 +23,7 @@ export class AnimalService {
   constructor(
     private readonly animalRepository: AnimalRepositoryInterface,
     private readonly cache?: CacheProvider,
+    private readonly eventsService?: EventsService,
   ) {}
 
   public async getAll() {
@@ -87,8 +95,26 @@ export class AnimalService {
 
   public async update(id: string, input: UpdateAnimalInput): Promise<Animal> {
     Cuid.create(id);
+    const previous =
+      input.status !== undefined && this.eventsService
+        ? await this.animalRepository.findById(id)
+        : null;
     const animal = await this.animalRepository.update(id, input);
     if (!animal) throw new NotFoundError('Animal não encontrado.');
+    if (
+      this.eventsService &&
+      previous &&
+      previous.getStatus() !== animal.getStatus()
+    ) {
+      await this.eventsService.createEvent({
+        type: SystemEventTypes.ANIMAL_STATUS_UPDATED,
+        animalId: id,
+        payload: {
+          previousStatus: previous.getStatus(),
+          newStatus: animal.getStatus(),
+        },
+      });
+    }
     if (this.cache) {
       await Promise.all([
         this.cache.deleteCache(AVAILABLE_ANIMALS_CACHE_KEY),
@@ -154,6 +180,17 @@ export class AnimalService {
     if (input.status !== undefined) animal.setStatus(input.status);
 
     const created = await this.animalRepository.create(animal);
+    if (this.eventsService) {
+      await this.eventsService.createEvent({
+        type: SystemEventTypes.ANIMAL_CREATED,
+        animalId: created.getId().toString(),
+        payload: {
+          animalName: created.getName(),
+          species: created.getSpecie(),
+          status: created.getStatus(),
+        },
+      });
+    }
     if (this.cache) {
       await this.cache.deleteCache(AVAILABLE_ANIMALS_CACHE_KEY);
     }
