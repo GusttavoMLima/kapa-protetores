@@ -8,6 +8,7 @@ import { CredentialsRouter } from './CredentialsRouter';
 import { AdopterProfileRouter } from './AdopterProfileRouter';
 import { AdoptionRouter } from './AdoptionRouter';
 import { FavoriteRouter } from './FavoriteRouter';
+import { VolunteerApplicationRouter } from './VolunteerApplicationRouter';
 
 export class ApiRouter {
   public readonly router: Router = Router();
@@ -22,6 +23,7 @@ export class ApiRouter {
     private readonly adopterProfileRouter?: AdopterProfileRouter,
     private readonly adoptionRouter?: AdoptionRouter,
     private readonly favoriteRouter?: FavoriteRouter,
+    private readonly volunteerApplicationRouter?: VolunteerApplicationRouter,
   ) {
     this.initRoutes();
   }
@@ -41,6 +43,12 @@ export class ApiRouter {
     }
     if (this.favoriteRouter) {
       this.router.use('/favorites', this.favoriteRouter.router);
+    }
+    if (this.volunteerApplicationRouter) {
+      this.router.use(
+        '/volunteer-applications',
+        this.volunteerApplicationRouter.router,
+      );
     }
   }
 }

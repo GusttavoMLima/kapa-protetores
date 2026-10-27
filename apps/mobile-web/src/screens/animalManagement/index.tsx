@@ -1,15 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { MagnifyingGlassIcon, PawPrintIcon, PlusIcon, PencilSimpleIcon } from 'phosphor-react-native';
-import type { AnimalManagementPage, AnimalStatus, Species } from '@kapa/shared';
+import { MagnifyingGlassIcon, PawPrintIcon, PlusIcon, PencilSimpleIcon, SparkleIcon } from 'phosphor-react-native';
+import type { AnimalManagementPage, AnimalStatus, ShelterBudgetPrediction, Species } from '@kapa/shared';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton } from '@/components/buttons/primary';
-import { fetchManagedAnimals } from '@/services/animalManagement';
+import { fetchManagedAnimals, fetchShelterBudgetPrediction } from '@/services/animalManagement';
 import { ApiError } from '@/services/api';
 import { palette } from '@/theme';
 import { AnimalThumbnail, BackLink, ChoiceGroup, Notice, StatusBadge, TextButton } from './components';
 import { sizeLabel, speciesLabels, statusLabels } from './model';
+
+function formatCurrencyBRL(value: number): string {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value);
+}
 
 export function AnimalManagementScreen() {
   const [search, setSearch] = useState('');
@@ -19,6 +26,7 @@ export function AnimalManagementScreen() {
   const [sort, setSort] = useState<'recent' | 'name'>('recent');
   const [page, setPage] = useState(1);
   const [data, setData] = useState<AnimalManagementPage | null>(null);
+  const [budgetPrediction, setBudgetPrediction] = useState<ShelterBudgetPrediction | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const activeRequest = useRef<AbortController | null>(null);
@@ -32,6 +40,13 @@ export function AnimalManagementScreen() {
     const controller = new AbortController();
     activeRequest.current = controller;
     setLoading(true); setError('');
+    void fetchShelterBudgetPrediction(controller.signal)
+      .then((prediction) => {
+        if (!controller.signal.aborted) {
+          setBudgetPrediction(prediction);
+        }
+      })
+      .catch(() => undefined);
     fetchManagedAnimals({ page, pageSize: 12, search: debouncedSearch, species: species || undefined, status, sort }, controller.signal)
       .then((result) => {
         if (controller.signal.aborted) return;
@@ -80,6 +95,63 @@ export function AnimalManagementScreen() {
             </Pressable>
           ))}
         </ScrollView>
+
+        {budgetPrediction ? (
+          <View className="bg-white rounded-xl border border-border p-5 md:p-6 gap-4">
+            <View className="flex-col md:flex-row md:items-center justify-between gap-3">
+              <View className="flex-row items-center gap-3">
+                <View className="size-11 rounded-full bg-peach items-center justify-center">
+                  <SparkleIcon size={22} color={palette.orange} weight="fill" />
+                </View>
+                <View className="gap-0.5">
+                  <Text className="font-heading-bold text-lg text-ink">
+                    Previsão Mensal de Custos (IA · ONNX)
+                  </Text>
+                  <Text className="font-body text-xs text-ink-muted">
+                    Estimativa calculada por árvore de decisão para os{' '}
+                    {budgetPrediction.activeAnimalsCount} animais sob cuidado no abrigo
+                  </Text>
+                </View>
+              </View>
+              <View className="md:items-end">
+                <Text className="font-heading-bold text-2xl md:text-3xl text-orange-dark">
+                  {formatCurrencyBRL(budgetPrediction.totalPredictedBudget)}
+                </Text>
+                <Text className="font-body text-xs text-ink-muted">
+                  Média de {formatCurrencyBRL(budgetPrediction.averageCostPerAnimal)} / animal
+                </Text>
+              </View>
+            </View>
+
+            <View className="flex-row flex-wrap gap-3 pt-2 border-t border-border">
+              <View className="flex-1 min-w-[140px] rounded-lg bg-cream p-3 gap-0.5">
+                <Text className="font-body-medium text-xs text-ink-muted">
+                  Cães ({budgetPrediction.bySpecies.dog.count})
+                </Text>
+                <Text className="font-heading-bold text-base text-denim">
+                  {formatCurrencyBRL(budgetPrediction.bySpecies.dog.totalCost)}
+                </Text>
+              </View>
+              <View className="flex-1 min-w-[140px] rounded-lg bg-cream p-3 gap-0.5">
+                <Text className="font-body-medium text-xs text-ink-muted">
+                  Gatos ({budgetPrediction.bySpecies.cat.count})
+                </Text>
+                <Text className="font-heading-bold text-base text-denim">
+                  {formatCurrencyBRL(budgetPrediction.bySpecies.cat.totalCost)}
+                </Text>
+              </View>
+              <View className="flex-1 min-w-[140px] rounded-lg bg-cream p-3 gap-0.5">
+                <Text className="font-body-medium text-xs text-ink-muted">
+                  Em tratamento ({budgetPrediction.byStatus.treating.count})
+                </Text>
+                <Text className="font-heading-bold text-base text-denim">
+                  {formatCurrencyBRL(budgetPrediction.byStatus.treating.totalCost)}
+                </Text>
+              </View>
+            </View>
+          </View>
+        ) : null}
+
         <View className="bg-white rounded-xl border border-border overflow-hidden">
           <View className="p-5 md:p-6 gap-5">
             <View className="flex-col md:flex-row justify-between md:items-center gap-3">

@@ -1,4 +1,4 @@
-import type { User } from './user';
+import type { User, UserRole } from './user';
 
 export interface CommunityEventVolunteer {
   volunteerId: string;
@@ -7,6 +7,35 @@ export interface CommunityEventVolunteer {
 }
 
 export type CommunityEventType = 'care' | 'cleaning' | 'event' | 'transport';
+
+export type VolunteerApplicationStatus = 'pending' | 'approved' | 'rejected';
+
+export type VolunteerAvailability = 'weekdays' | 'weekends' | 'flexible';
+
+export interface VolunteerApplicationData {
+  fullName: string;
+  phone: string;
+  areasOfInterest: CommunityEventType[];
+  availability: VolunteerAvailability;
+  motivation: string;
+  acceptsTerms: boolean;
+}
+
+export interface VolunteerApplication {
+  id: string;
+  userId: string;
+  status: VolunteerApplicationStatus;
+  application: VolunteerApplicationData;
+  appliedAt: string;
+  updatedAt?: string;
+  user?: {
+    id: string;
+    username: string;
+    email: string;
+    avatar?: string | null;
+    role: UserRole;
+  };
+}
 
 export interface CommunityEvent {
   id: string;
@@ -47,6 +76,9 @@ export enum SystemEventTypes {
   ANIMAL_CREATED = 'ANIMAL_CREATED',
   ANIMAL_STATUS_UPDATED = 'ANIMAL_STATUS_UPDATED',
   VOLUNTEER_REGISTERED = 'VOLUNTEER_REGISTERED',
+  VOLUNTEER_APPLICATION_SUBMITTED = 'VOLUNTEER_APPLICATION_SUBMITTED',
+  VOLUNTEER_APPLICATION_APPROVED = 'VOLUNTEER_APPLICATION_APPROVED',
+  VOLUNTEER_APPLICATION_REJECTED = 'VOLUNTEER_APPLICATION_REJECTED',
   PET_FAVORITED = 'PET_FAVORITED',
   PET_UNFAVORITED = 'PET_UNFAVORITED',
   USER_REGISTERED = 'USER_REGISTERED',
@@ -93,6 +125,21 @@ export interface VolunteerRegisteredEventPayload {
   eventTitle?: string;
 }
 
+export interface VolunteerApplicationSubmittedEventPayload {
+  applicationId: string;
+}
+
+export interface VolunteerApplicationApprovedEventPayload {
+  applicationId: string;
+  approvedByUserId?: string;
+}
+
+export interface VolunteerApplicationRejectedEventPayload {
+  applicationId: string;
+  rejectedByUserId?: string;
+  reason?: string;
+}
+
 export interface PetFavoritedEventPayload {
   animalName?: string;
 }
@@ -114,6 +161,9 @@ export interface SystemEventPayloadMap {
   [SystemEventTypes.ANIMAL_CREATED]: AnimalCreatedEventPayload;
   [SystemEventTypes.ANIMAL_STATUS_UPDATED]: AnimalStatusUpdatedEventPayload;
   [SystemEventTypes.VOLUNTEER_REGISTERED]: VolunteerRegisteredEventPayload;
+  [SystemEventTypes.VOLUNTEER_APPLICATION_SUBMITTED]: VolunteerApplicationSubmittedEventPayload;
+  [SystemEventTypes.VOLUNTEER_APPLICATION_APPROVED]: VolunteerApplicationApprovedEventPayload;
+  [SystemEventTypes.VOLUNTEER_APPLICATION_REJECTED]: VolunteerApplicationRejectedEventPayload;
   [SystemEventTypes.PET_FAVORITED]: PetFavoritedEventPayload;
   [SystemEventTypes.PET_UNFAVORITED]: PetUnfavoritedEventPayload;
   [SystemEventTypes.USER_REGISTERED]: UserRegisteredEventPayload;

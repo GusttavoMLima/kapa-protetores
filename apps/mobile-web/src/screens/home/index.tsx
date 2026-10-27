@@ -41,7 +41,7 @@ const secondaryHomeCards: SecondaryCardProps[] = [
     description: 'Descubra como nos apoiar com seu tempo ou doações.',
     link: {
       label: 'Como ajudar',
-      href: '/adopet',
+      href: '/(protected)/volunteer',
       color: '#615FFF',
     },
   },
@@ -91,6 +91,21 @@ export function HomeScreen() {
           link: {
             label: 'Gerenciar semana',
             href: '/(protected)/manage-activities',
+            color: palette.denim,
+          },
+        },
+        {
+          icon: {
+            component: (
+              <HandHeartIcon size={24} color={palette.denim} weight="fill" />
+            ),
+            backgroundColor: palette.peach,
+          },
+          title: 'Candidaturas de voluntários',
+          description: 'Analise e aprove novos voluntários para o abrigo.',
+          link: {
+            label: 'Ver candidaturas',
+            href: '/(protected)/gestao/voluntarios',
             color: palette.denim,
           },
         },

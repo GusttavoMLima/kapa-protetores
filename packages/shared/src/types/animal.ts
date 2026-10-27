@@ -153,3 +153,30 @@ export type FavoritedAnimal = {
 export type RecommendedAnimals = FavoritedAnimal & {
   isFavorited?: boolean;
 };
+
+export interface AnimalBudgetPredictionItem {
+  id: string;
+  name: string;
+  species: Species;
+  size: number;
+  status: AnimalStatus;
+  healthCondition: Conditions;
+  predictedCost: number;
+}
+
+export interface ShelterBudgetCategorySummary {
+  count: number;
+  totalCost: number;
+}
+
+export interface ShelterBudgetPrediction {
+  totalPredictedBudget: number;
+  activeAnimalsCount: number;
+  averageCostPerAnimal: number;
+  bySpecies: Record<Species, ShelterBudgetCategorySummary>;
+  byStatus: Record<
+    Exclude<AnimalStatus, 'adopted'>,
+    ShelterBudgetCategorySummary
+  >;
+  animals: AnimalBudgetPredictionItem[];
+}

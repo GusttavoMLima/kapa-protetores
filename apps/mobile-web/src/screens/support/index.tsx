@@ -76,24 +76,31 @@ export function SupportScreen() {
             </View>
           </PrimaryCard>
         </Pressable>
-        <PrimaryCard className="p-4 gap-3 flex-1 min-w-[140px] justify-between">
-          <View className="bg-blue-100 size-10 md:size-12 rounded-full flex items-center justify-center">
-            <HandHeartIcon
-              size={Platform.OS === 'web' ? 25 : 20}
-              color={palette.denim}
-              weight="bold"
-            />
-          </View>
-          <View className="gap-1">
-            <Text className="font-heading font-bold text-denim text-lg md:text-xl">
-              Ser Voluntário
-            </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Abrir tela de voluntariado"
+          onPress={() => router.push('/(protected)/volunteer')}
+          className="flex-1 min-w-[140px]"
+        >
+          <PrimaryCard className="p-4 gap-3 flex-1 justify-between active:opacity-90">
+            <View className="bg-blue-100 size-10 md:size-12 rounded-full flex items-center justify-center">
+              <HandHeartIcon
+                size={Platform.OS === 'web' ? 25 : 20}
+                color={palette.denim}
+                weight="bold"
+              />
+            </View>
+            <View className="gap-1">
+              <Text className="font-heading font-bold text-denim text-lg md:text-xl">
+                Ser Voluntário
+              </Text>
 
-            <Text className="font-body text-ink-muted font-medium text-sm md:text-base">
-              Doe seu tempo
-            </Text>
-          </View>
-        </PrimaryCard>
+              <Text className="font-body text-ink-muted font-medium text-sm md:text-base">
+                Doe seu tempo
+              </Text>
+            </View>
+          </PrimaryCard>
+        </Pressable>
         <PrimaryCard className="p-4 gap-3 flex-1 min-w-[140px] justify-between">
           <View className="bg-zinc-200 size-10 md:size-12 rounded-full flex items-center justify-center">
             <BedIcon

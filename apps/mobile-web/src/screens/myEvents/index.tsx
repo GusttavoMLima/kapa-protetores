@@ -107,6 +107,28 @@ export function formatSystemEventDetails(event: SystemEvent): {
           : 'Você se inscreveu em uma atividade do abrigo.',
         badge: 'Voluntariado',
       };
+    case SystemEventTypes.VOLUNTEER_APPLICATION_SUBMITTED:
+      return {
+        title: 'Solicitação de voluntariado enviada',
+        subtitle:
+          'Você enviou uma ficha para atuar como voluntário(a) no abrigo.',
+        badge: 'Voluntariado',
+      };
+    case SystemEventTypes.VOLUNTEER_APPLICATION_APPROVED:
+      return {
+        title: 'Voluntariado aprovado!',
+        subtitle:
+          'Sua candidatura foi aprovada e seu acesso às atividades semanais foi liberado.',
+        badge: 'Voluntariado',
+      };
+    case SystemEventTypes.VOLUNTEER_APPLICATION_REJECTED:
+      return {
+        title: 'Solicitação de voluntariado não aprovada',
+        subtitle: reason
+          ? `Motivo informado: ${reason}`
+          : 'Confira mais detalhes na área de Voluntariado.',
+        badge: 'Voluntariado',
+      };
     case SystemEventTypes.ANIMAL_CREATED:
       return {
         title: 'Animal cadastrado no abrigo',

@@ -25,7 +25,9 @@ export default function ProtectedLayout() {
       <Stack.Screen name="adopet/[id]/application" />
       <Stack.Screen name="my-adoptions" />
       <Stack.Screen name="my-events" />
+      <Stack.Screen name="volunteer" />
       <Stack.Screen name="gestao/solicitacoes" />
+      <Stack.Screen name="gestao/voluntarios" />
       <Stack.Screen name="manage-activities" />
       <Stack.Screen name="adopter-profile" />
       <Stack.Screen name="(adopter)/pix" />

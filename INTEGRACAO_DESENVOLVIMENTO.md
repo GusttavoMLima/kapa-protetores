@@ -1088,3 +1088,35 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
   * [`apps/server/test/services/EventsService.spec.ts`](apps/server/test/services/EventsService.spec.ts), [`apps/server/test/controllers/UserController.spec.ts`](apps/server/test/controllers/UserController.spec.ts), [`apps/server/test/routes/UserRouter.spec.ts`](apps/server/test/routes/UserRouter.spec.ts) e [`apps/mobile-web/test/screens/MyEventsScreen.spec.tsx`](apps/mobile-web/test/screens/MyEventsScreen.spec.tsx).
 * **Atualização de Segurança de CI (`scripts/audit-allowlist.json` e `.trivyignore`)**:
   * Sincronizados os novos advisories publicados no GitHub Advisory Database (`GHSA-27r3-jxmh-p828` em `body-parser`, `GHSA-q7qp-rjg7-q26m` em `multer`, `GHSA-xjj6-f33q-929c` em `undici` de dev/test e `GHSA-mrhx-c7xc-m3w5` em `zod` 3.x) em [`scripts/audit-allowlist.json`](scripts/audit-allowlist.json) e seus respectivos CVEs (`CVE-2026-111181`, `CVE-2026-113872`, `CVE-2023-54404`) em [`.trivyignore`](.trivyignore), mantendo as justificativas técnicas e mitigações ativas da API.
+
+---
+
+### 39. Fluxo de Inscrição e Aprovação de Voluntários (`tb_volunteer_applications`, `/(protected)/volunteer` e `/api/volunteer-applications`)
+
+* **Schema e Persistência (`tb_volunteer_applications` — Migration `20261026120000_add_volunteer_applications`)**:
+  * Criado o modelo `VolunteerApplications` (`@@map("tb_volunteer_applications")`) e os enums `VolunteerApplicationStatus` (`pending`, `approved`, `rejected`) e `VolunteerAvailability` (`weekdays`, `weekends`, `flexible`) em [`schema.prisma`](apps/server/prisma/schema.prisma), com colunas tipadas relacionais (`id`, `user_id`, `status`, `full_name`, `phone`, `areas_of_interest CommunityEventType[]`, `availability`, `motivation`, `accepts_terms`, `applied_at`, `updated_at` e índices em `[user_id]`, `[status]` e `[user_id, status]`).
+  * [`VolunteerApplicationRepository`](apps/server/src/repositories/VolunteerApplicationRepository.ts) utiliza transações serializáveis (`Prisma.TransactionIsolationLevel.Serializable`) na criação para impedir duplicidade de solicitações pendentes, e atualiza atomicamente o `status` da candidatura junto à promoção de `role = 'volunteer'` em `tb_users` quando aprovada.
+  * `tb_events` permanece dedicada à trilha de auditoria (`VOLUNTEER_APPLICATION_SUBMITTED`, `VOLUNTEER_APPLICATION_APPROVED` e `VOLUNTEER_APPLICATION_REJECTED`) emitida pelo `EventsService`.
+* **Endpoints da API ([`VolunteerApplicationRouter.ts`](apps/server/src/routes/VolunteerApplicationRouter.ts) e [`VolunteerApplicationService.ts`](apps/server/src/services/VolunteerApplicationService.ts))**:
+  * `POST /api/volunteer-applications`: envia a ficha de voluntariado do usuário autenticado (`fullName`, `phone`, `areasOfInterest`, `availability`, `motivation`, `acceptsTerms`), bloqueando duplicidade de solicitações pendentes.
+  * `GET /api/volunteer-applications/mine`: retorna a solicitação mais recente do usuário autenticado.
+  * `GET /api/volunteer-applications`: listagem administrativa restrita a `admin` e `protector`.
+  * `PATCH /api/volunteer-applications/:id/status`: aprova (`approved`) ou recusa (`rejected`) uma candidatura de voluntariado.
+* **Telas Mobile / Web (`apps/mobile-web`)**:
+  * [`VolunteerScreen`](apps/mobile-web/src/screens/volunteer/index.tsx) (`/(protected)/volunteer`): acessível pelos cards **"Ser Voluntário"** na aba Apoiar ([`SupportScreen`](apps/mobile-web/src/screens/support/index.tsx)) e na [`HomeScreen`](apps/mobile-web/src/screens/home/index.tsx). Exibe o formulário de inscrição, o estado "Solicitação em análise" ou o acesso direto às atividades semanais (`/(protected)/(tabs)/activities`) quando aprovado.
+  * [`VolunteerRequestsScreen`](apps/mobile-web/src/screens/volunteerRequests/index.tsx) (`/(protected)/gestao/voluntarios`): tela de análise e aprovação de voluntários para `admin` e `protector`.
+* **Testes Automatizados**:
+  * [`apps/server/test/services/VolunteerApplicationService.spec.ts`](apps/server/test/services/VolunteerApplicationService.spec.ts) e [`apps/mobile-web/test/screens/VolunteerScreen.spec.tsx`](apps/mobile-web/test/screens/VolunteerScreen.spec.tsx).
+
+---
+
+### 40. Predição de Orçamento Mensal do Abrigo com Modelo ONNX (`adopet_tree_model.onnx` e `PredictionService`)
+
+* **Motor de Inferência ONNX Nativo em TypeScript ([`apps/server/src/ml/onnxTreeRunner.ts`](apps/server/src/ml/onnxTreeRunner.ts) e [`apps/server/src/ml/adopet_tree_model.onnx`](apps/server/src/ml/adopet_tree_model.onnx))**:
+  * Carrega diretamente o binário `adopet_tree_model.onnx` (`TreeEnsembleRegressor` / `DecisionTreeRegressor` exportado via `skl2onnx`) e avalia a árvore de decisão em memória sem dependências nativas C++ externas.
+  * Recebe o vetor de 9 features por animal (`species`, `size`, `health_condition`, `castrated`, `vaccinated`, `dewormed`, `v10_doses`, `rabies_doses`, `deworming_doses`).
+* **Serviço e Endpoint ([`PredictionService.ts`](apps/server/src/services/PredictionService.ts) e `GET /api/animals/management/budget-prediction`)**:
+  * `predictFutureBudget()` consulta os animais não adotados (`status !== 'adopted'`), calcula o custo mensal previsto de cada animal, agrega totais por espécie (`bySpecies`) e status (`byStatus`), e armazena o resultado em cache no Redis (`animals:shelter:budget-prediction`, TTL 60s) com invalidação automática em `AnimalService.create`, `AnimalService.update` e `AdoptionService.updateStatus`.
+  * Exposto em `GET /api/animals/management/budget-prediction` para `admin`, `protector` e `volunteer`, e integrado no painel de Gestão do Abrigo ([`apps/mobile-web/src/screens/animalManagement/index.tsx`](apps/mobile-web/src/screens/animalManagement/index.tsx)).
+* **Testes Automatizados**:
+  * [`apps/server/test/services/PredictionService.spec.ts`](apps/server/test/services/PredictionService.spec.ts).

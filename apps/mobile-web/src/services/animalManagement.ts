@@ -1,6 +1,17 @@
-import type { AnimalManagementQuery, UpdateAnimalInput } from '@kapa/shared';
+import type {
+  AnimalManagementQuery,
+  ShelterBudgetPrediction,
+  UpdateAnimalInput,
+} from '@kapa/shared';
 import { apiRequest } from './api';
 import { managedAnimalSchema, managementPageSchema } from '../screens/animalManagement/model';
+
+export async function fetchShelterBudgetPrediction(signal?: AbortSignal) {
+  return apiRequest<ShelterBudgetPrediction>(
+    '/animals/management/budget-prediction',
+    { signal },
+  );
+}
 
 export async function fetchManagedAnimals(query: AnimalManagementQuery, signal?: AbortSignal) {
   const params = new URLSearchParams({ page: String(query.page), pageSize: String(query.pageSize), sort: query.sort });

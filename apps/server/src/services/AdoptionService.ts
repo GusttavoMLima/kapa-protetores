@@ -15,6 +15,7 @@ import {
 } from './UserService';
 import type { CacheProvider } from './RedisService';
 import type { EventsService } from './EventsService';
+import { SHELTER_BUDGET_PREDICTION_CACHE_KEY } from './PredictionService';
 
 const ADOPTIONS_CACHE_TTL_SECONDS = 60;
 const ADMIN_ADOPTIONS_CACHE_KEY = 'adoptions:admin:all';
@@ -147,6 +148,7 @@ export class AdoptionService {
           ? this.cache.deleteCache(buildUserCountsCacheKey(updated.adopterId))
           : Promise.resolve(),
         this.cache.deleteCache(AVAILABLE_ANIMALS_CACHE_KEY),
+        this.cache.deleteCache(SHELTER_BUDGET_PREDICTION_CACHE_KEY),
         updated.animalId
           ? this.cache.deleteCache(buildPublicAnimalCacheKey(updated.animalId))
           : Promise.resolve(),

@@ -3,9 +3,29 @@ import { AnimalService } from '../services/AnimalService';
 import { BadRequestError } from '../errors';
 import type { ApiResponse } from '@kapa/shared';
 import { animalIdSchema, animalManagementQuerySchema } from '../validation/schemas';
+import type { PredictionService } from '../services/PredictionService';
 
 export class AnimalsController {
-  constructor(private readonly animalService: AnimalService) {}
+  constructor(
+    private readonly animalService: AnimalService,
+    private readonly predictionService?: PredictionService,
+  ) {}
+
+  public getBudgetPrediction = async (
+    _req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!this.predictionService) {
+        throw new BadRequestError('Serviço de predição não configurado.');
+      }
+      const data = await this.predictionService.predictFutureBudget();
+      res.status(200).json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  };
 
   public getManagementPage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

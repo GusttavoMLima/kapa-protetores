@@ -19,9 +19,10 @@ model User {
   created_at      DateTime                   @default(now()) @map("createdAt")
   adoptions       Adoptions[]
   favorites       Favorites[]
-  events          Events[]
-  volunteers      CommunityEventVolunteers[]
-  adopter_profile AdopterProfile?
+  events                 Events[]
+  volunteers             CommunityEventVolunteers[]
+  volunteer_applications VolunteerApplications[]
+  adopter_profile        AdopterProfile?
 
   @@index([username])
   @@map("tb_users")
@@ -196,6 +197,39 @@ model CommunityEventVolunteers {
   @@index([volunteer_id])
   @@index([community_event_id])
   @@map("tb_community_event_volunteers")
+}
+
+model VolunteerApplications {
+  id                String                     @id @default(cuid())
+  user_id           String                     @map("userId")
+  status            VolunteerApplicationStatus @default(pending)
+  full_name         String                     @map("fullName")
+  phone             String
+  areas_of_interest CommunityEventType[]       @map("areasOfInterest")
+  availability      VolunteerAvailability
+  motivation        String
+  accepts_terms     Boolean                    @default(true) @map("acceptsTerms")
+  applied_at        DateTime                   @default(now()) @map("appliedAt")
+  updated_at        DateTime                   @updatedAt @map("updatedAt")
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([status])
+  @@index([user_id, status])
+  @@map("tb_volunteer_applications")
+}
+
+enum VolunteerApplicationStatus {
+  pending
+  approved
+  rejected
+}
+
+enum VolunteerAvailability {
+  weekdays
+  weekends
+  flexible
 }
 
 enum AdoptionStatus {

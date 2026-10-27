@@ -79,6 +79,21 @@ function formatEventLabel(event: SystemEvent): {
           ? `Inscrito em: ${eventTitle}`
           : 'Você se inscreveu em uma atividade do abrigo',
       };
+    case SystemEventTypes.VOLUNTEER_APPLICATION_SUBMITTED:
+      return {
+        title: 'Solicitação de voluntariado enviada',
+        subtitle: 'Sua ficha de voluntariado está em análise pelo abrigo',
+      };
+    case SystemEventTypes.VOLUNTEER_APPLICATION_APPROVED:
+      return {
+        title: 'Voluntariado aprovado!',
+        subtitle: 'Seu acesso às atividades semanais de voluntariado foi liberado',
+      };
+    case SystemEventTypes.VOLUNTEER_APPLICATION_REJECTED:
+      return {
+        title: 'Solicitação de voluntariado atualizada',
+        subtitle: 'Confira os detalhes na tela de Voluntariado',
+      };
     case SystemEventTypes.ANIMAL_CREATED:
       return {
         title: 'Animal cadastrado no abrigo',

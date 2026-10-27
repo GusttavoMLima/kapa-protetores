@@ -37,6 +37,7 @@ COPY packages/shared/package.json packages/shared/package.json
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
 COPY --from=build /app/apps/server/dist apps/server/dist
+COPY --from=build /app/apps/server/src/ml apps/server/src/ml
 COPY --from=build /app/apps/server/prisma apps/server/prisma
 COPY --from=build /app/packages/shared/dist packages/shared/dist
 COPY --from=build /app/node_modules/.prisma node_modules/.prisma

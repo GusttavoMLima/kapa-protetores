@@ -11,6 +11,7 @@ import {
 import { Cuid } from '../domains/Cuid';
 import type { CacheProvider } from './RedisService';
 import type { EventsService } from './EventsService';
+import { SHELTER_BUDGET_PREDICTION_CACHE_KEY } from './PredictionService';
 
 export const AVAILABLE_ANIMALS_CACHE_KEY = 'animals:available';
 const AVAILABLE_ANIMALS_CACHE_TTL_SECONDS = 60;
@@ -119,6 +120,7 @@ export class AnimalService {
       await Promise.all([
         this.cache.deleteCache(AVAILABLE_ANIMALS_CACHE_KEY),
         this.cache.deleteCache(buildPublicAnimalCacheKey(id)),
+        this.cache.deleteCache(SHELTER_BUDGET_PREDICTION_CACHE_KEY),
       ]);
     }
     return animal;
@@ -192,7 +194,10 @@ export class AnimalService {
       });
     }
     if (this.cache) {
-      await this.cache.deleteCache(AVAILABLE_ANIMALS_CACHE_KEY);
+      await Promise.all([
+        this.cache.deleteCache(AVAILABLE_ANIMALS_CACHE_KEY),
+        this.cache.deleteCache(SHELTER_BUDGET_PREDICTION_CACHE_KEY),
+      ]);
     }
     return created;
   }

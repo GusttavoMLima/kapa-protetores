@@ -70,6 +70,47 @@ export const volunteerRegisteredPayloadSchema = z
   })
   .strict();
 
+export const volunteerApplicationDataSchema = z
+  .object({
+    fullName: z.string().trim().min(3, 'Informe seu nome completo.').max(120),
+    phone: z.string().trim().min(10, 'Informe um telefone com DDD.').max(20),
+    areasOfInterest: z
+      .array(z.enum(['care', 'cleaning', 'event', 'transport']))
+      .min(1, 'Selecione pelo menos uma área de interesse.')
+      .max(4),
+    availability: z.enum(['weekdays', 'weekends', 'flexible']),
+    motivation: z
+      .string()
+      .trim()
+      .min(10, 'Conte um pouco sobre sua motivação.')
+      .max(500),
+    acceptsTerms: z.boolean().refine((value) => value === true, {
+      message: 'Confirme o termo de compromisso para continuar.',
+    }),
+  })
+  .strict();
+
+export const volunteerApplicationSubmittedPayloadSchema = z
+  .object({
+    applicationId: z.string().trim().min(1, 'applicationId is required'),
+  })
+  .strict();
+
+export const volunteerApplicationApprovedPayloadSchema = z
+  .object({
+    applicationId: z.string().trim().min(1, 'applicationId is required'),
+    approvedByUserId: z.string().uuid().optional(),
+  })
+  .strict();
+
+export const volunteerApplicationRejectedPayloadSchema = z
+  .object({
+    applicationId: z.string().trim().min(1, 'applicationId is required'),
+    rejectedByUserId: z.string().uuid().optional(),
+    reason: z.string().trim().min(1).optional(),
+  })
+  .strict();
+
 export const petFavoritedPayloadSchema = z
   .object({
     animalName: z.string().trim().min(1).optional(),
@@ -99,6 +140,12 @@ export const eventPayloadSchemas: {
   [SystemEventTypes.ANIMAL_CREATED]: animalCreatedPayloadSchema,
   [SystemEventTypes.ANIMAL_STATUS_UPDATED]: animalStatusUpdatedPayloadSchema,
   [SystemEventTypes.VOLUNTEER_REGISTERED]: volunteerRegisteredPayloadSchema,
+  [SystemEventTypes.VOLUNTEER_APPLICATION_SUBMITTED]:
+    volunteerApplicationSubmittedPayloadSchema,
+  [SystemEventTypes.VOLUNTEER_APPLICATION_APPROVED]:
+    volunteerApplicationApprovedPayloadSchema,
+  [SystemEventTypes.VOLUNTEER_APPLICATION_REJECTED]:
+    volunteerApplicationRejectedPayloadSchema,
   [SystemEventTypes.PET_FAVORITED]: petFavoritedPayloadSchema,
   [SystemEventTypes.PET_UNFAVORITED]: petUnfavoritedPayloadSchema,
   [SystemEventTypes.USER_REGISTERED]: userRegisteredPayloadSchema,
