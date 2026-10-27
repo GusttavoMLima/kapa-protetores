@@ -99,6 +99,7 @@ export class App {
       if (!this.server) {
         return resolve();
       }
+      this.server.closeAllConnections?.();
       this.server.close((err) => {
         if (err) return reject(err);
         resolve();

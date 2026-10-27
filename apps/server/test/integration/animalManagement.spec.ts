@@ -50,7 +50,26 @@ describe('animal management authorization, filters, edits and public boundary', 
     const roles = new Map<string, UserRole>([['admin', 'admin'], ['protector', 'protector'], ['volunteer', 'volunteer'], ['adopter', 'adopter'], ['revoked', 'adopter']]);
     const app = express();
     app.use(express.json());
-    app.use('/animals', new AnimalsRouter(new AnimalsController(service), { upload: async (_req, res) => { res.json({ success: true }); } }, new AuthMiddleware(jwt), animalManagementAccess({
+    const mockPredictionService = {
+      predictFutureBudget: async () => ({
+        totalPredictedBudget: 420.5,
+        activeAnimalsCount: 3,
+        averageCostPerAnimal: 140.17,
+        bySpecies: {
+          dog: { count: 0, totalCost: 0 },
+          cat: { count: 3, totalCost: 420.5 },
+          other: { count: 0, totalCost: 0 },
+        },
+        byStatus: {
+          rescued: { count: 1, totalCost: 140.17 },
+          treating: { count: 1, totalCost: 140.17 },
+          available: { count: 1, totalCost: 140.16 },
+        },
+        animals: [],
+        generatedAt: new Date().toISOString(),
+      }),
+    };
+    app.use('/animals', new AnimalsRouter(new AnimalsController(service, mockPredictionService as never), { upload: async (_req, res) => { res.json({ success: true }); } }, new AuthMiddleware(jwt), animalManagementAccess({
       findByIdValue: async (userId: string) => { const role = roles.get(userId); if (!role) return null; const user = new User(); user.setRole(role); return user; },
     })).router);
     app.use(ErrorHandler.handle);
@@ -79,6 +98,10 @@ describe('animal management authorization, filters, edits and public boundary', 
       expect(data.total).toBe(4);
       expect(data.counts).toEqual({ rescued: 1, treating: 1, available: 1, adopted: 1 });
       expect((await request(`/management/${id}`, token(role, role), 'PATCH', { name: 'Amora' })).status).toBe(200);
+      const budgetRes = await request('/management/budget-prediction', token(role, role));
+      expect(budgetRes.status).toBe(200);
+      const budgetJson = await budgetRes.json();
+      expect(budgetJson.data.totalPredictedBudget).toBe(420.5);
     }
   });
 
