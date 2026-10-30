@@ -3,7 +3,9 @@ import { canManageAnimals } from '@kapa/shared';
 import type { UserRepository } from '../repositories/UserRepository';
 import { UnauthorizedError, ForbiddenError } from '../errors';
 
-export function animalManagementAccess(repository: Pick<UserRepository, 'findByIdValue'>): RequestHandler {
+export function animalManagementAccess(
+  repository: Pick<UserRepository, 'findByIdValue'>,
+): RequestHandler {
   return async (req, _res, next) => {
     try {
       if (!req.user) throw new UnauthorizedError();

@@ -24,7 +24,12 @@ export class AnimalsRouter {
   }
 
   private initRoutes(): void {
-    this.router.get('/management', this.auth.authenticate, this.managementAccess, this.controller.getManagementPage);
+    this.router.get(
+      '/management',
+      this.auth.authenticate,
+      this.managementAccess,
+      this.controller.getManagementPage,
+    );
     if (this.controller.getBudgetPrediction) {
       this.router.get(
         '/management/budget-prediction',
@@ -33,8 +38,19 @@ export class AnimalsRouter {
         this.controller.getBudgetPrediction,
       );
     }
-    this.router.get('/management/:id', this.auth.authenticate, this.managementAccess, this.controller.getManagedById);
-    this.router.patch('/management/:id', this.auth.authenticate, this.managementAccess, validateBody(updateAnimalSchema), this.controller.update);
+    this.router.get(
+      '/management/:id',
+      this.auth.authenticate,
+      this.managementAccess,
+      this.controller.getManagedById,
+    );
+    this.router.patch(
+      '/management/:id',
+      this.auth.authenticate,
+      this.managementAccess,
+      validateBody(updateAnimalSchema),
+      this.controller.update,
+    );
     this.router.get('/', this.controller.getAll);
     this.router.get('/:id', this.controller.getById);
     this.router.post(

@@ -1,5 +1,5 @@
 import { useAuth } from '@/hooks/useAuth';
-import { colors, palette } from '@/theme';
+import { palette } from '@/theme';
 import { generatePlaceholder } from '@/utils/placeholder';
 import { Image, Pressable, ScrollView, View, Text } from 'react-native';
 import { router } from 'expo-router';
@@ -7,8 +7,6 @@ import { UnauthorizedScreen } from '@/screens/unauthorized';
 import { SystemEventTypes, UserRoleEnum, type SystemEvent } from '@kapa/shared';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import {
-  GearIcon,
-  HandHeartIcon,
   SignOutIcon,
   UserIcon,
   ClipboardTextIcon,
@@ -87,7 +85,8 @@ function formatEventLabel(event: SystemEvent): {
     case SystemEventTypes.VOLUNTEER_APPLICATION_APPROVED:
       return {
         title: 'Voluntariado aprovado!',
-        subtitle: 'Seu acesso às atividades semanais de voluntariado foi liberado',
+        subtitle:
+          'Seu acesso às atividades semanais de voluntariado foi liberado',
       };
     case SystemEventTypes.VOLUNTEER_APPLICATION_REJECTED:
       return {
@@ -97,7 +96,9 @@ function formatEventLabel(event: SystemEvent): {
     case SystemEventTypes.ANIMAL_CREATED:
       return {
         title: 'Animal cadastrado no abrigo',
-        subtitle: animalName ? `Cadastro de ${animalName}` : 'Novo animal registrado',
+        subtitle: animalName
+          ? `Cadastro de ${animalName}`
+          : 'Novo animal registrado',
       };
     case SystemEventTypes.ANIMAL_STATUS_UPDATED:
       return {
@@ -152,7 +153,7 @@ export function ProfileScreen() {
       className="flex-1 bg-cream"
     >
       <View className="items-center mt-[1.5rem] bg-[#F6F3EE] p-8 w-full relative">
-        <ProfileBlob className='absolute top-0 right-0' />
+        <ProfileBlob className="absolute top-0 right-0" />
         <Image
           source={{ uri: avatarUri }}
           className="w-[7.5rem] h-[7.5rem] rounded-full border-[.3rem] border-orange bg-peach z-20"
@@ -187,13 +188,7 @@ export function ProfileScreen() {
           iconColor={palette.orangeDark}
           onPress={() => router.push('/(protected)/(adopter)/edit-profile')}
         />
-        <PrimaryMenuItem
-          label="Minhas Doações"
-          icon={HandHeartIcon}
-          iconColor={colors.onSecondaryContainer}
-          iconBgColor={colors.secondaryContainer}
-        />
-        {user.role === 'adopter' && (
+        {user.role !== 'admin' && user.role !== 'protector' && (
           <PrimaryMenuItem
             label="Minhas solicitações"
             description="Acompanhe suas fichas de adoção"
@@ -204,16 +199,12 @@ export function ProfileScreen() {
           />
         )}
         <PrimaryMenuItem
-          label="Ajustes"
-          icon={GearIcon}
-          iconColor={'#79716B'}
-          iconBgColor={'#D6D3D1'}
-        />
-        <PrimaryMenuItem
           label="Sair"
           icon={SignOutIcon}
           isDestructive
-          onPress={() => { void signOut(); }}
+          onPress={() => {
+            void signOut();
+          }}
         />
       </View>
 
@@ -228,15 +219,36 @@ export function ProfileScreen() {
         </View>
 
         <View className="w-full overflow-hidden gap-2 p-2">
-          {data?.favorites.length ? data.favorites.map((favorite) => (
-            favorite.animal ? <PetCard
-              key={favorite.animalId}
-              name={favorite.animal.name}
-              imgUrl={favorite.animal.photo ?? generatePlaceholder(palette.peach, palette.orange, 300, 300, favorite.animal.name.slice(0, 2), 'Montserrat')}
-              characteristics={[favorite.animal.gender === 'female' ? 'Fêmea' : 'Macho', `${favorite.animal.age} ${favorite.animal.age === 1 ? 'ano' : 'anos'}`]}
-              isFavorited
-            /> : null
-          )) : <Text className="font-body text-sm text-ink-muted">Você ainda não favoritou nenhum pet.</Text>}
+          {data?.favorites.length ? (
+            data.favorites.map((favorite) =>
+              favorite.animal ? (
+                <PetCard
+                  key={favorite.animalId}
+                  name={favorite.animal.name}
+                  imgUrl={
+                    favorite.animal.photo ??
+                    generatePlaceholder(
+                      palette.peach,
+                      palette.orange,
+                      300,
+                      300,
+                      favorite.animal.name.slice(0, 2),
+                      'Montserrat',
+                    )
+                  }
+                  characteristics={[
+                    favorite.animal.gender === 'female' ? 'Fêmea' : 'Macho',
+                    `${favorite.animal.age} ${favorite.animal.age === 1 ? 'ano' : 'anos'}`,
+                  ]}
+                  isFavorited
+                />
+              ) : null,
+            )
+          ) : (
+            <Text className="font-body text-sm text-ink-muted">
+              Você ainda não favoritou nenhum pet.
+            </Text>
+          )}
         </View>
       </View>
 

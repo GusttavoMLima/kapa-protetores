@@ -6,11 +6,11 @@ Este documento consolida a arquitetura de autenticação (**Google OAuth** e **E
 
 ### Interface e permissões
 
-- Entrada na home: **Animais do abrigo → Gerenciar animais**, para `admin`, `protector` e `volunteer`.
+- Entrada na home: **Animais do abrigo → Gerenciar animais**, para `admin` e `protector`.
 - `/gestao/animais`: listagem interna com busca por nome/raça, espécie, status, ordenação e paginação de 12 registros. Os contadores representam todo o abrigo, independentemente dos filtros.
 - `/gestao/animais/[id]`: edição de identificação, porte, acompanhamento, saúde, temperamento, local e observações. Validação no cliente e na API; falhas ao salvar preservam o formulário. Retornar à lista mantém os filtros enquanto a tela permanece na pilha e recarrega os dados.
-- `/cadastro-animal`: formulário existente, agora protegido pelos mesmos perfis e com retorno à listagem.
-- `/adopet` permanece reservado ao catálogo de adoção. Adotantes não recebem ações de gestão.
+- `/cadastro-animal`: formulário existente, agora protegido pelos mesmos perfis (`admin` e `protector`) e com retorno à listagem.
+- `/adopet` permanece reservado ao catálogo de adoção. Adotantes e voluntários não recebem ações de gestão de animais.
 - Estilo em Tailwind/NativeWind, com os tokens existentes, fontes do projeto, limite de 1140px do `DESIGN.md`, linhas no desktop e cartões no celular. Seletores possuem estados acessíveis, alvos mínimos de 48px e os status incluem texto.
 
 ### Contrato da API
@@ -20,14 +20,14 @@ Este documento consolida a arquitetura de autenticação (**Google OAuth** e **E
 | `GET /api/animals/management` | Listagem interna paginada, todos os status |
 | `GET /api/animals/management/:id` | Cadastro completo, incluindo fotos |
 | `PATCH /api/animals/management/:id` | Atualiza apenas os campos enviados; campos desconhecidos e corpo vazio são rejeitados |
-| `POST /api/animals` | Cadastro existente, restrito à equipe |
-| `POST /api/animals/:id/photos` | Upload existente, restrito à equipe |
+| `POST /api/animals` | Cadastro existente, restrito à equipe (`admin` e `protector`) |
+| `POST /api/animals/:id/photos` | Upload existente, restrito à equipe (`admin` e `protector`) |
 | `GET /api/animals` | Consulta pública: apenas `available` |
 | `GET /api/animals/:id` | Consulta pública: retorna 404 se o animal não estiver disponível |
 
 A listagem interna aceita `page` (padrão 1), `pageSize` (padrão 12, máximo 50), `search` (até 120 caracteres), `species` (`dog/cat/other`), `status` (`rescued/treating/available/adopted`) e `sort` (`recent/name`). Retorna `{ success: true, data: { items, total, page, pageSize, counts } }`. `counts` contém as quatro contagens globais. A pesquisa e paginação são executadas no PostgreSQL; a listagem inclui a foto mais recente de cada animal.
 
-As rotas de gestão, criação e upload validam o JWT e consultam o **papel atual do usuário no banco**, para que remoção de conta ou revogação de papel não dependam da expiração do token. `adopter` recebe 403; sessão ausente, inválida, expirada ou conta removida recebe 401. IDs e entradas são validados. O cadastro público `POST /api/auth/register` aceita somente `adopter`: equipe é atribuída pela administração, evitando autoatribuição de acesso. O fluxo público `/api/users/create` já força `adopter`.
+As rotas de gestão, criação e upload validam o JWT e consultam o **papel atual do usuário no banco**, para que remoção de conta ou revogação de papel não dependam da expiração do token. `adopter` e `volunteer` recebem 403; sessão ausente, inválida, expirada ou conta removida recebe 401. IDs e entradas são validados. O cadastro público `POST /api/auth/register` aceita somente `adopter`: equipe é atribuída pela administração, evitando autoatribuição de acesso. O fluxo público `/api/users/create` já força `adopter`.
 
 **Integração com o catálogo do colega:** respostas públicas usam uma projeção própria com identificação, características de adoção, status e fotos. Não retornam `place`, `observations`, `rescuedAt`, `healthCondition` nem `createdAt`. Para informações internas, usar os endpoints de gestão autenticados. A tela de interesses/adoção não foi implementada nesta entrega.
 
@@ -459,7 +459,7 @@ Os dois fluxos emitem JWT com o mesmo segredo obrigatório, emissor, audiência 
 - Foram adicionados middlewares de autenticação, autorização por papel e validação com Zod.
 - O repositório de usuários foi corrigido para mapear corretamente nome e e-mail.
 - A persistência de animais passou a usar PostgreSQL em vez do repositório em memória.
-- O cadastro de animais é permitido no servidor para `protector`, `admin` e `volunteer` autenticados.
+- O cadastro de animais é permitido no servidor para `protector` e `admin` autenticados.
 - O limite global de JSON e formulário URL-encoded é de 1 MB.
 - O header `x-powered-by` do Express foi desabilitado.
 - O tratamento de erros foi ajustado para não expor detalhes internos.
@@ -1117,6 +1117,6 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
   * Recebe o vetor de 9 features por animal (`species`, `size`, `health_condition`, `castrated`, `vaccinated`, `dewormed`, `v10_doses`, `rabies_doses`, `deworming_doses`).
 * **Serviço e Endpoint ([`PredictionService.ts`](apps/server/src/services/PredictionService.ts) e `GET /api/animals/management/budget-prediction`)**:
   * `predictFutureBudget()` consulta os animais não adotados (`status !== 'adopted'`), calcula o custo mensal previsto de cada animal, agrega totais por espécie (`bySpecies`) e status (`byStatus`), e armazena o resultado em cache no Redis (`animals:shelter:budget-prediction`, TTL 60s) com invalidação automática em `AnimalService.create`, `AnimalService.update` e `AdoptionService.updateStatus`.
-  * Exposto em `GET /api/animals/management/budget-prediction` para `admin`, `protector` e `volunteer`, e integrado no painel de Gestão do Abrigo ([`apps/mobile-web/src/screens/animalManagement/index.tsx`](apps/mobile-web/src/screens/animalManagement/index.tsx)).
+  * Exposto em `GET /api/animals/management/budget-prediction` para `admin` e `protector`, e integrado no painel de Gestão do Abrigo ([`apps/mobile-web/src/screens/animalManagement/index.tsx`](apps/mobile-web/src/screens/animalManagement/index.tsx)).
 * **Testes Automatizados**:
   * [`apps/server/test/services/PredictionService.spec.ts`](apps/server/test/services/PredictionService.spec.ts).
