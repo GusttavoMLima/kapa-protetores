@@ -115,7 +115,7 @@ env:
     element: "Ser Voluntário"
     direction: DOWN
 - tapOn: "Ser Voluntário"
-- assertVisible: "Seja Voluntário na Kapa"
+- runFlow: ../subflows/submit-volunteer-application.yaml
 - scrollUntilVisible:
     centerElement: true
     element: "Voltar"

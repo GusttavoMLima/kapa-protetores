@@ -70,13 +70,17 @@ env:
 - tapOn: "Limpar filtros"
 - tapOn: "Voltar ao início"
 
-# 5. Navigate to Volunteer screen from Home card
+# 5. Navigate to Volunteer screen from Home card and submit application
 - scrollUntilVisible:
     centerElement: true
     element: "Como ajudar"
     direction: UP
 - tapOn: "Como ajudar"
-- assertVisible: "Seja Voluntário na Kapa"
+- runFlow: ../subflows/submit-volunteer-application.yaml
+- scrollUntilVisible:
+    centerElement: true
+    element: "Voltar"
+    direction: UP
 - tapOn: "Voltar"
 
 # 6. Verify Support & PIX Donation screen
