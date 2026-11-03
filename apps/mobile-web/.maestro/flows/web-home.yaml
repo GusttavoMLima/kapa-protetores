@@ -1,5 +1,5 @@
 url: http://localhost:8081
-name: Home Screen
+name: Home Screen Navigation (Web)
 tags:
   - web
   - home
@@ -8,9 +8,17 @@ tags:
     file: web-login.yaml
 
 - assertVisible: "Adotar Agora"
+- assertVisible: "Ver pets disponiveis"
+- assertVisible: "Ser Voluntario"
 - scrollUntilVisible:
-    element:
-      text: "Macho"
-      caseSensitive: false
-    direction: DOWN
     centerElement: true
+    element: "Esperando por você"
+    direction: DOWN
+- assertVisible: "Esperando por você"
+- scrollUntilVisible:
+    centerElement: true
+    element: ".*Ver todos os.*"
+    direction: DOWN
+- tapOn: ".*Ver todos os.*"
+- waitForAnimationToEnd
+

@@ -90,8 +90,8 @@ describe('animal management authorization, filters, edits and public boundary', 
     expect((await request('/management', expired)).status).toBe(401);
   });
 
-  it('all three staff roles can list all statuses and edit', async () => {
-    for (const role of ['admin', 'protector', 'volunteer'] as const) {
+  it('admin and protector roles can list all statuses and edit', async () => {
+    for (const role of ['admin', 'protector'] as const) {
       const response = await request('/management', token(role, role));
       expect(response.status).toBe(200);
       const { data } = await response.json();
@@ -105,10 +105,10 @@ describe('animal management authorization, filters, edits and public boundary', 
     }
   });
 
-  it('adopters, revoked roles and deleted accounts cannot manage or upload', async () => {
-    for (const sub of ['adopter', 'revoked', 'deleted']) {
+  it('adopters, volunteers, revoked roles and deleted accounts cannot manage or upload', async () => {
+    for (const sub of ['adopter', 'volunteer', 'revoked', 'deleted']) {
       const expected = sub === 'deleted' ? 401 : 403;
-      for (const [path, method, body] of [['/management', 'GET', undefined], [`/management/${id}`, 'GET', undefined], [`/management/${id}`, 'PATCH', { name: 'Changed' }], ['', 'POST', input], [`/${id}/photos`, 'POST', {}]] as const) {
+      for (const [path, method, body] of [['/management', 'GET', undefined], ['/management/budget-prediction', 'GET', undefined], [`/management/${id}`, 'GET', undefined], [`/management/${id}`, 'PATCH', { name: 'Changed' }], ['', 'POST', input], [`/${id}/photos`, 'POST', {}]] as const) {
         expect((await request(path, token(sub), method, body)).status).toBe(expected);
       }
     }
@@ -152,8 +152,8 @@ describe('animal management authorization, filters, edits and public boundary', 
     expect((await request('/management/c000000000000000000000000', token('admin'), 'PATCH', { name: 'Absent' })).status).toBe(404);
   });
 
-  it('staff creation remains allowed', async () => {
-    for (const role of ['admin', 'protector', 'volunteer'] as const) {
+  it('staff creation remains allowed for admin and protector', async () => {
+    for (const role of ['admin', 'protector'] as const) {
       expect((await request('', token(role, role), 'POST', input)).status).toBe(201);
     }
   });

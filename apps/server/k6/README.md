@@ -15,7 +15,7 @@ Performance and load testing scripts for the Kapa API using [Grafana k6](https:/
 
 ## Running Tests
 
-From `apps/server`:
+From the monorepo root (or `apps/server`):
 
 ```bash
 # Run smoke test via Docker Compose
@@ -28,15 +28,16 @@ npm run test:k6:load
 npm run test:k6:animals
 ```
 
-Or using Docker Compose directly:
+Or using Docker Compose directly (from `apps/server`):
 
 ```bash
-docker compose run --rm k6 run /scripts/smoke-test.js
-docker compose run --rm k6 run /scripts/load-test.js
+docker compose run --rm k6 run /k6/smoke-test.js
+docker compose run --rm k6 run /k6/load-test.js
+docker compose run --rm k6 run /k6/animals.js
 ```
 
 Or using Docker CLI directly:
 
 ```bash
-docker run --rm -i --network="host" -v $(pwd)/k6:/scripts grafana/k6 run /scripts/smoke-test.js
+docker run --rm -i --add-host="host.docker.internal:host-gateway" -e BASE_URL=http://host.docker.internal:4000/api -v $(pwd)/k6:/k6 grafana/k6 run /k6/smoke-test.js
 ```

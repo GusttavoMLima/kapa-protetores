@@ -1,0 +1,57 @@
+appId: edu.fatec.kapaprotetores.android
+---
+- assertVisible: "Seja Voluntário na Kapa"
+- assertVisible: "Seus dados de contato"
+
+# 1. Validate empty submission shows required field errors
+- scrollUntilVisible:
+    centerElement: true
+    element: "Enviar inscrição de voluntariado"
+    direction: DOWN
+- tapOn: "Enviar inscrição de voluntariado"
+- assertVisible: "Confirme o termo de compromisso para enviar sua inscrição."
+
+# 2. Fill out phone, area of interest, availability, motivation, and accept terms
+- scrollUntilVisible:
+    centerElement: true
+    element: "(19) 99999-9999"
+    direction: UP
+- tapOn: "(19) 99999-9999"
+- inputText: "19998887766"
+
+- scrollUntilVisible:
+    centerElement: true
+    element: "Cuidados com os pets"
+    direction: DOWN
+- tapOn: "Cuidados com os pets"
+
+- scrollUntilVisible:
+    centerElement: true
+    element: "Finais de semana"
+    direction: DOWN
+- tapOn: "Finais de semana"
+
+- scrollUntilVisible:
+    centerElement: true
+    element: "Conte se já teve contato com animais ou como pretende apoiar o abrigo"
+    direction: DOWN
+- tapOn: "Conte se já teve contato com animais ou como pretende apoiar o abrigo"
+- inputText: "Tenho experiência cuidando de cães e gatos resgatados e quero apoiar nos finais de semana."
+
+- scrollUntilVisible:
+    centerElement: true
+    element: "Comprometo-me a respeitar as orientações de segurança e bem-estar animal da ONG Kapa Protetores."
+    direction: DOWN
+- tapOn: "Comprometo-me a respeitar as orientações de segurança e bem-estar animal da ONG Kapa Protetores."
+
+- scrollUntilVisible:
+    centerElement: true
+    element: "Enviar inscrição de voluntariado"
+    direction: DOWN
+- tapOn: "Enviar inscrição de voluntariado"
+
+# 3. Verify confirmation modal and pending status view
+- assertVisible: "Inscrição enviada!"
+- tapOn: "Entendi"
+- assertVisible: "Solicitação em análise"
+- assertVisible: "Pendente"

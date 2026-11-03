@@ -1,13 +1,70 @@
 appId: edu.fatec.kapaprotetores.android
-name: Login Screen Smoke Test (Android)
+name: Auth & Validation Smoke Test (Android)
 tags:
   - smoke
   - mobile
+env:
+  TEST_EMAIL: johndoe@gmail.com
+  TEST_PASSWORD: "123456"
 ---
 - launchApp:
     clearState: true
+
+# 1. Verify Login screen header and elements
 - assertVisible: "Bem-vindo de volta"
 - assertVisible: "Entre para acompanhar suas adoções e favoritos."
+
+# 2. Validate empty login form submission
+- scrollUntilVisible:
+    centerElement: true
+    element: "Entrar"
+    direction: DOWN
 - tapOn: "Entrar"
-- assertVisible: "Formato de e-mail inválido"
 - assertVisible: "A senha é obrigatória"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Formato de e-mail inválido"
+    direction: UP
+- assertVisible: "Formato de e-mail inválido"
+
+# 3. Navigate to Registration screen (/signUp) and validate empty submission
+- scrollUntilVisible:
+    centerElement: true
+    element: "Cadastre-se"
+    direction: DOWN
+- tapOn: "Cadastre-se"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Crie sua conta"
+    direction: UP
+- assertVisible: "Crie sua conta"
+- assertVisible: "Junte-se ao Kapa para adotar pets e apoiar protetores."
+- scrollUntilVisible:
+    centerElement: true
+    element: "Cadastrar"
+    direction: DOWN
+- tapOn: "Cadastrar"
+- assertVisible: "Confirme sua senha"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Nome de usuário deve ter no mínimo 3 caracteres"
+    direction: UP
+- assertVisible: "Nome de usuário deve ter no mínimo 3 caracteres"
+- assertVisible: "Formato de e-mail inválido"
+
+# 4. Return to Login screen and submit credentials
+- scrollUntilVisible:
+    centerElement: true
+    element: "Entrar"
+    direction: DOWN
+- tapOn: "Entrar"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Bem-vindo de volta"
+    direction: UP
+- assertVisible: "Bem-vindo de volta"
+- runFlow:
+    file: ../subflows/login-user.yaml
+    env:
+      EMAIL: ${TEST_EMAIL}
+      PASSWORD: ${TEST_PASSWORD}

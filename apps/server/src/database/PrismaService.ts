@@ -4,12 +4,15 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool, type PoolConfig } from 'pg';
 import { logger } from '../config/logger';
 
+export const DEFAULT_POSTGRES_POOL_MAX = 10;
+
 export function createPostgresPoolConfig(
   connectionString: string,
+  maxConnections = Number(process.env.DB_POOL_MAX) || DEFAULT_POSTGRES_POOL_MAX,
 ): PoolConfig {
   return {
     connectionString,
-    max: 20,
+    max: maxConnections,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 15000,
   };

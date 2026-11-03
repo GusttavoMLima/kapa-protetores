@@ -1,0 +1,51 @@
+url: http://localhost:8081/signIn
+name: Admin Management & ONNX Budget Forecast E2E (Web)
+tags:
+  - e2e
+  - web
+  - admin
+env:
+  ADMIN_EMAIL: admin@kapa.com
+  ADMIN_PASSWORD: "123456"
+---
+- launchApp:
+    stopApp: false
+
+# 1. Authenticate as Admin
+- assertVisible: "Bem-vindo de volta"
+- runFlow:
+    file: ../subflows/login-user.yaml
+    env:
+      EMAIL: ${ADMIN_EMAIL}
+      PASSWORD: ${ADMIN_PASSWORD}
+
+# 2. Verify Admin Home Screen management cards
+- assertVisible: "Animais do abrigo"
+- assertVisible: "Solicitações de adoção"
+
+# 3. Navigate to Animal Management (/gestao/animais) and verify ONNX Budget Prediction card
+- tapOn: "Gerenciar animais"
+- assertVisible: "Animais do abrigo"
+- assertVisible: "Previsão de Orçamento Mensal (IA · ONNX)"
+- assertVisible: "Orçamento Total Previsto"
+- assertVisible: "Custo Médio / Pet"
+
+# 4. Exercise status filter chips on Animal Management
+- scrollUntilVisible:
+    centerElement: true
+    element: "Resgatados"
+    direction: DOWN
+- tapOn: "Resgatados"
+- tapOn: "Disponíveis"
+- tapOn: "Todos"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Voltar ao início"
+    direction: UP
+- tapOn: "Voltar ao início"
+
+# 5. Navigate to Adoption Requests (/gestao/solicitacoes)
+- assertVisible: "Solicitações de adoção"
+- tapOn: "Ver solicitações"
+- assertVisible: "Solicitações de adoção"
+- tapOn: "Voltar"

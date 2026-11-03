@@ -6,13 +6,13 @@ const BASE_URL = __ENV.BASE_URL || 'http://localhost:4000/api';
 
 export const options = {
   stages: [
-    { duration: '15s', target: 10 }, // Ramp-up to 10 VUs
-    { duration: '30s', target: 20 }, // Sustain 20 VUs
-    { duration: '15s', target: 0 },  // Ramp-down to 0 VUs
+    { duration: '15s', target: 10 }, 
+    { duration: '30s', target: 20 }, 
+    { duration: '15s', target: 0 },  
   ],
   thresholds: {
-    http_req_failed: ['rate<0.05'], // Failure rate must be under 5%
-    'http_req_duration{scenario:default}': ['p(95)<500'], // 95% of requests must complete within 500ms
+    http_req_failed: ['rate<0.05'], 
+    'http_req_duration{scenario:default}': ['p(95)<500'],
   },
 };
 

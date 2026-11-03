@@ -1,0 +1,19 @@
+appId: edu.fatec.kapaprotetores.android
+---
+- scrollUntilVisible:
+    centerElement: true
+    element: "kapa@gmail.com"
+    direction: UP
+- tapOn: "kapa@gmail.com"
+- inputText: ${EMAIL}
+- scrollUntilVisible:
+    centerElement: true
+    element: "Digite sua senha"
+    direction: DOWN
+- tapOn: "Digite sua senha"
+- inputText: ${PASSWORD}
+- scrollUntilVisible:
+    centerElement: true
+    element: "Entrar"
+    direction: DOWN
+- tapOn: "Entrar"

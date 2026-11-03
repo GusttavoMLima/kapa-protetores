@@ -1,14 +1,22 @@
 url: http://localhost:8081/signIn
-name: Login Screen Smoke Test (Web)
+name: Auth & Validation Smoke Test (Web)
 tags:
   - smoke
   - web
+env:
+  TEST_EMAIL: johndoe@gmail.com
+  TEST_PASSWORD: "123456"
 ---
-- launchApp
+- launchApp:
+    stopApp: false
+
+# 1. Verify Login screen header and elements
 - assertVisible: "Bem-vindo de volta"
 - assertVisible: "Entre para acompanhar suas adoções e favoritos."
+
+# 2. Validate empty login form submission
 - scrollUntilVisible:
-    centerElement: true # element be amost in the middle screen
+    centerElement: true
     element: "Entrar"
     direction: DOWN
 - tapOn: "Entrar"
@@ -18,12 +26,45 @@ tags:
     element: "Formato de e-mail inválido"
     direction: UP
 - assertVisible: "Formato de e-mail inválido"
-- tapOn: "kapa@gmail.com"
-- inputText: "johndoe@gmail.com"
-- tapOn: "Digite sua senha"
-- inputText: "123456"
+
+# 3. Navigate to Registration screen (/signUp) and validate empty submission
+- scrollUntilVisible:
+    centerElement: true
+    element: "Cadastre-se"
+    direction: DOWN
+- tapOn: "Cadastre-se"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Crie sua conta"
+    direction: UP
+- assertVisible: "Crie sua conta"
+- assertVisible: "Junte-se ao Kapa para adotar pets e apoiar protetores."
+- scrollUntilVisible:
+    centerElement: true
+    element: "Cadastrar"
+    direction: DOWN
+- tapOn: "Cadastrar"
+- assertVisible: "Confirme sua senha"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Nome de usuário deve ter no mínimo 3 caracteres"
+    direction: UP
+- assertVisible: "Nome de usuário deve ter no mínimo 3 caracteres"
+- assertVisible: "Formato de e-mail inválido"
+
+# 4. Return to Login screen and submit credentials
 - scrollUntilVisible:
     centerElement: true
     element: "Entrar"
     direction: DOWN
 - tapOn: "Entrar"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Bem-vindo de volta"
+    direction: UP
+- assertVisible: "Bem-vindo de volta"
+- runFlow:
+    file: ../subflows/login-user.yaml
+    env:
+      EMAIL: ${TEST_EMAIL}
+      PASSWORD: ${TEST_PASSWORD}

@@ -65,7 +65,11 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:maestro": "PATH=\"$PATH:$HOME/.maestro/bin\" maestro test .maestro/flows/login-smoke.yaml",
+    "test:maestro:e2e": "PATH=\"$PATH:$HOME/.maestro/bin\" maestro test .maestro/flows/mobile-e2e-journey.yaml",
     "test:maestro:web": "PATH=\"$PATH:$HOME/.maestro/bin\" maestro test .maestro/flows/web-smoke.yaml",
+    "test:maestro:web:e2e": "PATH=\"$PATH:$HOME/.maestro/bin\" maestro test .maestro/flows/web-e2e-journey.yaml",
+    "test:maestro:web:admin": "PATH=\"$PATH:$HOME/.maestro/bin\" maestro test .maestro/flows/web-admin-management.yaml",
+    "test:maestro:web:all": "PATH=\"$PATH:$HOME/.maestro/bin\" maestro test --include-tags web .maestro",
     "maestro:studio": "PATH=\"$PATH:$HOME/.maestro/bin\" maestro studio"
   },
   "private": true

@@ -96,18 +96,21 @@ async function main() {
     mode = 'forbidden'; await page.reload();
     await page.getByText('Sua sessão expirou ou seu perfil não tem mais acesso à gestão. Entre novamente.', { exact: true }).waitFor();
     await context.close();
-    const adopter = await browser.newContext();
-    await adopter.addInitScript(() => {
-      localStorage.setItem('@kapa:auth-token', JSON.stringify('isolated-adopter-test'));
-      localStorage.setItem('@kapa:user-data', JSON.stringify({ role: 'adopter', username: 'Adotante' }));
-    });
-    const adopterPage = await adopter.newPage();
-    await adopterPage.goto(`${base}/gestao/animais`);
-    await adopterPage.getByText('Seu perfil não tem permissão para gerenciar animais.', { exact: true }).waitFor();
-    await adopterPage.goto(`${base}/cadastro-animal`);
-    await adopterPage.getByText('Seu perfil não tem permissão para gerenciar animais.', { exact: true }).waitFor();
+    for (const blockedRole of ['adopter', 'volunteer']) {
+      const blockedContext = await browser.newContext();
+      await blockedContext.addInitScript((role) => {
+        localStorage.setItem('@kapa:auth-token', JSON.stringify(`isolated-${role}-test`));
+        localStorage.setItem('@kapa:user-data', JSON.stringify({ role, username: 'Usuário sem gestão' }));
+      }, blockedRole);
+      const blockedPage = await blockedContext.newPage();
+      await blockedPage.goto(`${base}/gestao/animais`);
+      await blockedPage.getByText('Seu perfil não tem permissão para gerenciar animais.', { exact: true }).waitFor();
+      await blockedPage.goto(`${base}/cadastro-animal`);
+      await blockedPage.getByText('Seu perfil não tem permissão para gerenciar animais.', { exact: true }).waitFor();
+      await blockedContext.close();
+    }
     assert.deepEqual(pageErrors, []);
-    console.log('PASS: desktop/mobile, search, filters, pagination, edit, validation, save retry, retained filters, empty/error/forbidden states and adopter guards.');
+    console.log('PASS: desktop/mobile, search, filters, pagination, edit, validation, save retry, retained filters, empty/error/forbidden states and adopter/volunteer guards.');
     console.log(`Screenshots: ${output}`);
   } finally { await browser.close(); }
 }

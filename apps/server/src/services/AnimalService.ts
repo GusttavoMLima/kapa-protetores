@@ -21,6 +21,13 @@ export function buildPublicAnimalCacheKey(id: string): string {
 }
 
 export class AnimalService {
+  private inFlightAll: Promise<ReturnType<AnimalService['publicView']>[]> | null =
+    null;
+  private readonly inFlightById = new Map<
+    string,
+    Promise<ReturnType<AnimalService['publicView']>>
+  >();
+
   constructor(
     private readonly animalRepository: AnimalRepositoryInterface,
     private readonly cache?: CacheProvider,
@@ -37,20 +44,42 @@ export class AnimalService {
       }
     }
 
-    const animals = await this.animalRepository.findAll();
-    const publicAnimals = animals
-      .filter((animal) => animal.getStatus() === 'available')
-      .map((animal) => this.publicView(animal.toDTO()));
-
-    if (this.cache) {
-      await this.cache.setCache(
-        AVAILABLE_ANIMALS_CACHE_KEY,
-        publicAnimals,
-        AVAILABLE_ANIMALS_CACHE_TTL_SECONDS,
-      );
+    if (this.inFlightAll) {
+      return this.inFlightAll;
     }
 
-    return publicAnimals;
+    const fetchPromise = (async () => {
+      const animals = await this.animalRepository.findAll();
+      const publicAnimals = animals
+        .filter((animal) => animal.getStatus() === 'available')
+        .map((animal) => this.publicView(animal.toDTO()));
+
+      if (this.cache) {
+        await Promise.all([
+          this.cache.setCache(
+            AVAILABLE_ANIMALS_CACHE_KEY,
+            publicAnimals,
+            AVAILABLE_ANIMALS_CACHE_TTL_SECONDS,
+          ),
+          ...publicAnimals.map((animal) =>
+            this.cache!.setCache(
+              buildPublicAnimalCacheKey(animal.id),
+              animal,
+              AVAILABLE_ANIMALS_CACHE_TTL_SECONDS,
+            ),
+          ),
+        ]);
+      }
+
+      return publicAnimals;
+    })();
+
+    this.inFlightAll = fetchPromise;
+    try {
+      return await fetchPromise;
+    } finally {
+      this.inFlightAll = null;
+    }
   }
 
   public async getById(id: string) {
@@ -66,19 +95,35 @@ export class AnimalService {
       }
     }
 
-    const animal = await this.getManagedById(id);
-    if (animal.getStatus() !== 'available') throw new NotFoundError('Animal não encontrado.');
-    const view = this.publicView(animal.toDTO());
-
-    if (this.cache) {
-      await this.cache.setCache(
-        cacheKey,
-        view,
-        AVAILABLE_ANIMALS_CACHE_TTL_SECONDS,
-      );
+    const existingInFlight = this.inFlightById.get(id);
+    if (existingInFlight) {
+      return existingInFlight;
     }
 
-    return view;
+    const fetchPromise = (async () => {
+      const animal = await this.getManagedById(id);
+      if (animal.getStatus() !== 'available') {
+        throw new NotFoundError('Animal não encontrado.');
+      }
+      const view = this.publicView(animal.toDTO());
+
+      if (this.cache) {
+        await this.cache.setCache(
+          cacheKey,
+          view,
+          AVAILABLE_ANIMALS_CACHE_TTL_SECONDS,
+        );
+      }
+
+      return view;
+    })();
+
+    this.inFlightById.set(id, fetchPromise);
+    try {
+      return await fetchPromise;
+    } finally {
+      this.inFlightById.delete(id);
+    }
   }
 
   private publicView(animal: AnimalDTO) {

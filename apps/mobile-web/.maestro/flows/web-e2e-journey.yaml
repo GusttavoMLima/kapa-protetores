@@ -1,0 +1,150 @@
+url: http://localhost:8081/signIn
+name: Adopter Full E2E Journey (Web)
+tags:
+  - e2e
+  - web
+env:
+  TEST_USERNAME: "Kapa E2E Tester"
+  TEST_PASSWORD: "KapaTest123!"
+---
+- launchApp:
+    stopApp: false
+
+# 1. Navigate from Sign In to Sign Up
+- assertVisible: "Bem-vindo de volta"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Cadastre-se"
+    direction: DOWN
+- tapOn: "Cadastre-se"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Crie sua conta"
+    direction: UP
+- assertVisible: "Crie sua conta"
+
+# 2. Register a new adopter account with a unique random email
+- scrollUntilVisible:
+    centerElement: true
+    element: "Ex: Danilo Alves"
+    direction: DOWN
+- tapOn: "Ex: Danilo Alves"
+- inputText: ${TEST_USERNAME}
+- scrollUntilVisible:
+    centerElement: true
+    element: "seu.email@kapa.com"
+    direction: DOWN
+- tapOn: "seu.email@kapa.com"
+- inputRandomEmail
+- scrollUntilVisible:
+    centerElement: true
+    element: "Mínimo 6 caracteres"
+    direction: DOWN
+- tapOn: "Mínimo 6 caracteres"
+- inputText: ${TEST_PASSWORD}
+- scrollUntilVisible:
+    centerElement: true
+    element: "Repita sua senha"
+    direction: DOWN
+- tapOn: "Repita sua senha"
+- inputText: ${TEST_PASSWORD}
+- scrollUntilVisible:
+    centerElement: true
+    element: "Cadastrar"
+    direction: DOWN
+- tapOn: "Cadastrar"
+
+# 3. Complete mandatory 9-step Adopter Profile onboarding
+- runFlow: ../subflows/complete-adopter-profile.yaml
+
+# 4. Verify Home Screen
+- assertVisible: "Adotar Agora"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Esperando por você"
+    direction: DOWN
+- assertVisible: "Esperando por você"
+
+# 5. Navigate to Adopt tab and exercise search/filters
+- tapOn: "Adotar"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Buscar por raça"
+    direction: UP
+- assertVisible: "Buscar por raça"
+- tapOn: "Cachorros"
+- assertVisible: "Limpar filtros"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Mais filtros (Sexo e Porte)"
+    direction: DOWN
+- tapOn: "Mais filtros (Sexo e Porte)"
+- assertVisible: "Menos filtros"
+- assertVisible: "Machos"
+- assertVisible: "Fêmeas"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Limpar filtros"
+    direction: UP
+- tapOn: "Limpar filtros"
+
+# 6. Navigate to Support tab, test PIX Donation and Volunteer screens
+- tapOn: "Apoiar"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Doar via PIX"
+    direction: UP
+- assertVisible: "Doar via PIX"
+- tapOn: "Doar via PIX"
+- assertVisible: "Chave PIX Oficial (CNPJ)"
+- assertVisible: "12.345.678/0001-90"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Copiar Chave PIX"
+    direction: DOWN
+- tapOn: "Copiar Chave PIX"
+- assertVisible: "Chave Copiada com Sucesso!"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Voltar"
+    direction: UP
+- tapOn: "Voltar"
+
+- scrollUntilVisible:
+    centerElement: true
+    element: "Ser Voluntário"
+    direction: DOWN
+- tapOn: "Ser Voluntário"
+- runFlow: ../subflows/submit-volunteer-application.yaml
+- scrollUntilVisible:
+    centerElement: true
+    element: "Voltar"
+    direction: UP
+- tapOn: "Voltar"
+
+# 7. Navigate to Profile tab, inspect Edit Profile, and Sign Out
+- tapOn: "Perfil"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Editar Perfil"
+    direction: DOWN
+- assertVisible: "Editar Perfil"
+- tapOn: "Editar Perfil"
+- assertVisible: "Informações Pessoais"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Preferências de Adoção"
+    direction: DOWN
+- assertVisible: "Preferências de Adoção"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Voltar"
+    direction: UP
+- tapOn: "Voltar"
+
+- scrollUntilVisible:
+    centerElement: true
+    element: "Sair"
+    direction: DOWN
+- tapOn: "Sair"
+- assertVisible: "Bem-vindo de volta"

@@ -50,11 +50,13 @@ services:
     container_name: kapa-k6
     profiles:
       - test
-    network_mode: host
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./k6:/scripts
+      - ./k6:/k6
     environment:
-      - BASE_URL=http://localhost:4000/api
+      - BASE_URL=http://host.docker.internal:4000/api
 
 volumes:
   redis_data:

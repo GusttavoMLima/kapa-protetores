@@ -1,2 +1,14 @@
 flows:
   - flows/*
+executionOrder:
+  continueOnFailure: true
+  flowsOrder:
+    - web-smoke
+    - web-login
+    - web-home
+    - web-adopet
+    - web-e2e-journey
+    - web-admin-management
+    - login-smoke
+    - mobile-e2e-journey
+

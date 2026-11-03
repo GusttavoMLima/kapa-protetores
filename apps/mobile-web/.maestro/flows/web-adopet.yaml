@@ -1,0 +1,30 @@
+url: http://localhost:8081
+name: Adopt Catalog & Filters (Web)
+tags:
+  - web
+  - adopet
+---
+- runFlow:
+    file: web-home.yaml
+
+- assertVisible: "Buscar por raça"
+- assertVisible: "Espécie"
+- assertVisible: "Todos"
+- assertVisible: "Cachorros"
+- assertVisible: "Gatos"
+- tapOn: "Cachorros"
+- assertVisible: "Limpar filtros"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Mais filtros (Sexo e Porte)"
+    direction: DOWN
+- tapOn: "Mais filtros (Sexo e Porte)"
+- assertVisible: "Menos filtros"
+- assertVisible: "Machos"
+- assertVisible: "Fêmeas"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Limpar filtros"
+    direction: UP
+- tapOn: "Limpar filtros"
+- waitForAnimationToEnd

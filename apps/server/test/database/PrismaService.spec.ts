@@ -35,7 +35,7 @@ describe('PrismaService PostgreSQL pool configuration', () => {
 
     expect(config).toEqual({
       connectionString,
-      max: 20,
+      max: 10,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 15000,
     });

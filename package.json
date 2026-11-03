@@ -29,9 +29,14 @@
     "test:mobile": "npm run test --workspace=@kapa/mobile-web",
     "test:server": "npm run test --workspace=@kapa/server",
     "test:k6": "npm run test:k6 --workspace=@kapa/server",
+    "test:k6:smoke": "npm run test:k6:smoke --workspace=@kapa/server",
     "test:k6:load": "npm run test:k6:load --workspace=@kapa/server",
+    "test:k6:animals": "npm run test:k6:animals --workspace=@kapa/server",
     "test:maestro": "npm run test:maestro --workspace=@kapa/mobile-web",
-    "test:maestro:web": "npm run test:maestro:web --workspace=@kapa/mobile-web"
+    "test:maestro:e2e": "npm run test:maestro:e2e --workspace=@kapa/mobile-web",
+    "test:maestro:web": "npm run test:maestro:web --workspace=@kapa/mobile-web",
+    "test:maestro:web:e2e": "npm run test:maestro:web:e2e --workspace=@kapa/mobile-web",
+    "test:maestro:web:all": "npm run test:maestro:web:all --workspace=@kapa/mobile-web"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

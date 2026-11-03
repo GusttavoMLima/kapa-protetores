@@ -94,4 +94,26 @@ describe('HomeScreen', () => {
       params: { id: 'pet-1' },
     });
   });
+
+  it('oculta o atalho de gestão de animais para voluntários e exibe para admin e protetor', async () => {
+    mockedUseAdoptAnimals.mockReturnValue({
+      data: [availableAnimal],
+      isLoading: false,
+    } as ReturnType<typeof useAdoptAnimals>);
+
+    mockedUseAuth.mockReturnValue({
+      user: { role: 'volunteer' },
+    } as ReturnType<typeof useAuth>);
+
+    const volunteerRender = await render(<HomeScreen />);
+    expect(volunteerRender.queryByText('Animais do abrigo')).toBeNull();
+
+    for (const role of ['admin', 'protector'] as const) {
+      mockedUseAuth.mockReturnValue({
+        user: { role },
+      } as ReturnType<typeof useAuth>);
+      const staffRender = await render(<HomeScreen />);
+      expect(staffRender.getByText('Animais do abrigo')).toBeTruthy();
+    }
+  });
 });

@@ -1,0 +1,128 @@
+appId: edu.fatec.kapaprotetores.android
+---
+# Step 1 of 9: Espécie
+- assertVisible: "Perfil de Adoção"
+- assertVisible: "Passo 1 de 9"
+- assertVisible: "Qual espécie de animal você prefere?"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Cão"
+    direction: DOWN
+- tapOn: "Cão"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Avançar"
+    direction: DOWN
+- tapOn: "Avançar"
+
+# Step 2 of 9: Sexo
+- assertVisible: "Passo 2 de 9"
+- assertVisible: "Qual o sexo de preferência?"
+- tapOn: "Macho"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Avançar"
+    direction: DOWN
+- tapOn: "Avançar"
+
+# Step 3 of 9: Porte (also test Voltar navigation)
+- assertVisible: "Passo 3 de 9"
+- assertVisible: "Qual porte de animal você busca?"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Voltar"
+    direction: DOWN
+- tapOn: "Voltar"
+- assertVisible: "Passo 2 de 9"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Avançar"
+    direction: DOWN
+- tapOn: "Avançar"
+- assertVisible: "Passo 3 de 9"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Médio"
+    direction: UP
+- tapOn: "Médio"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Avançar"
+    direction: DOWN
+- tapOn: "Avançar"
+
+# Step 4 of 9: Faixa etária
+- assertVisible: "Passo 4 de 9"
+- assertVisible: "Qual a faixa etária ideal?"
+- tapOn: "Jovem"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Avançar"
+    direction: DOWN
+- tapOn: "Avançar"
+
+# Step 5 of 9: Energia
+- assertVisible: "Passo 5 de 9"
+- assertVisible: "Qual o nível de energia desejado?"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Moderado"
+    direction: DOWN
+- tapOn: "Moderado"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Avançar"
+    direction: DOWN
+- tapOn: "Avançar"
+
+# Step 6 of 9: Crianças
+- assertVisible: "Passo 6 de 9"
+- assertVisible: "Como deve ser a relação com crianças?"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Boa convivência"
+    direction: DOWN
+- tapOn: "Boa convivência"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Avançar"
+    direction: DOWN
+- tapOn: "Avançar"
+
+# Step 7 of 9: Ruídos
+- assertVisible: "Passo 7 de 9"
+- assertVisible: "Qual a sua tolerância a latidos e ruídos?"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Silencioso"
+    direction: DOWN
+- tapOn: "Silencioso"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Avançar"
+    direction: DOWN
+- tapOn: "Avançar"
+
+# Step 8 of 9: Apartamento
+- assertVisible: "Passo 8 de 9"
+- assertVisible: "Você mora em apartamento?"
+- tapOn: "Sim"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Avançar"
+    direction: DOWN
+- tapOn: "Avançar"
+
+# Step 9 of 9: Outros animais
+- assertVisible: "Passo 9 de 9"
+- assertVisible: "Você já possui outros animais em casa?"
+- tapOn: "Não"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Concluir Perfil"
+    direction: DOWN
+- tapOn: "Concluir Perfil"
+
+# Completion screen
+- assertVisible: "Perfil Concluído!"
+- tapOn: "Ir para home"

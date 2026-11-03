@@ -1,0 +1,104 @@
+appId: edu.fatec.kapaprotetores.android
+name: Adopter Full E2E Journey (Android)
+tags:
+  - e2e
+  - mobile
+env:
+  TEST_USERNAME: "Kapa Mobile Tester"
+  TEST_PASSWORD: "KapaTest123!"
+---
+- launchApp:
+    clearState: true
+
+# 1. Navigate from Sign In to Sign Up
+- assertVisible: "Bem-vindo de volta"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Cadastre-se"
+    direction: DOWN
+- tapOn: "Cadastre-se"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Crie sua conta"
+    direction: UP
+- assertVisible: "Crie sua conta"
+
+# 2. Register a new adopter account with a unique random email
+- scrollUntilVisible:
+    centerElement: true
+    element: "Ex: Danilo Alves"
+    direction: DOWN
+- tapOn: "Ex: Danilo Alves"
+- inputText: ${TEST_USERNAME}
+- scrollUntilVisible:
+    centerElement: true
+    element: "seu.email@kapa.com"
+    direction: DOWN
+- tapOn: "seu.email@kapa.com"
+- inputRandomEmail
+- scrollUntilVisible:
+    centerElement: true
+    element: "Mínimo 6 caracteres"
+    direction: DOWN
+- tapOn: "Mínimo 6 caracteres"
+- inputText: ${TEST_PASSWORD}
+- scrollUntilVisible:
+    centerElement: true
+    element: "Repita sua senha"
+    direction: DOWN
+- tapOn: "Repita sua senha"
+- inputText: ${TEST_PASSWORD}
+- scrollUntilVisible:
+    centerElement: true
+    element: "Cadastrar"
+    direction: DOWN
+- tapOn: "Cadastrar"
+
+# 3. Complete mandatory 9-step Adopter Profile onboarding
+- runFlow: ../subflows/complete-adopter-profile.yaml
+
+# 4. Verify Home Screen and navigate to Adopt catalog
+- assertVisible: "Adotar Agora"
+- tapOn: "Ver pets disponiveis"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Buscar por raça"
+    direction: UP
+- assertVisible: "Buscar por raça"
+- tapOn: "Cachorros"
+- assertVisible: "Limpar filtros"
+- tapOn: "Limpar filtros"
+- tapOn: "Voltar ao início"
+
+# 5. Navigate to Volunteer screen from Home card and submit application
+- scrollUntilVisible:
+    centerElement: true
+    element: "Como ajudar"
+    direction: UP
+- tapOn: "Como ajudar"
+- runFlow: ../subflows/submit-volunteer-application.yaml
+- scrollUntilVisible:
+    centerElement: true
+    element: "Voltar"
+    direction: UP
+- tapOn: "Voltar"
+
+# 6. Verify Support & PIX Donation screen
+- scrollUntilVisible:
+    centerElement: true
+    element: "Doar via PIX"
+    direction: UP
+- tapOn: "Doar via PIX"
+- assertVisible: "Chave PIX Oficial (CNPJ)"
+- assertVisible: "12.345.678/0001-90"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Copiar Chave PIX"
+    direction: DOWN
+- tapOn: "Copiar Chave PIX"
+- assertVisible: "Chave Copiada com Sucesso!"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Voltar"
+    direction: UP
+- tapOn: "Voltar"
