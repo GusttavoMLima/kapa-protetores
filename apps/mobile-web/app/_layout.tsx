@@ -1,37 +1,44 @@
 import '@/../global.css';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { View } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useFonts } from 'expo-font';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useState } from 'react';
+import { AnimatedSplashOverlay } from '@/components/splash/AnimatedSplashOverlay';
 import { AuthProvider } from '@/contexts/authProvider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
+import { useFonts } from 'expo-font';
+import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
+import { useCallback, useEffect, useState } from 'react';
+import { View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            refetchOnWindowFocus: false,
-            retry: (failureCount, error) => {
-              if (isAxiosError(error) && error.response) {
-                const status = error.response.status;
-                if (status === 401 || status === 403 || status === 404) {
-                  return false;
-                }
-              }
-              return failureCount < 2;
-            },
-          },
+const NON_RETRYABLE_HTTP_STATUSES = new Set([401, 403, 404]);
+const MAX_QUERY_RETRIES = 2;
+
+function createAppQueryClient(): QueryClient {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        refetchOnWindowFocus: false,
+        retry: (failureCount, error) => {
+          if (isAxiosError(error) && error.response) {
+            if (NON_RETRYABLE_HTTP_STATUSES.has(error.response.status)) {
+              return false;
+            }
+          }
+          return failureCount < MAX_QUERY_RETRIES;
         },
-      }),
-  );
+      },
+    },
+  });
+}
+
+export default function RootLayout() {
+  const [queryClient] = useState(createAppQueryClient);
+  const [isSplashAnimationComplete, setIsSplashAnimationComplete] =
+    useState(false);
+
   const [loaded, error] = useFonts({
     'BeVietnamPro-Bold': require('../assets/fonts/BeVietnamPro-Bold.ttf'),
     'BeVietnamPro-ExtraBold': require('../assets/fonts/BeVietnamPro-ExtraBold.ttf'),
@@ -42,6 +49,10 @@ export default function RootLayout() {
     'PlusJakartaSans-Medium': require('../assets/fonts/PlusJakartaSans-Medium.ttf'),
     'PlusJakartaSans-Regular': require('../assets/fonts/PlusJakartaSans-Regular.ttf'),
   });
+
+  const handleSplashAnimationComplete = useCallback(() => {
+    setIsSplashAnimationComplete(true);
+  }, []);
 
   useEffect(() => {
     if (loaded || error) {
@@ -110,6 +121,12 @@ export default function RootLayout() {
                 }}
               />
             </Stack>
+
+            {!isSplashAnimationComplete && (
+              <AnimatedSplashOverlay
+                onAnimationComplete={handleSplashAnimationComplete}
+              />
+            )}
           </View>
         </AuthProvider>
       </QueryClientProvider>

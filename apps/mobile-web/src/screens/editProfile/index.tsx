@@ -214,7 +214,7 @@ export function EditProfileScreen() {
         />
       </View>
 
-      {user?.role === 'adopter' ? (
+      {user?.role !== 'admin' && user?.role !== 'protector' ? (
         <Pressable
           onPress={() => router.push('/(protected)/adopter-profile')}
           accessibilityRole="button"

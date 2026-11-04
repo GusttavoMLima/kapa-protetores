@@ -1131,3 +1131,23 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 * **Script de Carga de Animais ([`apps/server/k6/animals.js`](apps/server/k6/animals.js))**:
   * Corrigida a assinatura da função padrão do k6 (`export default function (data)`) para ler `data.animalIds` retornado por `setup()`.
   * Ajustadas as tuplas de `http.batch` para `[method, url, null, params]` (4º argumento para cabeçalhos `Authorization`), eliminando o alerta de serialização de `body` em requisições `GET`, com aquecimento inicial de cache em `setup()`.
+* **Resiliência de Pool e Coalescência de Cache ([`PrismaService.ts`](apps/server/src/database/PrismaService.ts) e [`AnimalService.ts`](apps/server/src/services/AnimalService.ts))**:
+  * Reduzido `DEFAULT_POSTGRES_POOL_MAX` de `20` para `10` em `PrismaService.ts` para respeitar o limite do pooler em modo sessão do Supabase (`pool_size: 15`) sob carga concorrente.
+  * Implementado padrão *Singleflight* (deduplicação de `Promise` em memória por chave) e pré-aquecimento individual de cache Redis em `AnimalService.findAll`, `AnimalService.findById` e `AnimalService.findAllForManagement`, evitando *cache stampede* na expiração do TTL.
+  * Adicionado `this.server.closeAllConnections?.()` em [`App.ts`](apps/server/src/App.ts) para encerramento imediato de conexões HTTP keep-alive durante reinicializações do servidor.
+
+---
+
+### 42. Redesign da HomeScreen e SecondaryCard conforme Design System (`DESIGN.md`)
+
+* **Componente [`SecondaryCard`](apps/mobile-web/src/components/cards/secondary/index.tsx)**:
+  * Refatorado de `View` estática (`#F1EDE9`) para `Pressable` clicável em toda a superfície (`bg-white border border-line rounded-2xl p-5 shadow-card active:scale-[0.99]`), com atributos de acessibilidade (`accessibilityRole="button"`, `accessibilityLabel`) e tipografia alinhada ao `DESIGN.md`.
+* **Tela Inicial ([`HomeScreen`](apps/mobile-web/src/screens/home/index.tsx))**:
+  * Adicionado container centralizado responsivo (`max-w-content` / `1140px`) sobre fundo `palette.cream` (`#FFFBF7`).
+  * Adicionado **Banner Hero de Boas-Vindas** com saudação personalizada ao usuário autenticado, selo institucional da KAPA Protetores e contador em tempo real de animais disponíveis.
+  * Substituídas cores fora da paleta nos cards de ação comunitária por tokens oficiais (`palette.orange`, `palette.peach`, `palette.denim`) e separadas visualmente as seções **Como participar** (comunidade) e **Gestão do abrigo** (`admin` / `protector`).
+  * Adicionados filtros rápidos por espécie (**Todos**, **Cães**, **Gatos**) na seção **Esperando por você** e botão secundário contornado em `palette.denim` para visualização completa do catálogo.
+* **Splash Screen Animada ([`AnimatedSplashOverlay.tsx`](apps/mobile-web/src/components/splash/AnimatedSplashOverlay.tsx) e [`app/_layout.tsx`](apps/mobile-web/app/_layout.tsx))**:
+  * Implementada transição animada em dois estágios após `SplashScreen.hideAsync()`, com animação de pulso suave no logo (`SplashScreen.png`), entrada escalonada da assinatura institucional (`KAPA Protetores`) e *fade-out* fluido sobre `palette.orange` (`#F18322`) com `pointerEvents="none"` para não bloquear interações nem fluxos E2E.
+* **Testes Automatizados**:
+  * [`apps/mobile-web/test/screens/HomeScreen.spec.tsx`](apps/mobile-web/test/screens/HomeScreen.spec.tsx) e [`apps/mobile-web/test/components/AnimatedSplashOverlay.spec.tsx`](apps/mobile-web/test/components/AnimatedSplashOverlay.spec.tsx).

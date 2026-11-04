@@ -1,7 +1,14 @@
 import { useAuth } from '@/hooks/useAuth';
 import { palette } from '@/theme';
 import { generatePlaceholder } from '@/utils/placeholder';
-import { Image, Pressable, ScrollView, View, Text } from 'react-native';
+import {
+  Image,
+  Pressable,
+  ScrollView,
+  View,
+  Text,
+  Platform,
+} from 'react-native';
 import { router } from 'expo-router';
 import { UnauthorizedScreen } from '@/screens/unauthorized';
 import { SystemEventTypes, UserRoleEnum, type SystemEvent } from '@kapa/shared';
@@ -153,7 +160,16 @@ export function ProfileScreen() {
       className="flex-1 bg-cream"
     >
       <View className="items-center mt-[1.5rem] bg-[#F6F3EE] p-8 w-full relative">
-        <ProfileBlob className="absolute top-0 right-0" />
+        <ProfileBlob
+          {...(Platform.OS === 'web'
+            ? { className: 'absolute top-0 right-0' }
+            : null)}
+          style={
+            Platform.OS !== 'web'
+              ? { position: 'absolute', top: 0, right: 0 }
+              : undefined
+          }
+        />
         <Image
           source={{ uri: avatarUri }}
           className="w-[7.5rem] h-[7.5rem] rounded-full border-[.3rem] border-orange bg-peach z-20"

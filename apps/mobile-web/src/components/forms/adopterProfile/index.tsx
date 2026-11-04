@@ -13,6 +13,11 @@ import {
   adopterProfileSchema,
 } from './model';
 import { router } from 'expo-router';
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
 
 export interface AdopterProfileFormsProps {
   currentField: number;
@@ -55,6 +60,14 @@ export const AdopterProfileForms = ({
   const totalSteps = adopterProfileFormsConfig.length;
   const current = adopterProfileFormsConfig[currentField];
   const isLastStep = currentField === totalSteps - 1;
+
+  // const progressPercent = useSharedValue(
+  //   Math.min(100, Math.round(((currentField + 1) / totalSteps) * 100)),
+  // );
+
+  // const progressStyle = useAnimatedStyle(() => ({
+  //   width: interpolate(progressPercent, [], [])
+  // }));
 
   const progressPercent = useMemo(() => {
     return Math.min(100, Math.round(((currentField + 1) / totalSteps) * 100));

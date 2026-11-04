@@ -29,18 +29,19 @@ The branch, commit, review, and release workflow is defined in [`CONTRIBUTING.md
 These rules apply to ALL development tasks.
 
 1. Prioritize security above convenience.
-2. Do not introduce known vulnerabilities.
-3. Do not modify the database schema without explicit human approval.
-4. Do not introduce deprecated APIs, packages, or patterns.
-5. Do not introduce unnecessary dependencies.
-6. Follow the project's existing architecture and conventions.
-7. Prefer simple, maintainable solutions over unnecessary abstractions.
-8. Use strict TypeScript typing. Avoid `any` unless explicitly justified.
-9. Do not silently change existing behavior unrelated to the requested task.
-10. Do not expose secrets, credentials, tokens, or sensitive user data in source code, logs, errors, or commits.
-11. Do not disable security mechanisms to make development easier.
-12. Do not make assumptions about security-sensitive behavior. Verify it.
-13. Always keep `INTEGRACAO_DESENVOLVIMENTO.md` updated after implementing or modifying features, routes, schemas, security mechanisms, or infrastructure.
+2. Prioritize clean code.
+3. Do not introduce known vulnerabilities.
+4. Do not modify the database schema without explicit human approval.
+5. Do not introduce deprecated APIs, packages, or patterns.
+6. Do not introduce unnecessary dependencies.
+7. Follow the project's existing architecture and conventions.
+8. Prefer simple, maintainable solutions over unnecessary abstractions.
+9. Use strict TypeScript typing. Avoid `any` unless explicitly justified.
+10. Do not silently change existing behavior unrelated to the requested task.
+11. Do not expose secrets, credentials, tokens, or sensitive user data in source code, logs, errors, or commits.
+12. Do not disable security mechanisms to make development easier.
+13. Do not make assumptions about security-sensitive behavior. Verify it.
+14. Always keep `INTEGRACAO_DESENVOLVIMENTO.md` updated after implementing or modifying features, routes, schemas, security mechanisms, or infrastructure.
 
 ---
 
