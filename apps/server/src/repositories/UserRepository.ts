@@ -122,7 +122,7 @@ export class UserRepository implements IUserRepository {
         latitude: true,
         longitude: true,
         favorites: {
-          take: 4,
+          orderBy: { created_at: 'desc' },
           select: {
             user_id: true,
             animal_id: true,

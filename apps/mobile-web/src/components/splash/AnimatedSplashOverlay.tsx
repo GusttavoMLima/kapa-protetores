@@ -109,11 +109,13 @@ export function AnimatedSplashOverlay({
         </Animated.View>
 
         <Animated.View
-          style={{
-            opacity: taglineOpacity,
-            transform: [{ translateY: taglineTranslateY }],
-          }}
-          className="items-center gap-2 mt-2"
+          style={[
+            styles.taglineContainer,
+            {
+              opacity: taglineOpacity,
+              transform: [{ translateY: taglineTranslateY }],
+            },
+          ]}
         >
           <View className="bg-white/20 px-4 py-1.5 rounded-full flex-row items-center gap-2">
             <PawPrintIcon size={PAW_ICON_SIZE} color="#FFFFFF" weight="fill" />
@@ -141,5 +143,10 @@ const styles = StyleSheet.create({
   logo: {
     width: LOGO_SIZE,
     height: LOGO_SIZE,
+  },
+  taglineContainer: {
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
   },
 });

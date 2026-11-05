@@ -1,5 +1,19 @@
+import { useEffect, useRef } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+} from 'react-native-reanimated';
 import { cn } from '@/utils/cn';
+
+const CHIP_POP_SCALE = 1.05;
+const CHIP_REST_SCALE = 1;
+const CHIP_SPRING_CONFIG = {
+  damping: 13,
+  stiffness: 210,
+};
 
 export type Option<T extends string> = {
   value: T;
@@ -28,32 +42,57 @@ export const PrimaryChip = ({
   disabled = false,
   className,
 }: PrimaryChipProps) => {
+  const chipScale = useSharedValue(CHIP_REST_SCALE);
+  const didMountRef = useRef(false);
+
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+
+    if (selected) {
+      chipScale.value = withSequence(
+        withSpring(CHIP_POP_SCALE, CHIP_SPRING_CONFIG),
+        withSpring(CHIP_REST_SCALE, CHIP_SPRING_CONFIG),
+      );
+    } else {
+      chipScale.value = withSpring(CHIP_REST_SCALE, CHIP_SPRING_CONFIG);
+    }
+  }, [chipScale, selected]);
+
+  const chipAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: chipScale.value }],
+  }));
+
   return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityRole="radio"
-      accessibilityLabel={label}
-      accessibilityState={{ selected, disabled }}
-      hitSlop={6}
-      className={cn(
-        'border rounded-full px-4 py-2.5 min-h-[44px] justify-center items-center transition-all',
-        selected
-          ? 'bg-orange border-orange'
-          : 'bg-white border-border active:bg-cream',
-        disabled && 'opacity-50 cursor-not-allowed',
-        className,
-      )}
-    >
-      <Text
+    <Animated.View style={chipAnimatedStyle}>
+      <Pressable
+        onPress={onPress}
+        disabled={disabled}
+        accessibilityRole="radio"
+        accessibilityLabel={label}
+        accessibilityState={{ selected, disabled }}
+        hitSlop={6}
         className={cn(
-          'text-sm font-semibold',
-          selected ? 'text-white' : 'text-ink',
+          'border rounded-full px-4 py-2.5 min-h-[44px] justify-center items-center transition-all',
+          selected
+            ? 'bg-orange border-orange'
+            : 'bg-white border-border active:bg-cream',
+          disabled && 'opacity-50 cursor-not-allowed',
+          className,
         )}
       >
-        {label}
-      </Text>
-    </Pressable>
+        <Text
+          className={cn(
+            'text-sm font-semibold',
+            selected ? 'text-white' : 'text-ink',
+          )}
+        >
+          {label}
+        </Text>
+      </Pressable>
+    </Animated.View>
   );
 };
 
