@@ -1,12 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import {
@@ -19,23 +12,10 @@ import {
   ShieldCheckIcon,
   SparkleIcon,
 } from 'phosphor-react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withSpring,
-} from 'react-native-reanimated';
 import { PrimaryCard } from '@/components/cards/primary';
 import { PrimaryButton } from '@/components/buttons/primary';
 import { PrimaryChip } from '@/components/chips/primaryChip';
 import { palette } from '@/theme';
-
-const COPY_POP_SCALE = 1.04;
-const COPY_REST_SCALE = 1;
-const COPY_SPRING_CONFIG = {
-  damping: 12,
-  stiffness: 200,
-};
 
 export const PIX_CONFIG = {
   keyType: 'CNPJ',
@@ -50,28 +30,12 @@ export function PixScreen() {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(25);
   const [copied, setCopied] = useState(false);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const copyButtonScale = useSharedValue(COPY_REST_SCALE);
 
   useEffect(() => {
     return () => {
       if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
     };
   }, []);
-
-  useEffect(() => {
-    if (copied) {
-      copyButtonScale.value = withSequence(
-        withSpring(COPY_POP_SCALE, COPY_SPRING_CONFIG),
-        withSpring(COPY_REST_SCALE, COPY_SPRING_CONFIG),
-      );
-    } else {
-      copyButtonScale.value = withSpring(COPY_REST_SCALE, COPY_SPRING_CONFIG);
-    }
-  }, [copied, copyButtonScale]);
-
-  const copyButtonAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: copyButtonScale.value }],
-  }));
 
   const handleCopyPix = async () => {
     try {
@@ -192,27 +156,25 @@ export function PixScreen() {
           </View>
         </View>
 
-        <Animated.View style={[styles.copyButtonWrapper, copyButtonAnimatedStyle]}>
-          <PrimaryButton
-            title={copied ? 'Chave Copiada com Sucesso!' : 'Copiar Chave PIX'}
-            icon={
-              copied ? (
-                <CheckIcon size={20} color={palette.white} weight="bold" />
-              ) : (
-                <CopyIcon size={20} color={palette.white} weight="bold" />
-              )
-            }
-            className={
-              copied
-                ? 'bg-success active:bg-success'
-                : 'bg-orange active:bg-orange-dark'
-            }
-            color={copied ? palette.success : palette.orange}
-            pressedColor={copied ? palette.success : palette.orangeDark}
-            onPress={handleCopyPix}
-            accessibilityLabel="Copiar chave PIX para a área de transferência"
-          />
-        </Animated.View>
+        <PrimaryButton
+          title={copied ? 'Chave Copiada com Sucesso!' : 'Copiar Chave PIX'}
+          icon={
+            copied ? (
+              <CheckIcon size={20} color={palette.white} weight="bold" />
+            ) : (
+              <CopyIcon size={20} color={palette.white} weight="bold" />
+            )
+          }
+          className={
+            copied
+              ? 'bg-success active:bg-success'
+              : 'bg-orange active:bg-orange-dark'
+          }
+          color={copied ? palette.success : palette.orange}
+          pressedColor={copied ? palette.success : palette.orangeDark}
+          onPress={handleCopyPix}
+          accessibilityLabel="Copiar chave PIX para a área de transferência"
+        />
       </PrimaryCard>
 
       <PrimaryCard className="p-4 gap-3 bg-white">
@@ -269,9 +231,3 @@ export function PixScreen() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  copyButtonWrapper: {
-    width: '100%',
-  },
-});
