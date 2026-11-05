@@ -122,11 +122,11 @@ export default function RootLayout() {
               />
             </Stack>
 
-            {/* {!isSplashAnimationComplete && (
+            {!isSplashAnimationComplete && (
               <AnimatedSplashOverlay
                 onAnimationComplete={handleSplashAnimationComplete}
               />
-            )} */}
+            )}
           </View>
         </AuthProvider>
       </QueryClientProvider>
