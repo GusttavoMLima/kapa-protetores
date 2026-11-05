@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,9 +14,9 @@ import {
 } from './model';
 import { router } from 'expo-router';
 import Animated, {
-  interpolate,
   useAnimatedStyle,
   useSharedValue,
+  withTiming,
 } from 'react-native-reanimated';
 
 export interface AdopterProfileFormsProps {
@@ -61,17 +61,19 @@ export const AdopterProfileForms = ({
   const current = adopterProfileFormsConfig[currentField];
   const isLastStep = currentField === totalSteps - 1;
 
-  // const progressPercent = useSharedValue(
-  //   Math.min(100, Math.round(((currentField + 1) / totalSteps) * 100)),
-  // );
-
-  // const progressStyle = useAnimatedStyle(() => ({
-  //   width: interpolate(progressPercent, [], [])
-  // }));
-
   const progressPercent = useMemo(() => {
     return Math.min(100, Math.round(((currentField + 1) / totalSteps) * 100));
   }, [currentField, totalSteps]);
+
+  const animatedProgress = useSharedValue(progressPercent);
+
+  useEffect(() => {
+    animatedProgress.value = withTiming(progressPercent, { duration: 250 });
+  }, [animatedProgress, progressPercent]);
+
+  const progressStyle = useAnimatedStyle(() => ({
+    width: `${animatedProgress.value}%`,
+  }));
 
   if (!current) {
     return (
@@ -113,9 +115,17 @@ export const AdopterProfileForms = ({
             </Text>
           </View>
           <View className="h-2 w-full bg-border rounded-full overflow-hidden">
-            <View
+            <Animated.View
+              testID="adopter-profile-progress-bar"
               className="h-full bg-orange rounded-full"
-              style={{ width: `${progressPercent}%` }}
+              style={[
+                {
+                  height: '100%',
+                  backgroundColor: palette.orange,
+                  borderRadius: 9999,
+                },
+                progressStyle,
+              ]}
             />
           </View>
         </View>

@@ -19,6 +19,8 @@ describe('AdopterProfileForms', () => {
       screen.getByText('Escolha a espécie que melhor se adapta à sua família.'),
     ).toBeTruthy();
     expect(screen.getByText('Passo 1 de 9')).toBeTruthy();
+    expect(screen.getByText('11%')).toBeTruthy();
+    expect(screen.getByTestId('adopter-profile-progress-bar')).toBeTruthy();
   });
 
   it('allows selecting an option and advancing to next step', async () => {
