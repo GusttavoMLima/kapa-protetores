@@ -6,6 +6,11 @@ export class FavoriteRouter {
   public readonly router = Router();
 
   constructor(controller: FavoriteController, auth: AuthMiddleware) {
-    this.router.post('/', auth.authenticate, auth.authorize('adopter'), controller.toggle);
+    this.router.post(
+      '/',
+      auth.authenticate,
+      auth.authorize('adopter', 'volunteer', 'protector', 'admin'),
+      controller.toggle,
+    );
   }
 }

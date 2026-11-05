@@ -15,7 +15,21 @@ import {
   ViewToken,
 } from 'react-native';
 import { CaretLeftIcon, CaretRightIcon } from 'phosphor-react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import { colors } from '@/theme/colors';
+
+const ACTIVE_DOT_WIDTH = 20;
+const INACTIVE_DOT_WIDTH = 10;
+const DOT_HEIGHT = 10;
+const DOT_BORDER_RADIUS = 9999;
+const DOT_SPRING_CONFIG = {
+  damping: 14,
+  stiffness: 180,
+};
 
 export interface CarouselPhoto {
   id: string;
@@ -64,7 +78,55 @@ const styles = StyleSheet.create({
     bottom: 0,
     opacity: 0.35,
   },
+  dotBase: {
+    height: DOT_HEIGHT,
+    borderRadius: DOT_BORDER_RADIUS,
+  },
 });
+
+interface AnimatedCarouselDotProps {
+  index: number;
+  isActive: boolean;
+  onPress: () => void;
+}
+
+function AnimatedCarouselDot({
+  index,
+  isActive,
+  onPress,
+}: AnimatedCarouselDotProps) {
+  const dotWidth = useSharedValue(
+    isActive ? ACTIVE_DOT_WIDTH : INACTIVE_DOT_WIDTH,
+  );
+
+  useEffect(() => {
+    dotWidth.value = withSpring(
+      isActive ? ACTIVE_DOT_WIDTH : INACTIVE_DOT_WIDTH,
+      DOT_SPRING_CONFIG,
+    );
+  }, [dotWidth, isActive]);
+
+  const dotAnimatedStyle = useAnimatedStyle(() => ({
+    width: dotWidth.value,
+  }));
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Ir para foto ${index + 1}`}
+      onPress={onPress}
+      hitSlop={8}
+    >
+      <Animated.View
+        style={[
+          styles.dotBase,
+          { backgroundColor: isActive ? colors.primary : colors.card },
+          dotAnimatedStyle,
+        ]}
+      />
+    </Pressable>
+  );
+}
 
 function CarouselSlide({
   photoUrl,
@@ -344,23 +406,14 @@ export function PhotoCarousel({
           >
             {dots ? (
               <View className="flex-row items-center gap-2 rounded-full bg-black/25 px-3 py-1.5">
-                {photos.map((photo, index) => {
-                  const isActive = index === safeActiveIndex;
-                  return (
-                    <Pressable
-                      key={photo.id}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Ir para foto ${index + 1}`}
-                      onPress={() => scrollToIndex(index)}
-                      hitSlop={8}
-                      className="h-2.5 rounded-full"
-                      style={{
-                        width: isActive ? 20 : 10,
-                        backgroundColor: isActive ? colors.primary : colors.card,
-                      }}
-                    />
-                  );
-                })}
+                {photos.map((photo, index) => (
+                  <AnimatedCarouselDot
+                    key={photo.id}
+                    index={index}
+                    isActive={index === safeActiveIndex}
+                    onPress={() => scrollToIndex(index)}
+                  />
+                ))}
               </View>
             ) : (
               <View className="rounded-full bg-black/50 px-3 py-1">

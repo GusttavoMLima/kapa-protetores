@@ -8,8 +8,9 @@ interface PrimaryCardProps extends ViewProps {
 export const PrimaryCard = ({ children, className }: PrimaryCardProps) => {
   return (
     <View
-      className={cn('rounded-md ', className)}
+      className={cn('rounded-md', className)}
       style={{
+        borderRadius: 6,
         ...Platform.select({
           web: {
             boxShadow: '0px -1px 11px rgba(18, 18, 18, 0.15)',
@@ -22,7 +23,8 @@ export const PrimaryCard = ({ children, className }: PrimaryCardProps) => {
             },
             shadowOpacity: 0.15,
             shadowRadius: 10.9,
-            elevation: 4,
+            // elevation: 4,
+            boxShadow: '0px -1px 11px rgba(18, 18, 18, 0.15)',
           },
         }),
       }}

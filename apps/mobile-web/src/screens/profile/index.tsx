@@ -1,7 +1,15 @@
 import { useAuth } from '@/hooks/useAuth';
+import { useToggleFavorite } from '@/hooks/useFavorites';
 import { palette } from '@/theme';
 import { generatePlaceholder } from '@/utils/placeholder';
-import { Image, Pressable, ScrollView, View, Text } from 'react-native';
+import {
+  Image,
+  Pressable,
+  ScrollView,
+  View,
+  Text,
+  Platform,
+} from 'react-native';
 import { router } from 'expo-router';
 import { UnauthorizedScreen } from '@/screens/unauthorized';
 import { SystemEventTypes, UserRoleEnum, type SystemEvent } from '@kapa/shared';
@@ -17,6 +25,9 @@ import {
 import { PrimaryMenuItem } from '@/components/menuItems/primary';
 import { PetCard } from '@/components/cards/pet';
 import ProfileBlob from '@/../assets/profile-blob.svg';
+
+const RECENT_FAVORITES_LIMIT = 2;
+const RECENT_EVENTS_LIMIT = 5;
 
 function formatEventLabel(event: SystemEvent): {
   title: string;
@@ -131,6 +142,7 @@ function formatEventDate(isoString: string): string {
 export function ProfileScreen() {
   const { user, isLogged, signOut } = useAuth();
   const { data } = useUserProfile();
+  const { mutate: toggleFavorite } = useToggleFavorite();
 
   if (!isLogged || !user) return <UnauthorizedScreen />;
 
@@ -153,7 +165,16 @@ export function ProfileScreen() {
       className="flex-1 bg-cream"
     >
       <View className="items-center mt-[1.5rem] bg-[#F6F3EE] p-8 w-full relative">
-        <ProfileBlob className="absolute top-0 right-0" />
+        <ProfileBlob
+          {...(Platform.OS === 'web'
+            ? { className: 'absolute top-0 right-0' }
+            : null)}
+          style={
+            Platform.OS !== 'web'
+              ? { position: 'absolute', top: 0, right: 0 }
+              : undefined
+          }
+        />
         <Image
           source={{ uri: avatarUri }}
           className="w-[7.5rem] h-[7.5rem] rounded-full border-[.3rem] border-orange bg-peach z-20"
@@ -213,14 +234,20 @@ export function ProfileScreen() {
           <Text className="font-heading font-bold text-denim text-xl">
             Meus Favoritos
           </Text>
-          <Text className="font-heading font-medium text-orange text-base hover:underline cursor-pointer">
-            Ver todos
-          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Ver todos os favoritos"
+            onPress={() => router.push('/(protected)/my-favorites')}
+          >
+            <Text className="font-heading font-medium text-orange text-base hover:underline cursor-pointer">
+              Ver todos
+            </Text>
+          </Pressable>
         </View>
 
-        <View className="w-full overflow-hidden gap-2 p-2">
+        <View className="w-full flex-row flex-wrap gap-4 p-2">
           {data?.favorites.length ? (
-            data.favorites.map((favorite) =>
+            data.favorites.slice(0, RECENT_FAVORITES_LIMIT).map((favorite) =>
               favorite.animal ? (
                 <PetCard
                   key={favorite.animalId}
@@ -241,6 +268,13 @@ export function ProfileScreen() {
                     `${favorite.animal.age} ${favorite.animal.age === 1 ? 'ano' : 'anos'}`,
                   ]}
                   isFavorited
+                  onPress={() =>
+                    router.push({
+                      pathname: '/adopet/[id]',
+                      params: { id: favorite.animalId },
+                    })
+                  }
+                  onToggleFavorite={() => toggleFavorite(favorite.animalId)}
                 />
               ) : null,
             )
@@ -270,7 +304,7 @@ export function ProfileScreen() {
 
         <View className="w-full gap-3">
           {data?.events.length ? (
-            data.events.slice(0, 5).map((event) => {
+            data.events.slice(0, RECENT_EVENTS_LIMIT).map((event) => {
               const { title, subtitle } = formatEventLabel(event);
               const isFavoriteEvent =
                 event.type === SystemEventTypes.PET_FAVORITED ||

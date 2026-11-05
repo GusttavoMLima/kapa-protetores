@@ -1,4 +1,11 @@
-import { memo, useCallback, useState, type ReactNode } from 'react';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import {
   Pressable,
   Text,
@@ -8,8 +15,21 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { CheckIcon, MinusIcon } from 'phosphor-react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+} from 'react-native-reanimated';
 import { cn } from '@/utils/cn';
 import { palette } from '@/theme';
+
+const CHECKBOX_POP_SCALE = 1.15;
+const CHECKBOX_REST_SCALE = 1;
+const CHECKBOX_SPRING_CONFIG = {
+  damping: 12,
+  stiffness: 220,
+};
 
 export type PrimaryCheckBoxSize = 'sm' | 'md' | 'lg';
 
@@ -88,6 +108,29 @@ export const PrimaryCheckBox = memo(function PrimaryCheckBox({
   const isChecked = isControlled ? resolvedChecked : internalChecked;
   const showChecked = isChecked || indeterminate;
 
+  const boxScale = useSharedValue(CHECKBOX_REST_SCALE);
+  const didMountRef = useRef(false);
+
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+
+    if (showChecked) {
+      boxScale.value = withSequence(
+        withSpring(CHECKBOX_POP_SCALE, CHECKBOX_SPRING_CONFIG),
+        withSpring(CHECKBOX_REST_SCALE, CHECKBOX_SPRING_CONFIG),
+      );
+    } else {
+      boxScale.value = withSpring(CHECKBOX_REST_SCALE, CHECKBOX_SPRING_CONFIG);
+    }
+  }, [boxScale, showChecked]);
+
+  const boxAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: boxScale.value }],
+  }));
+
   const handlePress = useCallback(() => {
     if (disabled) return;
 
@@ -130,31 +173,33 @@ export const PrimaryCheckBox = memo(function PrimaryCheckBox({
       )}
       {...rest}
     >
-      <View
-        className={cn(
-          'items-center justify-center border transition-colors mt-0.5',
-          config.boxClasses,
-          showChecked
-            ? 'bg-orange border-orange'
-            : error
-              ? 'bg-white border-danger'
-              : 'bg-white border-border hover:border-orange/60',
-        )}
-      >
-        {indeterminate ? (
-          <MinusIcon
-            size={config.iconSize}
-            weight="bold"
-            color={palette.white}
-          />
-        ) : isChecked ? (
-          <CheckIcon
-            size={config.iconSize}
-            weight="bold"
-            color={palette.white}
-          />
-        ) : null}
-      </View>
+      <Animated.View style={boxAnimatedStyle}>
+        <View
+          className={cn(
+            'items-center justify-center border transition-colors mt-0.5',
+            config.boxClasses,
+            showChecked
+              ? 'bg-orange border-orange'
+              : error
+                ? 'bg-white border-danger'
+                : 'bg-white border-border hover:border-orange/60',
+          )}
+        >
+          {indeterminate ? (
+            <MinusIcon
+              size={config.iconSize}
+              weight="bold"
+              color={palette.white}
+            />
+          ) : isChecked ? (
+            <CheckIcon
+              size={config.iconSize}
+              weight="bold"
+              color={palette.white}
+            />
+          ) : null}
+        </View>
+      </Animated.View>
 
       {hasContent ? (
         <View className="flex-1 justify-center">

@@ -66,7 +66,7 @@ export const PrimaryMenuItem = ({
           <Text className={`font-body-medium text-base ${textColor}`}>
             {label}
           </Text>
-          <Text className={descriptionColor}>{description}</Text>
+          {description ? <Text className={descriptionColor}>{description}</Text> : undefined}
         </View>
       </View>
 

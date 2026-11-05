@@ -1,8 +1,21 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FadersIcon, MagnifyingGlassIcon, XIcon } from 'phosphor-react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { palette } from '@/theme';
 import { SecondaryInputText } from '@/components/inputText/secondary';
 import { PrimaryChipGroup } from '@/components/chips/primaryChip';
@@ -20,6 +33,48 @@ import {
 
 export * from './model';
 export { useAdoptAnimals, useSearchAdopt } from '@/hooks/useAdoptAnimals';
+
+const ADVANCED_PANEL_DURATION_MS = 220;
+const ADVANCED_PANEL_INITIAL_OFFSET_Y = -8;
+
+interface AnimatedAdvancedFiltersPanelProps {
+  children: ReactNode;
+}
+
+function AnimatedAdvancedFiltersPanel({
+  children,
+}: AnimatedAdvancedFiltersPanelProps) {
+  const panelOpacity = useSharedValue(0);
+  const panelTranslateY = useSharedValue(ADVANCED_PANEL_INITIAL_OFFSET_Y);
+
+  useEffect(() => {
+    panelOpacity.value = withTiming(1, {
+      duration: ADVANCED_PANEL_DURATION_MS,
+      easing: Easing.out(Easing.quad),
+    });
+    panelTranslateY.value = withTiming(0, {
+      duration: ADVANCED_PANEL_DURATION_MS,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [panelOpacity, panelTranslateY]);
+
+  const panelAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: panelOpacity.value,
+    transform: [{ translateY: panelTranslateY.value }],
+  }));
+
+  return (
+    <Animated.View style={[styles.advancedFiltersContainer, panelAnimatedStyle]}>
+      {children}
+    </Animated.View>
+  );
+}
+
+const styles = StyleSheet.create({
+  advancedFiltersContainer: {
+    width: '100%',
+  },
+});
 
 export interface SearchAdoptFormProps {
   onSearch: (filters: SearchAdoptFilters) => void;
@@ -196,37 +251,39 @@ export function SearchAdoptForm({
       </View>
 
       {showAdvancedFilters && (
-        <View className="p-4 bg-white border border-line rounded-xl gap-4">
-          <View className="gap-2">
-            <Text className="text-sm font-semibold text-ink-muted">Sexo</Text>
-            <Controller
-              control={control}
-              name="gender"
-              render={({ field: { value, onChange } }) => (
-                <PrimaryChipGroup<SearchAdoptGender>
-                  options={searchAdoptGenderOptions}
-                  value={value}
-                  onChange={onChange}
-                />
-              )}
-            />
-          </View>
+        <AnimatedAdvancedFiltersPanel>
+          <View className="p-4 bg-white border border-line rounded-xl gap-4">
+            <View className="gap-2">
+              <Text className="text-sm font-semibold text-ink-muted">Sexo</Text>
+              <Controller
+                control={control}
+                name="gender"
+                render={({ field: { value, onChange } }) => (
+                  <PrimaryChipGroup<SearchAdoptGender>
+                    options={searchAdoptGenderOptions}
+                    value={value}
+                    onChange={onChange}
+                  />
+                )}
+              />
+            </View>
 
-          <View className="gap-2">
-            <Text className="text-sm font-semibold text-ink-muted">Porte</Text>
-            <Controller
-              control={control}
-              name="size"
-              render={({ field: { value, onChange } }) => (
-                <PrimaryChipGroup<SearchAdoptSize>
-                  options={searchAdoptSizeOptions}
-                  value={value}
-                  onChange={onChange}
-                />
-              )}
-            />
+            <View className="gap-2">
+              <Text className="text-sm font-semibold text-ink-muted">Porte</Text>
+              <Controller
+                control={control}
+                name="size"
+                render={({ field: { value, onChange } }) => (
+                  <PrimaryChipGroup<SearchAdoptSize>
+                    options={searchAdoptSizeOptions}
+                    value={value}
+                    onChange={onChange}
+                  />
+                )}
+              />
+            </View>
           </View>
-        </View>
+        </AnimatedAdvancedFiltersPanel>
       )}
     </View>
   );

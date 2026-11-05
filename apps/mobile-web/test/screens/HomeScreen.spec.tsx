@@ -116,4 +116,37 @@ describe('HomeScreen', () => {
       expect(staffRender.getByText('Animais do abrigo')).toBeTruthy();
     }
   });
+
+  it('filtra animais em destaque por espécie (cães e gatos)', async () => {
+    const availableCat: Animal = {
+      ...availableAnimal,
+      id: 'pet-cat-1',
+      name: 'Mimi',
+      species: 'cat',
+      gender: 'female',
+      age: 1,
+    };
+
+    mockedUseAdoptAnimals.mockReturnValue({
+      data: [availableAnimal, availableCat],
+      isLoading: false,
+    } as ReturnType<typeof useAdoptAnimals>);
+
+    const { getByText, queryByText } = await render(<HomeScreen />);
+
+    expect(getByText('Billy')).toBeTruthy();
+    expect(getByText('Mimi')).toBeTruthy();
+
+    await fireEvent.press(getByText('Gatos (1)'));
+    expect(queryByText('Billy')).toBeNull();
+    expect(getByText('Mimi')).toBeTruthy();
+
+    await fireEvent.press(getByText('Cães (1)'));
+    expect(getByText('Billy')).toBeTruthy();
+    expect(queryByText('Mimi')).toBeNull();
+
+    await fireEvent.press(getByText('Todos (2)'));
+    expect(getByText('Billy')).toBeTruthy();
+    expect(getByText('Mimi')).toBeTruthy();
+  });
 });
