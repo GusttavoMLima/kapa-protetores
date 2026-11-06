@@ -1,10 +1,16 @@
 import { IAnimalRepository } from '../interfaces/AnimalRepositoryInterface';
 import { Animal } from '../models/Animal';
 import { randomBytes } from 'node:crypto';
-import type { AnimalManagementQuery, AnimalManagementPage, UpdateAnimalInput } from '@kapa/shared';
+import type {
+  AnimalManagementQuery,
+  AnimalManagementPage,
+  AnimalPost,
+  UpdateAnimalInput,
+} from '@kapa/shared';
 
 export class InMemoryAnimalRepository implements IAnimalRepository {
   private readonly animals: Animal[] = [];
+  private readonly posts: AnimalPost[] = [];
 
   public async findAll(): Promise<Animal[]> {
     return [...this.animals];
@@ -65,5 +71,28 @@ export class InMemoryAnimalRepository implements IAnimalRepository {
     if (input.observations !== undefined) animal.setObservations(input.observations);
     if (input.status !== undefined) animal.setStatus(input.status);
     return animal;
+  }
+
+  public async findPostsByAnimalId(animalId: string): Promise<AnimalPost[]> {
+    return this.posts
+      .filter((post) => post.animalId === animalId)
+      .sort(
+        (a, b) =>
+          b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id),
+      );
+  }
+
+  public async createPost(
+    animalId: string,
+    description: string,
+  ): Promise<AnimalPost> {
+    const post: AnimalPost = {
+      id: `c${randomBytes(12).toString('hex')}`,
+      animalId,
+      description: description.trim(),
+      createdAt: new Date().toISOString(),
+    };
+    this.posts.unshift(post);
+    return post;
   }
 }

@@ -101,3 +101,11 @@ export const createAnimalSchema = z.object({
 
 export const updateAnimalSchema = createAnimalSchema.partial()
   .refine((value) => Object.keys(value).length > 0, 'Informe ao menos um campo.');
+
+export const createAnimalPostSchema = z.object({
+  description: z
+    .string()
+    .trim()
+    .min(3, 'A atualização deve ter pelo menos 3 caracteres.')
+    .max(500, 'A atualização pode ter no máximo 500 caracteres.'),
+}).strict();

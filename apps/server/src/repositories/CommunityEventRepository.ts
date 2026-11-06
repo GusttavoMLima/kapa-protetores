@@ -203,4 +203,69 @@ export class CommunityEventRepository {
 
     throw new Error('COMMUNITY_EVENT_SIGNUP_RETRY_EXHAUSTED');
   }
+
+  public async cancelSignUp(
+    volunteerId: string,
+    communityEventId: string,
+  ): Promise<CommunityEventListItem> {
+    return await this.prisma.$transaction(async (transaction) => {
+      const event = await transaction.communityEvents.findUnique({
+        where: { id: communityEventId },
+        select: { id: true, start_at: true },
+      });
+
+      if (!event) throw new Error('COMMUNITY_EVENT_NOT_FOUND');
+      if (event.start_at.getTime() <= Date.now()) {
+        throw new Error('COMMUNITY_EVENT_CLOSED');
+      }
+
+      const existingSignup =
+        await transaction.communityEventVolunteers.findUnique({
+          where: {
+            volunteer_id_community_event_id: {
+              volunteer_id: volunteerId,
+              community_event_id: communityEventId,
+            },
+          },
+          select: { volunteer_id: true },
+        });
+
+      if (!existingSignup) {
+        throw new Error('COMMUNITY_EVENT_NOT_SIGNED_UP');
+      }
+
+      await transaction.communityEventVolunteers.delete({
+        where: {
+          volunteer_id_community_event_id: {
+            volunteer_id: volunteerId,
+            community_event_id: communityEventId,
+          },
+        },
+      });
+
+      const result = await transaction.communityEvents.findUnique({
+        where: { id: communityEventId },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          cep: true,
+          type: true,
+          start_at: true,
+          end_at: true,
+          location: true,
+          vacancies: true,
+          created_at: true,
+          volunteers: {
+            where: { volunteer_id: volunteerId },
+            select: { volunteer_id: true },
+          },
+          _count: { select: { volunteers: true } },
+        },
+      });
+
+      if (!result) throw new Error('COMMUNITY_EVENT_NOT_FOUND');
+      return this.toListItem(result);
+    });
+  }
 }

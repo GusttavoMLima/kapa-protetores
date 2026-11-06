@@ -76,4 +76,28 @@ export class CommunityEventController {
       next(error);
     }
   };
+
+  public cancelSignUp = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!req.user) throw new UnauthorizedError();
+      const { id } = req.params;
+      const parsedId = eventIdSchema.safeParse(id);
+      if (!parsedId.success) {
+        throw new BadRequestError('Identificador de atividade inválido.');
+      }
+
+      const data = await this.service.cancelSignUp(req.user.sub, parsedId.data);
+      res.status(200).json({
+        success: true,
+        message: 'Inscrição cancelada com sucesso.',
+        data,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
 }

@@ -169,6 +169,34 @@ export function VolunteerActivitiesScreen() {
     }
   }, []);
 
+  const cancelSignUp = useCallback(async (activityId: string) => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setSubmittingId(activityId);
+    setSignupError(undefined);
+    try {
+      const response = await kapaService.delete<unknown>(
+        `/community-events/${activityId}/volunteers`,
+      );
+      const payload = activityResponseSchema.safeParse(response.data);
+      if (!payload.success) {
+        throw new Error(
+          'A resposta de cancelamento de inscrição recebida é inválida.',
+        );
+      }
+      setActivities((current) =>
+        current.map((activity) =>
+          activity.id === activityId ? payload.data.data : activity,
+        ),
+      );
+    } catch (requestError) {
+      setSignupError(dataFromError(requestError));
+    } finally {
+      submittingRef.current = false;
+      setSubmittingId(undefined);
+    }
+  }, []);
+
   if (user?.role !== 'volunteer') {
     return (
       <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
@@ -256,19 +284,38 @@ export function VolunteerActivitiesScreen() {
               </View>
             ) : null}
 
-            <PrimaryButton
-              title={activity.isSignedUp ? 'Inscrição confirmada' : activity.remainingVacancies === 0 ? 'Vagas preenchidas' : 'Quero participar'}
-              disabled={activity.isSignedUp || activity.remainingVacancies === 0 || submittingId === activity.id}
-              loading={submittingId === activity.id}
-              onPress={() => void signUp(activity.id)}
-              accessibilityLabel={
-                activity.isSignedUp
-                  ? `Inscrição confirmada para ${activity.title}`
-                : activity.remainingVacancies === 0
-                  ? `Vagas preenchidas para ${activity.title}`
-                  : `Inscrever-se em ${activity.title}`
-              }
-            />
+            {activity.isSignedUp ? (
+              <PrimaryButton
+                title="Cancelar inscrição"
+                color={palette.white}
+                textColor={palette.danger}
+                loadingColor={palette.danger}
+                style={styles.cancelButton}
+                disabled={submittingId === activity.id}
+                loading={submittingId === activity.id}
+                onPress={() => void cancelSignUp(activity.id)}
+                accessibilityLabel={`Cancelar inscrição em ${activity.title}`}
+              />
+            ) : (
+              <PrimaryButton
+                title={
+                  activity.remainingVacancies === 0
+                    ? 'Vagas preenchidas'
+                    : 'Quero participar'
+                }
+                disabled={
+                  activity.remainingVacancies === 0 ||
+                  submittingId === activity.id
+                }
+                loading={submittingId === activity.id}
+                onPress={() => void signUp(activity.id)}
+                accessibilityLabel={
+                  activity.remainingVacancies === 0
+                    ? `Vagas preenchidas para ${activity.title}`
+                    : `Inscrever-se em ${activity.title}`
+                }
+              />
+            )}
           </View>
         ))}
       </ScrollView>
@@ -334,5 +381,9 @@ const styles = StyleSheet.create({
     ...typography.styles.bodySm,
     color: palette.inkMuted,
     textAlign: 'center',
+  },
+  cancelButton: {
+    borderWidth: 1,
+    borderColor: palette.danger,
   },
 });

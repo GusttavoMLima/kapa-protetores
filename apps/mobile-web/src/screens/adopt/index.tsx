@@ -10,7 +10,7 @@ import {
 import { ArrowLeftIcon, PawPrintIcon } from 'phosphor-react-native';
 import { isAxiosError } from 'axios';
 import { router } from 'expo-router';
-import type { Animal } from '@kapa/shared';
+import type { AdopterProfile, Animal } from '@kapa/shared';
 import { palette } from '@/theme';
 import {
   SearchAdoptForm,
@@ -20,14 +20,27 @@ import {
 } from '@/components/forms/searchAdopt';
 import { PetCard } from '@/components/cards/pet';
 import { PrimaryButton } from '@/components/buttons/primary';
+import { useAdopterProfileMe } from '@/hooks/useAdopterProfile';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useToggleFavorite } from '@/hooks/useFavorites';
+import {
+  calculatePetCompatibility,
+  formatCompatibilityLabel,
+} from '@/utils/petCompatibility';
 
 const DEFAULT_PET_PHOTO =
   'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80';
 
-function formatPetCharacteristics(animal: Animal): string[] {
+function formatPetCharacteristics(
+  animal: Animal,
+  adopterProfile?: AdopterProfile | null,
+): string[] {
   const characteristics: string[] = [];
+
+  const compatibilityScore = calculatePetCompatibility(animal, adopterProfile);
+  if (compatibilityScore !== null) {
+    characteristics.push(formatCompatibilityLabel(compatibilityScore));
+  }
 
   characteristics.push(animal.gender === 'female' ? 'Fêmea' : 'Macho');
 
@@ -57,6 +70,7 @@ export function AdoptScreen() {
     defaultSearchAdoptFilters,
   );
   const { data: profile } = useUserProfile();
+  const { data: adopterProfile } = useAdopterProfileMe();
   const { mutate: toggleFavorite } = useToggleFavorite();
   const favoritedIds = useMemo(
     () => new Set(profile?.favorites.map((favorite) => favorite.animalId) ?? []),
@@ -188,7 +202,7 @@ export function AdoptScreen() {
               key={animal.id}
               name={animal.name}
               imgUrl={animal.photos?.[0]?.photoUrl ?? DEFAULT_PET_PHOTO}
-              characteristics={formatPetCharacteristics(animal)}
+              characteristics={formatPetCharacteristics(animal, adopterProfile)}
               isFavorited={favoritedIds.has(animal.id)}
               onPress={() =>
                 router.push({

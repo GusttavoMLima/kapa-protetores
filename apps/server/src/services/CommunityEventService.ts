@@ -101,4 +101,39 @@ export class CommunityEventService {
       throw error;
     }
   }
+
+  public async cancelSignUp(
+    volunteerId: string,
+    communityEventId: string,
+  ): Promise<CommunityEventListItem> {
+    try {
+      const updated = await this.repository.cancelSignUp(
+        volunteerId,
+        communityEventId,
+      );
+      if (this.cache) {
+        await Promise.all([
+          this.cache.deleteCache(COMMUNITY_EVENTS_MANAGER_CACHE_KEY),
+          this.cache.deleteCache(buildUserProfileCacheKey(volunteerId)),
+          this.cache.deleteCache(buildUserCountsCacheKey(volunteerId)),
+        ]);
+      }
+      return updated;
+    } catch (error) {
+      if (!(error instanceof Error)) throw error;
+
+      if (error.message === 'COMMUNITY_EVENT_NOT_FOUND') {
+        throw new NotFoundError('Atividade não encontrada.');
+      }
+      if (error.message === 'COMMUNITY_EVENT_CLOSED') {
+        throw new ConflictError(
+          'Não é possível cancelar a inscrição de uma atividade já iniciada.',
+        );
+      }
+      if (error.message === 'COMMUNITY_EVENT_NOT_SIGNED_UP') {
+        throw new NotFoundError('Você não está inscrito nesta atividade.');
+      }
+      throw error;
+    }
+  }
 }

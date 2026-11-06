@@ -5,6 +5,14 @@ import { AdopterProfileScreen } from '../../src/screens/adopterProfile';
 const mockSignOut = jest.fn();
 const mockMutate = jest.fn();
 
+jest.mock('expo-router', () => ({
+  router: {
+    back: jest.fn(),
+    canGoBack: jest.fn(() => true),
+    replace: jest.fn(),
+  },
+}));
+
 jest.mock('../../src/hooks/useAuth', () => ({
   useAuth: () => ({
     signOut: mockSignOut,
@@ -18,6 +26,10 @@ jest.mock('../../src/hooks/useAdopterProfile', () => ({
   useAdopterProfile: () => ({
     mutate: mockMutate,
     isPending: false,
+  }),
+  useAdopterProfileMe: () => ({
+    data: null,
+    isLoading: false,
   }),
 }));
 

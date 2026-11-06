@@ -21,6 +21,7 @@ import {
   HeartIcon,
   PawPrintIcon,
   CalendarCheckIcon,
+  SlidersHorizontalIcon,
 } from 'phosphor-react-native';
 import { PrimaryMenuItem } from '@/components/menuItems/primary';
 import { PetCard } from '@/components/cards/pet';
@@ -210,14 +211,23 @@ export function ProfileScreen() {
           onPress={() => router.push('/(protected)/(adopter)/edit-profile')}
         />
         {user.role !== 'admin' && user.role !== 'protector' && (
-          <PrimaryMenuItem
-            label="Minhas solicitações"
-            description="Acompanhe suas fichas de adoção"
-            icon={ClipboardTextIcon}
-            iconColor={palette.denim}
-            iconBgColor="#E4EEFA"
-            onPress={() => router.push('/(protected)/my-adoptions')}
-          />
+          <>
+            <PrimaryMenuItem
+              label="Preferências de Adoção"
+              description="Personalize o perfil ideal de pet para você"
+              icon={SlidersHorizontalIcon}
+              iconColor={palette.orangeDark}
+              onPress={() => router.push('/(protected)/adopter-profile')}
+            />
+            <PrimaryMenuItem
+              label="Minhas solicitações"
+              description="Acompanhe suas fichas de adoção"
+              icon={ClipboardTextIcon}
+              iconColor={palette.denim}
+              iconBgColor="#E4EEFA"
+              onPress={() => router.push('/(protected)/my-adoptions')}
+            />
+          </>
         )}
         <PrimaryMenuItem
           label="Sair"
