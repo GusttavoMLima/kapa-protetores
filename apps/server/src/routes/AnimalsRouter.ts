@@ -2,7 +2,11 @@ import { Router, type RequestHandler } from 'express';
 import { AnimalsController } from '../controllers/AnimalsController';
 import { AuthMiddleware } from '../middlewares/AuthMiddleware';
 import { validateBody } from '../middlewares/ValidationMiddleware';
-import { createAnimalSchema, updateAnimalSchema } from '../validation/schemas';
+import {
+  createAnimalPostSchema,
+  createAnimalSchema,
+  updateAnimalSchema,
+} from '../validation/schemas';
 import multer from 'multer';
 import { AnimalPhotosController } from '../controllers/AnimalPhotosController';
 
@@ -52,6 +56,14 @@ export class AnimalsRouter {
       this.controller.update,
     );
     this.router.get('/', this.controller.getAll);
+    this.router.get('/:id/posts', this.controller.getPosts);
+    this.router.post(
+      '/:id/posts',
+      this.auth.authenticate,
+      this.managementAccess,
+      validateBody(createAnimalPostSchema),
+      this.controller.createPost,
+    );
     this.router.get('/:id', this.controller.getById);
     this.router.post(
       '/',

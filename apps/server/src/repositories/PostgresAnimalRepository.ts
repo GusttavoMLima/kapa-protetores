@@ -3,7 +3,12 @@ import { IAnimalRepository } from '../interfaces/AnimalRepositoryInterface';
 import { Animal } from '../models/Animal';
 import { doseRecordsSchema } from '../validation/schemas';
 import type { Animal as PrismaAnimal, AnimalPhotos } from '@prisma/client';
-import type { AnimalManagementQuery, AnimalManagementPage, UpdateAnimalInput } from '@kapa/shared';
+import type {
+  AnimalManagementQuery,
+  AnimalManagementPage,
+  AnimalPost,
+  UpdateAnimalInput,
+} from '@kapa/shared';
 
 export class PostgresAnimalRepository implements IAnimalRepository {
   constructor(private readonly prismaClient: PrismaClient) {}
@@ -149,6 +154,37 @@ export class PostgresAnimalRepository implements IAnimalRepository {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') return null;
       throw error;
     }
+  }
+
+  public async findPostsByAnimalId(animalId: string): Promise<AnimalPost[]> {
+    const posts = await this.prismaClient.animalPost.findMany({
+      where: { animal_id: animalId },
+      orderBy: [{ created_at: 'desc' }, { id: 'desc' }],
+    });
+    return posts.map((post) => ({
+      id: post.id,
+      animalId: post.animal_id,
+      description: post.description,
+      createdAt: post.created_at.toISOString(),
+    }));
+  }
+
+  public async createPost(
+    animalId: string,
+    description: string,
+  ): Promise<AnimalPost> {
+    const created = await this.prismaClient.animalPost.create({
+      data: {
+        animal_id: animalId,
+        description,
+      },
+    });
+    return {
+      id: created.id,
+      animalId: created.animal_id,
+      description: created.description,
+      createdAt: created.created_at.toISOString(),
+    };
   }
 }
 

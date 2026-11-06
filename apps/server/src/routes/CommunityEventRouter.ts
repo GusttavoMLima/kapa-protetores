@@ -38,5 +38,11 @@ export class CommunityEventRouter {
       volunteerOnlyHandler,
       controller.signUp,
     );
+    this.router.delete(
+      '/:id/volunteers',
+      this.auth.authenticate,
+      volunteerOnlyHandler,
+      controller.cancelSignUp,
+    );
   }
 }

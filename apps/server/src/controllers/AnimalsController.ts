@@ -98,4 +98,44 @@ export class AnimalsController {
       next(error);
     }
   };
+
+  public getPosts = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const parsed = animalIdSchema.safeParse(req.params.id);
+      if (!parsed.success) throw new BadRequestError('ID inválido.');
+      const data = await this.animalService.getPostsByAnimalId(parsed.data);
+      res.status(200).json({
+        success: true,
+        data,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public createPost = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const parsed = animalIdSchema.safeParse(req.params.id);
+      if (!parsed.success) throw new BadRequestError('ID inválido.');
+      const data = await this.animalService.createPost(
+        parsed.data,
+        req.body.description,
+      );
+      res.status(201).json({
+        success: true,
+        message: 'Atualização publicada com sucesso.',
+        data,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
 }

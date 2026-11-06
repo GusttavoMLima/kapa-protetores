@@ -173,4 +173,26 @@ describe('animal management authorization, filters, edits and public boundary', 
     expect(updated.vermifugoDoses).toEqual(doses);
     expect((await request(`/management/${created.id}`, token('admin'), 'PATCH', { v10Doses: [{ status: 'sim', data: '31/02/2026' }] })).status).toBe(400);
   });
+
+  it('allows protectors and admins to publish animal posts and anyone to list them', async () => {
+    expect((await request(`/${id}/posts`, undefined, 'POST', { description: 'Nova atualização' })).status).toBe(401);
+    expect((await request(`/${id}/posts`, token('adopter', 'adopter'), 'POST', { description: 'Nova atualização' })).status).toBe(403);
+    expect((await request(`/${id}/posts`, token('admin', 'admin'), 'POST', { description: 'ab' })).status).toBe(400);
+
+    const postRes = await request(`/${id}/posts`, token('protector', 'protector'), 'POST', {
+      description: 'Amora recebeu carinho e brincou na área externa.',
+    });
+    expect(postRes.status).toBe(201);
+    const { data: createdPost } = await postRes.json();
+    expect(createdPost.animalId).toBe(id);
+    expect(createdPost.description).toBe('Amora recebeu carinho e brincou na área externa.');
+
+    const listRes = await request(`/${id}/posts`);
+    expect(listRes.status).toBe(200);
+    const { data: posts } = await listRes.json();
+    expect(posts).toHaveLength(1);
+    expect(posts[0].description).toBe('Amora recebeu carinho e brincou na área externa.');
+
+    expect((await request('/c000000000000000000000000/posts')).status).toBe(404);
+  });
 });

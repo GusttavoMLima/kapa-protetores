@@ -1,10 +1,12 @@
 import { AnimalRepositoryInterface } from '../interfaces/AnimalRepositoryInterface';
 import { Animal } from '../models/Animal';
+import { AnimalPost } from '../models/AnimalPost';
 import { NotFoundError, BadRequestError } from '../errors';
 import {
   SystemEventTypes,
   type CreateAnimalInput,
   type AnimalManagementQuery,
+  type AnimalPost as AnimalPostDTO,
   type UpdateAnimalInput,
   type Animal as AnimalDTO,
 } from '@kapa/shared';
@@ -245,5 +247,34 @@ export class AnimalService {
       ]);
     }
     return created;
+  }
+
+  public async getPostsByAnimalId(animalId: string): Promise<AnimalPostDTO[]> {
+    Cuid.create(animalId);
+    const animal = await this.animalRepository.findById(animalId);
+    if (!animal) {
+      throw new NotFoundError('Animal não encontrado.');
+    }
+    return this.animalRepository.findPostsByAnimalId(animalId);
+  }
+
+  public async createPost(
+    animalId: string,
+    description: string,
+  ): Promise<AnimalPostDTO> {
+    Cuid.create(animalId);
+    const animal = await this.animalRepository.findById(animalId);
+    if (!animal) {
+      throw new NotFoundError('Animal não encontrado.');
+    }
+
+    const postDomain = new AnimalPost();
+    postDomain.setAnimalId(animalId);
+    postDomain.setDescription(description);
+
+    return this.animalRepository.createPost(
+      animalId,
+      postDomain.getDescription(),
+    );
   }
 }
