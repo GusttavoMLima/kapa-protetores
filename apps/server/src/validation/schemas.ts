@@ -43,8 +43,13 @@ export const createAdoptionSchema = z.object({
 }).strict();
 
 export const updateAdoptionStatusSchema = z.object({
-  status: z.enum(['interviewing', 'approved', 'rejected']),
-}).strict();
+  status: z.enum(['interviewing', 'approved', 'rejected']).optional(),
+  adminNote: z.string().trim().max(2000).nullable().optional(),
+  contractSent: z.boolean().optional(),
+}).strict().refine(
+  (value) => value.status !== undefined || value.adminNote !== undefined || value.contractSent !== undefined,
+  'Informe uma atualização para a solicitação.',
+);
 
 export const adminCreateUserSchema = z.object({
   username: z.string().trim().min(3).max(80),

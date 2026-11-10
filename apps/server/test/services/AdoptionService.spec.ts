@@ -19,6 +19,8 @@ const application = {
 describe('AdoptionService', () => {
   const repository = {
     create: jest.fn(),
+    findById: jest.fn(),
+    updateWorkflow: jest.fn(),
   } as unknown as AdoptionRepository;
   const service = new AdoptionService(repository);
 
@@ -52,5 +54,58 @@ describe('AdoptionService', () => {
     await expect(
       service.create(adoption.adopterId, adoption.animalId, application),
     ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it('move uma ficha para contato antes de concluir a adoção', async () => {
+    const inContact = { ...adoption, status: 'interviewing' as const };
+    jest.mocked(repository.findById).mockResolvedValue(adoption);
+    jest.mocked(repository.updateWorkflow).mockResolvedValue(inContact);
+
+    await expect(
+      service.updateWorkflow(adoption.id, { status: 'interviewing' }),
+    ).resolves.toEqual(inContact);
+
+    expect(repository.updateWorkflow).toHaveBeenCalledWith(adoption.id, {
+      status: 'interviewing',
+    });
+  });
+
+  it('exige o registro do contrato antes de concluir a adoção', async () => {
+    jest.mocked(repository.findById).mockResolvedValue({
+      ...adoption,
+      status: 'interviewing',
+    });
+
+    await expect(
+      service.updateWorkflow(adoption.id, { status: 'approved' }),
+    ).rejects.toThrow('Registre o envio do contrato antes de concluir a adoção.');
+  });
+
+  it('exige o contrato assinado antes de concluir a adoção', async () => {
+    jest.mocked(repository.findById).mockResolvedValue({
+      ...adoption,
+      status: 'interviewing',
+      contractSentAt: '2026-11-09T20:00:00.000Z',
+    });
+
+    await expect(
+      service.updateWorkflow(adoption.id, { status: 'approved' }),
+    ).rejects.toThrow('Anexe o contrato assinado antes de concluir a adoção.');
+  });
+
+  it('conclui a adoção depois que o contrato foi enviado', async () => {
+    const inContact = {
+      ...adoption,
+      status: 'interviewing' as const,
+      contractSentAt: '2026-11-09T20:00:00.000Z',
+      signedContractUploadedAt: '2026-11-09T20:05:00.000Z',
+    };
+    const completed = { ...inContact, status: 'approved' as const };
+    jest.mocked(repository.findById).mockResolvedValue(inContact);
+    jest.mocked(repository.updateWorkflow).mockResolvedValue(completed);
+
+    await expect(
+      service.updateWorkflow(adoption.id, { status: 'approved' }),
+    ).resolves.toEqual(completed);
   });
 });

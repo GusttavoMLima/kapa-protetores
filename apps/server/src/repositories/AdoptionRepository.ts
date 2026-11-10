@@ -1,5 +1,9 @@
 import { Prisma, PrismaClient } from '@prisma/client';
-import type { Adoption, AdoptionApplication } from '@kapa/shared';
+import type {
+  Adoption,
+  AdoptionApplication,
+  UpdateAdoptionStatusInput,
+} from '@kapa/shared';
 
 type AdoptionRecord = {
   id: string;
@@ -9,12 +13,17 @@ type AdoptionRecord = {
   applied_at: Date;
   updated_at: Date;
   application_data: unknown;
+  admin_note: string | null;
+  contract_sent_at: Date | null;
+  signed_contract_data: Uint8Array<ArrayBuffer> | null;
+  signed_contract_file_name: string | null;
+  signed_contract_uploaded_at: Date | null;
 };
 
 export class AdoptionRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
-  private toDTO(record: AdoptionRecord): Adoption {
+  private toDTO(record: AdoptionRecord, includeAdminNote = false): Adoption {
     return {
       id: record.id,
       adopterId: record.adopter_id,
@@ -23,6 +32,15 @@ export class AdoptionRepository {
       appliedAt: record.applied_at.toISOString(),
       updatedAt: record.updated_at.toISOString(),
       application: (record.application_data ?? undefined) as AdoptionApplication | undefined,
+      contractSentAt: record.contract_sent_at?.toISOString() ?? null,
+      signedContractUploadedAt:
+        record.signed_contract_uploaded_at?.toISOString() ?? null,
+      ...(includeAdminNote
+        ? {
+            adminNote: record.admin_note,
+            signedContractFileName: record.signed_contract_file_name,
+          }
+        : {}),
     };
   }
 
@@ -59,6 +77,11 @@ export class AdoptionRepository {
               applied_at: true,
               updated_at: true,
               application_data: true,
+              admin_note: true,
+              contract_sent_at: true,
+              signed_contract_data: true,
+              signed_contract_file_name: true,
+              signed_contract_uploaded_at: true,
             },
           });
         },
@@ -84,7 +107,7 @@ export class AdoptionRepository {
     });
 
     return records.map((record) => ({
-      ...this.toDTO(record),
+      ...this.toDTO(record, true),
       animal: {
         ...record.animal,
         weightKg: Number(record.animal.weight_kg),
@@ -126,12 +149,141 @@ export class AdoptionRepository {
     })) as unknown as Adoption[];
   }
 
-  public async updateStatus(id: string, status: Adoption['status']): Promise<Adoption> {
-    const record = await this.prisma.adoptions.update({
+  public async findById(id: string): Promise<Adoption | null> {
+    const record = await this.prisma.adoptions.findUnique({
       where: { id },
-      data: { status },
-      select: { id: true, adopter_id: true, animal_id: true, status: true, applied_at: true, updated_at: true, application_data: true },
+      select: {
+        id: true,
+        adopter_id: true,
+        animal_id: true,
+        status: true,
+        applied_at: true,
+        updated_at: true,
+        application_data: true,
+        admin_note: true,
+        contract_sent_at: true,
+        signed_contract_data: true,
+        signed_contract_file_name: true,
+        signed_contract_uploaded_at: true,
+      },
     });
-    return this.toDTO(record);
+
+    return record ? this.toDTO(record, true) : null;
+  }
+
+  public async updateWorkflow(
+    id: string,
+    input: UpdateAdoptionStatusInput,
+  ): Promise<Adoption> {
+    const record = await this.prisma.$transaction(async (transaction) => {
+      const existing = await transaction.adoptions.findUnique({
+        where: { id },
+        select: { id: true, animal_id: true },
+      });
+
+      if (!existing) throw new Error('ADOPTION_NOT_FOUND');
+
+      if (input.status === 'approved') {
+        const animalUpdate = await transaction.animal.updateMany({
+          where: { id: existing.animal_id, status: 'available' },
+          data: { status: 'adopted' },
+        });
+
+        if (animalUpdate.count === 0) {
+          throw new Error('ANIMAL_NOT_AVAILABLE');
+        }
+      }
+
+      return transaction.adoptions.update({
+        where: { id },
+        data: {
+          ...(input.status ? { status: input.status } : {}),
+          ...(input.adminNote !== undefined ? { admin_note: input.adminNote } : {}),
+          ...(input.contractSent === true
+            ? { contract_sent_at: new Date() }
+            : input.contractSent === false
+              ? { contract_sent_at: null }
+              : {}),
+        },
+        select: {
+          id: true,
+          adopter_id: true,
+          animal_id: true,
+          status: true,
+          applied_at: true,
+          updated_at: true,
+          application_data: true,
+          admin_note: true,
+          contract_sent_at: true,
+          signed_contract_data: true,
+          signed_contract_file_name: true,
+          signed_contract_uploaded_at: true,
+        },
+      });
+    });
+
+    return this.toDTO(record, true);
+  }
+
+  public async saveSignedContract(
+    id: string,
+    fileName: string,
+    data: Uint8Array<ArrayBuffer>,
+  ): Promise<Adoption> {
+    try {
+      const record = await this.prisma.adoptions.update({
+        where: { id },
+        data: {
+          signed_contract_data: data,
+          signed_contract_file_name: fileName,
+          signed_contract_uploaded_at: new Date(),
+        },
+        select: {
+          id: true,
+          adopter_id: true,
+          animal_id: true,
+          status: true,
+          applied_at: true,
+          updated_at: true,
+          application_data: true,
+          admin_note: true,
+          contract_sent_at: true,
+          signed_contract_data: true,
+          signed_contract_file_name: true,
+          signed_contract_uploaded_at: true,
+        },
+      });
+
+      return this.toDTO(record, true);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new Error('ADOPTION_NOT_FOUND');
+      }
+      throw error;
+    }
+  }
+
+  public async findSignedContract(
+    id: string,
+  ): Promise<{ data: Buffer; fileName: string } | null> {
+    const record = await this.prisma.adoptions.findUnique({
+      where: { id },
+      select: {
+        signed_contract_data: true,
+        signed_contract_file_name: true,
+      },
+    });
+
+    if (!record?.signed_contract_data || !record.signed_contract_file_name) {
+      return null;
+    }
+
+    return {
+      data: Buffer.from(record.signed_contract_data),
+      fileName: record.signed_contract_file_name,
+    };
   }
 }

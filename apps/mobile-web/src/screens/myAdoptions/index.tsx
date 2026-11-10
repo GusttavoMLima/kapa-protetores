@@ -6,8 +6,8 @@ import { palette } from '@/theme';
 
 const statusInfo = {
   pending: { label: 'Em análise', description: 'O abrigo ainda está avaliando a sua ficha.', color: palette.orangeDark, background: palette.peach, Icon: ClockIcon },
-  interviewing: { label: 'Em conversa', description: 'O abrigo entrará em contato para continuar o processo.', color: palette.denim, background: '#E4EEFA', Icon: ClockIcon },
-  approved: { label: 'Aprovada', description: 'Parabéns! O abrigo aprovou a sua solicitação.', color: palette.success, background: palette.successSoft, Icon: CheckCircleIcon },
+  interviewing: { label: 'Em contato', description: 'Sua ficha foi pré-aprovada. O abrigo entrará em contato para continuar o processo.', color: palette.denim, background: '#E4EEFA', Icon: ClockIcon },
+  approved: { label: 'Adoção concluída', description: 'Parabéns! A adoção foi concluída pelo abrigo.', color: palette.success, background: palette.successSoft, Icon: CheckCircleIcon },
   rejected: { label: 'Não aprovada', description: 'Esta solicitação não foi aprovada pelo abrigo.', color: palette.danger, background: palette.dangerSoft, Icon: XCircleIcon },
   canceled: { label: 'Cancelada', description: 'Esta solicitação foi cancelada.', color: palette.inkMuted, background: '#EDEAE6', Icon: XCircleIcon },
 };
@@ -45,7 +45,7 @@ export function MyAdoptionsScreen() {
                   {photo ? <Image source={{ uri: photo }} className="w-16 h-16 rounded-xl bg-peach" /> : <View className="w-16 h-16 rounded-xl bg-peach items-center justify-center"><PawPrintIcon size={28} color={palette.orange} /></View>}
                   <View className="flex-1 gap-1"><Text className="font-heading-bold text-xl text-ink">{adoption.animal?.name ?? 'Pet'}</Text><Text className="font-body text-sm text-ink-muted">Ficha enviada em {date}</Text></View>
                 </View>
-                <View className="rounded-xl p-4 flex-row gap-3 items-center" style={{ backgroundColor: info.background }}><Icon size={25} color={info.color} weight="fill" /><View className="flex-1 gap-1"><Text className="font-body-bold text-base" style={{ color: info.color }}>{info.label}</Text><Text className="font-body text-sm text-ink-muted">{info.description}</Text></View></View>
+                <View className="rounded-xl p-4 flex-row gap-3 items-center" style={{ backgroundColor: info.background }}><Icon size={25} color={info.color} weight="fill" /><View className="flex-1 gap-1"><Text className="font-body-bold text-base" style={{ color: info.color }}>{info.label}</Text><Text className="font-body text-sm text-ink-muted">{adoption.status === 'interviewing' && adoption.contractSentAt ? 'O abrigo enviou o contrato. Confira o contato combinado.' : info.description}</Text></View></View>
               </Pressable>;
             })}
     </ScrollView>
