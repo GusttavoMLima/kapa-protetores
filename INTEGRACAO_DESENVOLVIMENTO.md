@@ -928,6 +928,10 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 - A solicitação armazena a ficha preenchida em `applicationData` (`JSONB`) na tabela `tb_adoptions`, criada pela migration `20261016100000_add_adoption_application_data`.
 - O abrigo acessa as fichas em `/gestao/solicitacoes`, podendo aprová-las ou recusá-las. A API protege a listagem e a atualização de status para o papel `admin`.
 - O adotante encontra o atalho **Minhas solicitações** no próprio perfil. A tela consulta somente as solicitações daquele usuário, por `GET /api/adoptions/mine`, e apresenta o pet, a data de envio e o status atual (em análise, em conversa, aprovada, não aprovada ou cancelada).
+- O fluxo administrativo segue as etapas **em análise → em contato → adoção concluída**. O administrador pode recusar a ficha enquanto ela ainda está em análise ou em contato.
+- Durante o contato, o administrador pode abrir uma conversa pelo WhatsApp, salvar uma anotação interna e registrar que o contrato foi enviado. A adoção só é concluída após esse registro; ao concluir, o animal passa para o status `adopted`.
+- As colunas `adminNote` e `contractSentAt` foram adicionadas a `tb_adoptions` pela migration `20261109213000_add_adoption_workflow_fields`. A anotação é retornada exclusivamente na listagem administrativa e nunca em `GET /api/adoptions/mine`.
+- O administrador pode anexar o PDF do contrato assinado durante a etapa de contato. O arquivo fica armazenado de modo privado em `tb_adoptions`, tem limite de 10 MB e só pode ser baixado por administradores autenticados. A adoção só pode ser concluída depois do anexo, registrado pela migration `20261109220000_add_signed_adoption_contract`.
 
 ### 30. Favoritos persistentes
 

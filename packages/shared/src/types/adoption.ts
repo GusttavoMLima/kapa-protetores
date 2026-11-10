@@ -15,6 +15,14 @@ export interface Adoption {
   status: AdoptionStatus;
   appliedAt: string;
   updatedAt: string;
+  /** Visible somente para administradores. */
+  adminNote?: string | null;
+  /** Data em que o abrigo registrou o envio do contrato. */
+  contractSentAt?: string | null;
+  /** Indica que o abrigo recebeu o contrato assinado. */
+  signedContractUploadedAt?: string | null;
+  /** Nome do arquivo assinado, visível somente para administradores. */
+  signedContractFileName?: string | null;
   animal?: Animal;
   adopter?: User;
   application?: AdoptionApplication;
@@ -47,5 +55,7 @@ export interface CreateAdoptionInput {
 }
 
 export interface UpdateAdoptionStatusInput {
-  status: AdoptionStatus;
+  status?: Exclude<AdoptionStatus, 'canceled'>;
+  adminNote?: string | null;
+  contractSent?: boolean;
 }

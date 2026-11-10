@@ -121,6 +121,11 @@ model Adoptions {
   animal_id  String         @map("animalId")
   status     AdoptionStatus @default(pending)
   application_data Json?    @map("applicationData")
+  admin_note String?        @map("adminNote")
+  contract_sent_at DateTime? @map("contractSentAt")
+  signed_contract_data Bytes? @map("signedContractData")
+  signed_contract_file_name String? @map("signedContractFileName")
+  signed_contract_uploaded_at DateTime? @map("signedContractUploadedAt")
   applied_at DateTime       @default(now()) @map("appliedAt")
   updated_at DateTime       @updatedAt @map("updatedAt")
 

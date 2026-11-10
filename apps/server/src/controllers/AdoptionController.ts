@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
-import { UnauthorizedError } from '../errors';
+import { BadRequestError, UnauthorizedError } from '../errors';
 import { AdoptionService } from '../services/AdoptionService';
-import type { AdoptionApplication } from '@kapa/shared';
+import type { AdoptionApplication, UpdateAdoptionStatusInput } from '@kapa/shared';
 
 export class AdoptionController {
   constructor(private readonly service: AdoptionService) {}
@@ -42,10 +42,47 @@ export class AdoptionController {
 
   public updateStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { status } = req.body as { status: 'interviewing' | 'approved' | 'rejected' };
+      const input = req.body as UpdateAdoptionStatusInput;
       const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-      const data = await this.service.updateStatus(id, status);
+      const data = await this.service.updateWorkflow(id, input);
       res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public uploadSignedContract = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!req.file) {
+        throw new BadRequestError('Selecione o PDF do contrato assinado.');
+      }
+      const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      const data = await this.service.uploadSignedContract(id, req.file);
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public downloadSignedContract = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      const contract = await this.service.getSignedContract(id);
+      const encodedFileName = encodeURIComponent(contract.fileName);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename*=UTF-8''${encodedFileName}`,
+      );
+      res.send(contract.data);
     } catch (error) {
       next(error);
     }
