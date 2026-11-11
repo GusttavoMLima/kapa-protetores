@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { fireEvent, render } from '@testing-library/react-native';
 import type { Animal } from '@kapa/shared';
 import { router } from 'expo-router';
@@ -115,6 +116,48 @@ describe('HomeScreen', () => {
       const staffRender = await render(<HomeScreen />);
       expect(staffRender.getByText('Animais do abrigo')).toBeTruthy();
     }
+  });
+
+  describe('cartões de gestão por plataforma', () => {
+    const originalOS = Platform.OS;
+
+    afterEach(() => {
+      Platform.OS = originalOS;
+    });
+
+    function renderAsAdmin() {
+      mockedUseAdoptAnimals.mockReturnValue({
+        data: [availableAnimal],
+        isLoading: false,
+      } as ReturnType<typeof useAdoptAnimals>);
+      mockedUseAuth.mockReturnValue({
+        user: { role: 'admin' },
+      } as ReturnType<typeof useAuth>);
+
+      return render(<HomeScreen />);
+    }
+
+    it('no web mostra todos os cartões em linhas que quebram, sem rolagem horizontal', async () => {
+      Platform.OS = 'web';
+
+      const { getAllByTestId, getByText } = await renderAsAdmin();
+
+      const grids = getAllByTestId('home-card-grid');
+      expect(grids).toHaveLength(2);
+      for (const grid of grids) {
+        expect(grid.props.className).toContain('flex-wrap');
+      }
+      expect(getByText('Usuários')).toBeTruthy();
+    });
+
+    it('no mobile mantém o carrossel horizontal', async () => {
+      Platform.OS = 'ios';
+
+      const { queryByTestId, getByText } = await renderAsAdmin();
+
+      expect(queryByTestId('home-card-grid')).toBeNull();
+      expect(getByText('Usuários')).toBeTruthy();
+    });
   });
 
   it('filtra animais em destaque por espécie (cães e gatos)', async () => {
