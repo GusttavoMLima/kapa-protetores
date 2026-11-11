@@ -18,10 +18,11 @@ import {
   HandHeartIcon,
   PawPrintIcon,
   SparkleIcon,
+  UsersIcon,
   type IconProps,
 } from 'phosphor-react-native';
 import { type ComponentType, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
 export type HomeSpeciesFilter = 'all' | 'dog' | 'cat';
 
@@ -91,6 +92,22 @@ const ADOPTION_REQUESTS_CARD: SecondaryCardProps = {
   link: {
     label: 'Ver solicitações',
     href: '/gestao/solicitacoes',
+    color: palette.denim,
+  },
+};
+
+const USER_MANAGEMENT_CARD: SecondaryCardProps = {
+  icon: {
+    component: (
+      <UsersIcon size={CARD_ICON_SIZE} color={palette.denim} weight="fill" />
+    ),
+    backgroundColor: palette.peach,
+  },
+  title: 'Usuários',
+  description: 'Consulte as contas, altere papéis e desative acessos.',
+  link: {
+    label: 'Gerenciar usuários',
+    href: '/(protected)/gestao/usuarios',
     color: palette.denim,
   },
 };
@@ -212,6 +229,10 @@ export function buildStaffHomeCards(role?: UserRole): SecondaryCardProps[] {
     cards.push(...ACTIVITY_MANAGEMENT_CARDS);
   }
 
+  if (role === 'admin') {
+    cards.push(USER_MANAGEMENT_CARD);
+  }
+
   return cards;
 }
 
@@ -328,16 +349,29 @@ function HomeCardCarouselSection({
         )}
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: CAROUSEL_CARD_GAP }}
-        className="flex-row"
-      >
-        {cards.map((card) => (
-          <SecondaryCard key={card.title} {...card} />
-        ))}
-      </ScrollView>
+      {Platform.OS === 'web' ? (
+        // No navegador não há gesto de arrastar: os cartões quebram linha.
+        <View
+          testID="home-card-grid"
+          className="flex-row flex-wrap"
+          style={{ gap: CAROUSEL_CARD_GAP }}
+        >
+          {cards.map((card) => (
+            <SecondaryCard key={card.title} {...card} />
+          ))}
+        </View>
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: CAROUSEL_CARD_GAP }}
+          className="flex-row"
+        >
+          {cards.map((card) => (
+            <SecondaryCard key={card.title} {...card} />
+          ))}
+        </ScrollView>
+      )}
     </View>
   );
 }

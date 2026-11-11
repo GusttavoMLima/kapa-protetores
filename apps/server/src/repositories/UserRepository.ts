@@ -29,12 +29,17 @@ export class UserRepository implements IUserRepository {
       record.longitude != null ? Number(record.longitude) : null,
     );
     user.setCreatedAt(record.created_at.toISOString());
+    user.setDeactivatedAt(record.deactivated_at);
 
     return user;
   }
 
   async countAll(): Promise<number> {
     return await this.prisma.user.count();
+  }
+
+  async countByRole(role: UserRole): Promise<number> {
+    return await this.prisma.user.count({ where: { role } });
   }
 
   async findAll(): Promise<User[]> {
@@ -338,6 +343,12 @@ export class UserRepository implements IUserRepository {
             user.getLatitude() !== undefined ? user.getLatitude() : undefined,
           longitude:
             user.getLongitude() !== undefined ? user.getLongitude() : undefined,
+          deactivated_at:
+            user.getDeactivatedAt() === undefined
+              ? undefined
+              : user.getDeactivatedAt()
+                ? new Date(user.getDeactivatedAt() as string)
+                : null,
         },
       }),
     );

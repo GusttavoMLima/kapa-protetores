@@ -88,6 +88,12 @@ export class UserRouter {
       rulesHandler('admin:*'),
       this.controller.updateRole,
     );
+    this.router.patch(
+      '/:id/status',
+      this.authController.authenticate,
+      rulesHandler('admin:*'),
+      this.controller.updateStatus,
+    );
     this.router.delete(
       '/:id',
       this.authController.authenticate,

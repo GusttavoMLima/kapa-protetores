@@ -137,12 +137,14 @@ O módulo de usuários conta com um conjunto completo de endpoints RESTful, com 
 | `DELETE` | `/api/users/me` | `authTokenHandler` + `user:delete:own` | Autoexclusão da conta pelo próprio usuário |
 | `GET` | `/api/users/:id` | `authTokenHandler` + `user:read:other` | Consulta de perfil público por ID de usuário |
 | `PATCH` | `/api/users/:id/role` | `authTokenHandler` + `admin:*` | Alteração administrativa de papel (`role`) do usuário |
+| `PATCH` | `/api/users/:id/status` | `authTokenHandler` + `admin:*` | Desativa (`{ "active": false }`) ou reativa (`{ "active": true }`) uma conta, sem apagar dados |
 | `DELETE` | `/api/users/:id` | `authTokenHandler` + `admin:*` | Exclusão administrativa de usuário por ID |
 
 * **Validação de Entrada (`user.schema.ts`)**:
   * **`updateProfileSchema`**: Validação de `username` (3-50 caracteres), `avatar` (URL válida ou string vazia convertida para `null`) e limites de geolocalização (`latitude` `[-90, 90]` e `longitude` `[-180, 180]`).
   * **`updateUserPasswordSchema`**: Validação de `currentPassword` obrigatória e `newPassword` entre 6 e 128 caracteres.
   * **`updateRoleSchema`**: Restrição estrita aos enums válidos (`adopter`, `protector`, `admin`, `volunteer`).
+  * **`updateUserStatusSchema`**: `active` obrigatório e booleano.
   * **`userIdParams`**: Validação de identificador do usuário em parâmetros de rota.
 
 * **Regras de Segurança na Troca de Senha (`UserService.updatePassword`)**:
@@ -1187,3 +1189,26 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 * **Testes Automatizados**:
   * [`apps/mobile-web/test/utils/petCompatibility.spec.ts`](apps/mobile-web/test/utils/petCompatibility.spec.ts), [`apps/mobile-web/test/screens/AdoptPetDetailsScreen.spec.tsx`](apps/mobile-web/test/screens/AdoptPetDetailsScreen.spec.tsx), [`apps/mobile-web/test/screens/VolunteerActivitiesScreen.spec.tsx`](apps/mobile-web/test/screens/VolunteerActivitiesScreen.spec.tsx), [`apps/server/test/services/CommunityEventService.spec.ts`](apps/server/test/services/CommunityEventService.spec.ts), [`apps/server/test/database/PrismaService.spec.ts`](apps/server/test/database/PrismaService.spec.ts) e [`apps/server/test/integration/animalManagement.spec.ts`](apps/server/test/integration/animalManagement.spec.ts).
 
+---
+
+### 44. Painel de Administração de Usuários e Desativação de Contas (issue #74)
+
+* **Objetivo**: permitir que administradores consultem usuários, alterem papéis e desativem contas pelo app (web e mobile), sem acessar o banco ou rodar scripts do Prisma.
+* **Banco de dados (aprovado pelo responsável)**: nova coluna opcional `tb_users."deactivatedAt"` (`TIMESTAMP(3)`, sem valor padrão; `NULL` = conta ativa), mapeada em `User.deactivated_at` no [`schema.prisma`](apps/server/prisma/schema.prisma). Migration escrita à mão em [`20261110230000_add_user_deactivated_at`](apps/server/prisma/migrations/20261110230000_add_user_deactivated_at/migration.sql): `ALTER TABLE "tb_users" ADD COLUMN "deactivatedAt" TIMESTAMP(3);`. É aditiva e não altera dados existentes; é aplicada no ambiente pelo CD (`prisma migrate deploy`) **antes** do deploy da API. Não usar `migrate dev` no banco compartilhado.
+* **Backend**:
+  * `PATCH /api/users/:id/status` (`admin:*`) em [`UserRouter.ts`](apps/server/src/routes/UserRouter.ts), [`UserController.updateStatus`](apps/server/src/controllers/UserController.ts) e [`UserService.setActive`](apps/server/src/services/UserService.ts).
+  * Contas desativadas não conseguem entrar: `UserController.signIn`, `AuthService.login` e o login com Google respondem `403` com a mensagem `ACCOUNT_DEACTIVATED_MESSAGE`. Nos logins por senha o bloqueio vem **depois** da conferência da senha, para não revelar o estado da conta a quem não a conhece.
+  * **Limitação conhecida**: o `AuthMiddleware` valida o JWT sem consultar o banco (validade de 7 dias). Quem já estava logado ao ser desativado mantém o acesso até o token expirar. A verificação por requisição (com cache curto no Redis) ficou como evolução futura.
+  * Salvaguardas em `updateRole`, `setActive` e `deleteById`: o administrador não altera, desativa nem exclui a própria conta pelas rotas administrativas (`403`) e não é possível remover, rebaixar ou desativar o **último administrador** (`409`). Novo `UserRepository.countByRole`.
+  * Promover alguém a `admin` agora concede a regra `admin:*` (antes só o campo `role` mudava); rebaixar um administrador devolve as regras padrão.
+  * DTO compartilhado `User` (`@kapa/shared`) ganhou `deactivatedAt?: string | null`.
+* **App (web e mobile)**:
+  * Rota `/(protected)/gestao/usuarios` ([`usuarios.tsx`](apps/mobile-web/app/(protected)/gestao/usuarios.tsx)) e tela [`UserManagementScreen`](apps/mobile-web/src/screens/userManagement/index.tsx): busca por nome/e-mail, filtro por papel, troca de papel e desativar/reativar com modal de confirmação. Redireciona quem não é `admin`; a proteção real continua no servidor.
+  * Hooks em [`useAdminUsers.ts`](apps/mobile-web/src/hooks/useAdminUsers.ts) e cartão "Usuários" na home do administrador (`buildStaffHomeCards`).
+* **Testes**: [`UserService.admin.spec.ts`](apps/server/test/services/UserService.admin.spec.ts), [`AuthService.deactivated.spec.ts`](apps/server/test/services/AuthService.deactivated.spec.ts), casos novos em [`UserController.spec.ts`](apps/server/test/controllers/UserController.spec.ts) e [`UserRouter.spec.ts`](apps/server/test/routes/UserRouter.spec.ts), e [`UserManagementScreen.spec.tsx`](apps/mobile-web/test/screens/UserManagementScreen.spec.tsx).
+
+### 45. Cartões da home no web: quebra de linha em vez de rolagem horizontal (issue #76)
+
+* **Problema**: `HomeCardCarouselSection` usava um `ScrollView` horizontal sem barra de rolagem. No navegador com mouse não há gesto de arrastar, então os últimos cartões (como "Usuários", do administrador) ficavam cortados e inacessíveis.
+* **Correção**: em [`src/screens/home/index.tsx`](apps/mobile-web/src/screens/home/index.tsx), quando `Platform.OS === 'web'` os cartões são renderizados em um `View` com `flex-wrap` (`testID="home-card-grid"`); no mobile o carrossel horizontal foi mantido.
+* **Testes**: casos de plataforma em [`HomeScreen.spec.tsx`](apps/mobile-web/test/screens/HomeScreen.spec.tsx).
