@@ -74,10 +74,12 @@ export class AdoptionController {
     next: NextFunction,
   ): Promise<void> => {
     try {
+      // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- corpo é um PDF binário (Content-Type fixo, attachment, nosniff), nunca HTML.
       const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
       const contract = await this.service.getSignedContract(id);
       const encodedFileName = encodeURIComponent(contract.fileName);
       res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
       res.setHeader(
         'Content-Disposition',
         `attachment; filename*=UTF-8''${encodedFileName}`,
