@@ -6,6 +6,7 @@ import {
   filterUsers,
   readApiErrorMessage,
 } from '@/screens/userManagement';
+import { buildStaffHomeCards } from '@/screens/home';
 import { useAuth } from '@/hooks/useAuth';
 import {
   useAdminUsers,
@@ -158,6 +159,50 @@ describe('UserManagementScreen', () => {
     );
   });
 
+  it('mostra o aviso de sucesso depois de alterar papel, desativar e reativar', async () => {
+    type Options = { onSuccess: () => void };
+    roleMutate.mockImplementation((_vars: unknown, options: Options) => options.onSuccess());
+    statusMutate.mockImplementation((_vars: unknown, options: Options) => options.onSuccess());
+    await render(<UserManagementScreen />);
+
+    await fireEvent.press(screen.getAllByLabelText('Administrador')[2]);
+    await fireEvent.press(screen.getByLabelText('Alterar papel'));
+    expect(screen.getByText('Papel de Julia Barbosa atualizado.')).toBeTruthy();
+
+    await fireEvent.press(screen.getAllByLabelText('Desativar conta')[1]);
+    await fireEvent.press(screen.getByLabelText('Desativar'));
+    expect(screen.getByText('Julia Barbosa foi desativado.')).toBeTruthy();
+
+    await fireEvent.press(screen.getByLabelText('Reativar conta'));
+    await fireEvent.press(screen.getByLabelText('Reativar'));
+    expect(screen.getByText('Danilo Santos foi reativado.')).toBeTruthy();
+  });
+
+  it('mostra a mensagem da API quando a ação falha', async () => {
+    type Options = { onError: (error: unknown) => void };
+    statusMutate.mockImplementation((_vars: unknown, options: Options) =>
+      options.onError({
+        response: { data: { message: 'Não é possível remover o último administrador' } },
+      }),
+    );
+    await render(<UserManagementScreen />);
+
+    await fireEvent.press(screen.getAllByLabelText('Desativar conta')[1]);
+    await fireEvent.press(screen.getByLabelText('Desativar'));
+
+    expect(screen.getByText('Não é possível remover o último administrador')).toBeTruthy();
+  });
+
+  it('volta a mostrar todos os papéis ao limpar o filtro', async () => {
+    await render(<UserManagementScreen />);
+
+    await fireEvent.press(screen.getAllByLabelText('Voluntário')[0]);
+    expect(screen.queryByText('Julia Barbosa')).toBeNull();
+
+    await fireEvent.press(screen.getByLabelText('Todos'));
+    expect(screen.getByText('Julia Barbosa')).toBeTruthy();
+  });
+
   it('bloqueia as ações sobre a própria conta', async () => {
     mockedUseAdminUsers.mockReturnValue({
       data: [ADMIN],
@@ -216,5 +261,18 @@ describe('helpers da gestão de usuários', () => {
       readApiErrorMessage({ response: { data: { message: 'Mensagem da API' } } }),
     ).toBe('Mensagem da API');
     expect(readApiErrorMessage(new Error('x'))).toMatch(/Não foi possível concluir/);
+  });
+});
+
+describe('cartão de gestão de usuários na home', () => {
+  it('aparece somente para administradores', () => {
+    const adminCards = buildStaffHomeCards('admin');
+    const userCard = adminCards.find((card) => card.title === 'Usuários');
+
+    expect(userCard?.link?.href).toBe('/(protected)/gestao/usuarios');
+    expect(
+      buildStaffHomeCards('protector').some((card) => card.title === 'Usuários'),
+    ).toBe(false);
+    expect(buildStaffHomeCards('adopter')).toEqual([]);
   });
 });

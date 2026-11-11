@@ -114,6 +114,15 @@ describe('UserService - ações de administração', () => {
       expect(repository.update).not.toHaveBeenCalled();
     });
 
+    it('rejeita a desativação de usuário inexistente', async () => {
+      const { service, repository } = buildService([], 1);
+
+      await expect(service.setActive(ADOPTER_ID, false, ADMIN_ID)).rejects.toBeInstanceOf(
+        NotFoundError,
+      );
+      expect(repository.update).not.toHaveBeenCalled();
+    });
+
     it('impede o administrador de desativar a si mesmo', async () => {
       const admin = buildUser(ADMIN_ID, 'admin', ['admin:*']);
       const { service, repository } = buildService([admin], 2);
@@ -152,6 +161,13 @@ describe('UserService - ações de administração', () => {
       await service.deleteById(ADOPTER_ID, ADMIN_ID);
 
       expect(repository.deleteById).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejeita a exclusão de usuário inexistente', async () => {
+      const { service, repository } = buildService([], 1);
+
+      await expect(service.deleteById(ADOPTER_ID, ADMIN_ID)).rejects.toBeInstanceOf(NotFoundError);
+      expect(repository.deleteById).not.toHaveBeenCalled();
     });
 
     it('impede o administrador de excluir a si mesmo', async () => {
