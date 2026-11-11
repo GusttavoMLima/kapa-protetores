@@ -16,8 +16,21 @@ export class User implements IUser {
   private rules: Set<string> = new Set();
   private password?: string | null = null;
   private createdAt!: string;
+  private deactivatedAt?: string | null;
 
   constructor() {}
+
+  public getDeactivatedAt(): string | null | undefined {
+    return this.deactivatedAt;
+  }
+
+  public isActive(): boolean {
+    return !this.deactivatedAt;
+  }
+
+  public setDeactivatedAt(date: Date | string | null): void {
+    this.deactivatedAt = date ? new Date(date).toISOString() : null;
+  }
 
   public getId(): UUID {
     return this.id;
@@ -137,6 +150,7 @@ export class User implements IUser {
       longitude: this.longitude ?? null,
       rules: Array.from(this.rules),
       createdAt: this.createdAt,
+      deactivatedAt: this.deactivatedAt ?? null,
     };
   }
 

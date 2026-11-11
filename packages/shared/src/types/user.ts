@@ -13,6 +13,7 @@ export interface User {
   longitude?: number | null;
   avatar?: string | null;
   createdAt: string;
+  deactivatedAt?: string | null;
 }
 
 export type CreateUserInput = {

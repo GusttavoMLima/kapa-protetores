@@ -15,6 +15,9 @@ export interface IUser {
   getRules(): Set<string>;
   getPassword(): string | null | undefined;
   getCreatedAt(): string;
+  getDeactivatedAt(): string | null | undefined;
+  isActive(): boolean;
+  setDeactivatedAt(date: Date | string | null): void;
 
   setId(id: string | UUID): void;
   setUsername(username: string): void;

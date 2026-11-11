@@ -11,6 +11,7 @@ import { User } from '../models';
 export interface IUserRepository {
   findAll(): Promise<User[]>;
   countAll(): Promise<number>;
+  countByRole(role: UserRole): Promise<number>;
   findById(id: UUID): Promise<User | null>;
   findByIdCountingRelations(id: UUID): Promise<UserWithRelationsCount | null>;
   findByIdCountingAndDataOfRelations(

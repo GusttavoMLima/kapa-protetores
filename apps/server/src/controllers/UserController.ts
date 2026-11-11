@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { UserService } from '../services/UserService';
+import { UserService, ACCOUNT_DEACTIVATED_MESSAGE } from '../services/UserService';
 import {
   registerSchema,
   signInSchema,
@@ -7,6 +7,7 @@ import {
   updateUserPasswordSchema,
   updateProfileSchema,
   updateRoleSchema,
+  updateUserStatusSchema,
 } from '../schemas/user.schema';
 import {
   DEFAULT_USER_ADOPTER_RULES,
@@ -24,6 +25,7 @@ import {
   NotFoundError,
   UnauthorizedError,
   ConflictError,
+  ForbiddenError,
   InternalServerError,
 } from '../errors';
 import type { UserPhotoService } from '../services/UserPhotoService';
@@ -218,6 +220,8 @@ export class UserController {
       if (!(await new PasswordHasher().verify(password, userPassword))) {
         throw new UnauthorizedError('E-mail ou senha incorretos');
       }
+
+      if (!user.isActive()) throw new ForbiddenError(ACCOUNT_DEACTIVATED_MESSAGE);
 
       const token = Jwt.generateUserToken(user);
 
@@ -493,11 +497,56 @@ export class UserController {
       const updatedUser = await this.userService.updateRole(
         params.data.id,
         parsedBody.data.role,
+        req.user?.sub,
       );
 
       const response: ApiResponse<SharedUser> = {
         success: true,
         message: 'Papel do usuário atualizado com sucesso',
+        data: updatedUser.toDTO(),
+      };
+
+      res.status(200).json(response);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public updateStatus = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const params = userIdParams.safeParse(req.params);
+
+      if (!params.success) {
+        throw new BadRequestError(
+          'ID de usuário inválido',
+          params.error.format(),
+        );
+      }
+
+      const parsedBody = updateUserStatusSchema.safeParse(req.body);
+
+      if (!parsedBody.success) {
+        throw new BadRequestError(
+          'Status de usuário inválido',
+          parsedBody.error.format(),
+        );
+      }
+
+      const updatedUser = await this.userService.setActive(
+        params.data.id,
+        parsedBody.data.active,
+        req.user?.sub,
+      );
+
+      const response: ApiResponse<SharedUser> = {
+        success: true,
+        message: parsedBody.data.active
+          ? 'Usuário reativado com sucesso'
+          : 'Usuário desativado com sucesso',
         data: updatedUser.toDTO(),
       };
 
@@ -522,7 +571,7 @@ export class UserController {
         );
       }
 
-      await this.userService.deleteById(params.data.id);
+      await this.userService.deleteById(params.data.id, req.user?.sub);
 
       const response: ApiResponse<null> = {
         success: true,

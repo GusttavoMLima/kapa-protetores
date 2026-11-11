@@ -18,6 +18,7 @@ import {
   HandHeartIcon,
   PawPrintIcon,
   SparkleIcon,
+  UsersIcon,
   type IconProps,
 } from 'phosphor-react-native';
 import { type ComponentType, useMemo, useState } from 'react';
@@ -91,6 +92,22 @@ const ADOPTION_REQUESTS_CARD: SecondaryCardProps = {
   link: {
     label: 'Ver solicitações',
     href: '/gestao/solicitacoes',
+    color: palette.denim,
+  },
+};
+
+const USER_MANAGEMENT_CARD: SecondaryCardProps = {
+  icon: {
+    component: (
+      <UsersIcon size={CARD_ICON_SIZE} color={palette.denim} weight="fill" />
+    ),
+    backgroundColor: palette.peach,
+  },
+  title: 'Usuários',
+  description: 'Consulte as contas, altere papéis e desative acessos.',
+  link: {
+    label: 'Gerenciar usuários',
+    href: '/(protected)/gestao/usuarios',
     color: palette.denim,
   },
 };
@@ -210,6 +227,10 @@ export function buildStaffHomeCards(role?: UserRole): SecondaryCardProps[] {
 
   if (canManageWeeklyActivities(role)) {
     cards.push(...ACTIVITY_MANAGEMENT_CARDS);
+  }
+
+  if (role === 'admin') {
+    cards.push(USER_MANAGEMENT_CARD);
   }
 
   return cards;

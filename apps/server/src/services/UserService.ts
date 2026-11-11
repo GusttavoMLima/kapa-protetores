@@ -13,6 +13,7 @@ import {
   UnauthorizedError,
   InternalServerError,
   ConflictError,
+  ForbiddenError,
   BaseError,
   ServiceError,
 } from '../errors';
@@ -34,6 +35,9 @@ export function buildUserCountsCacheKey(userId: string): string {
 }
 
 const USER_PROFILE_CACHE_TTL_SECONDS = 60;
+
+export const ACCOUNT_DEACTIVATED_MESSAGE =
+  'Esta conta está desativada. Entre em contato com a administração.';
 
 const googleClient = new OAuth2Client();
 
@@ -129,6 +133,8 @@ export class UserService {
     let user = await this.repository.findByEmail(safeEmail);
 
     if (user) {
+      if (!user.isActive()) throw new ForbiddenError(ACCOUNT_DEACTIVATED_MESSAGE);
+
       if (picture && user.getAvatar()?.toString() !== picture) {
         user = await this.updateAvatar(user.getId().toString(), picture);
       }
@@ -417,15 +423,51 @@ export class UserService {
     return updatedUser;
   }
 
-  public async updateRole(id: string, role: UserRole): Promise<User> {
+  private assertActorIsNotTarget(targetId: string, actorId?: string): void {
+    if (actorId && actorId === targetId) {
+      throw new ForbiddenError(
+        'Um administrador não pode alterar ou remover a própria conta por aqui',
+      );
+    }
+  }
+
+  private async assertAdminCanBeRemoved(target: User): Promise<void> {
+    if (target.getRole() !== 'admin') return;
+
+    if ((await this.repository.countByRole('admin')) <= 1) {
+      throw new ConflictError('Não é possível remover o último administrador');
+    }
+  }
+
+  public async updateRole(
+    id: string,
+    role: UserRole,
+    actorId?: string,
+  ): Promise<User> {
     const safeId = UUID.create(id);
+    this.assertActorIsNotTarget(safeId.toString(), actorId);
     const user = await this.repository.findById(safeId);
 
     if (!user) {
       throw new NotFoundError(`Usuário não encontrado`);
     }
 
+    const previousRole = user.getRole();
+
+    if (previousRole === role) return user;
+
+    if (previousRole === 'admin') {
+      await this.assertAdminCanBeRemoved(user);
+    }
+
     user.setRole(role);
+
+    // `admin:*` precisa estar nas regras para valer nas rotas protegidas.
+    if (role === 'admin') {
+      user.setRules(['admin:*']);
+    } else if (previousRole === 'admin') {
+      user.setRules(Array.from(DEFAULT_USER_ADOPTER_RULES));
+    }
     const updatedUser = await this.repository.update(user);
 
     if (!updatedUser) {
@@ -442,13 +484,48 @@ export class UserService {
     return updatedUser;
   }
 
-  public async deleteById(id: string): Promise<User> {
+  public async setActive(
+    id: string,
+    active: boolean,
+    actorId?: string,
+  ): Promise<User> {
     const safeId = UUID.create(id);
+    this.assertActorIsNotTarget(safeId.toString(), actorId);
     const user = await this.repository.findById(safeId);
 
     if (!user) {
       throw new NotFoundError(`Usuário não encontrado`);
     }
+
+    if (user.isActive() === active) return user;
+
+    if (!active) {
+      await this.assertAdminCanBeRemoved(user);
+    }
+
+    user.setDeactivatedAt(active ? null : new Date());
+    const updatedUser = await this.repository.update(user);
+
+    if (this.cache) {
+      await Promise.all([
+        this.cache.deleteCache(buildUserProfileCacheKey(safeId.toString())),
+        this.cache.deleteCache(buildUserCountsCacheKey(safeId.toString())),
+      ]);
+    }
+
+    return updatedUser;
+  }
+
+  public async deleteById(id: string, actorId?: string): Promise<User> {
+    const safeId = UUID.create(id);
+    this.assertActorIsNotTarget(safeId.toString(), actorId);
+    const user = await this.repository.findById(safeId);
+
+    if (!user) {
+      throw new NotFoundError(`Usuário não encontrado`);
+    }
+
+    await this.assertAdminCanBeRemoved(user);
 
     const deleted = await this.repository.deleteById(safeId);
 

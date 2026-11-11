@@ -17,6 +17,7 @@ model User {
   avatar          String?
   password        String?
   created_at      DateTime                   @default(now()) @map("createdAt")
+  deactivated_at  DateTime?                  @map("deactivatedAt")
   adoptions       Adoptions[]
   favorites       Favorites[]
   events                 Events[]

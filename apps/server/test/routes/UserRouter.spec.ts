@@ -17,6 +17,7 @@ describe('UserRouter Endpoints Coverage', () => {
       uploadAvatar: () => {},
       getById: () => {},
       updateRole: () => {},
+      updateStatus: () => {},
       deleteById: () => {},
     } as unknown as UserController;
 
@@ -53,6 +54,7 @@ describe('UserRouter Endpoints Coverage', () => {
     // Individual user routes
     expect(registered.some((r) => r.path === '/:id' && r.methods?.get)).toBe(true);
     expect(registered.some((r) => r.path === '/:id/role' && r.methods?.patch)).toBe(true);
+    expect(registered.some((r) => r.path === '/:id/status' && r.methods?.patch)).toBe(true);
     expect(registered.some((r) => r.path === '/:id/delete' || (r.path === '/:id' && r.methods?.delete))).toBe(true);
   });
 });
