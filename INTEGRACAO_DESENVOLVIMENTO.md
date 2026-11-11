@@ -1207,3 +1207,15 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 * **Problema**: `HomeCardCarouselSection` usava um `ScrollView` horizontal sem barra de rolagem. No navegador com mouse não há gesto de arrastar, então os últimos cartões (como "Usuários", do administrador) ficavam cortados e inacessíveis.
 * **Correção**: em [`src/screens/home/index.tsx`](apps/mobile-web/src/screens/home/index.tsx), quando `Platform.OS === 'web'` os cartões são renderizados em um `View` com `flex-wrap` (`testID="home-card-grid"`); no mobile o carrossel horizontal foi mantido.
 * **Testes**: casos de plataforma em [`HomeScreen.spec.tsx`](apps/mobile-web/test/screens/HomeScreen.spec.tsx).
+
+### 46. Redesenho da tela de gestão de usuários (issue #78)
+
+* **Objetivo**: alinhar `/(protected)/gestao/usuarios` ao padrão das telas de gestão (referência: `gestao/animais`) e melhorar o uso. Substitui a descrição da tela da seção 44; as rotas e a API não mudaram.
+* **Estrutura** (`apps/mobile-web/src/screens/userManagement/`):
+  * [`index.tsx`](apps/mobile-web/src/screens/userManagement/index.tsx): tela. Cabeçalho (`ADMINISTRAÇÃO` + título + descrição), resumo clicável por papel (Todos, Administradores, Protetores, Voluntários, Adotantes), cartão com busca e filtros, tabela no desktop e cartões empilhados no mobile, paginação, estados de carregamento, erro (com "Tentar novamente") e vazio. Mesmos tokens do `DESIGN.md` e componentes de `animalManagement/components` (`BackLink`, `ChoiceGroup`, `Notice`, `TextButton`).
+  * [`components.tsx`](apps/mobile-web/src/screens/userManagement/components.tsx): `UserAvatar` (foto com iniciais como alternativa), `RoleBadge`, `UserStatusBadge` e o painel `ManageUserModal`.
+  * [`model.ts`](apps/mobile-web/src/screens/userManagement/model.ts): lógica pura e testável (filtro, ordenação, contagem, paginação, iniciais, data e mensagem de erro da API).
+* **Filtros**: busca por nome ou e-mail (ignora maiúsculas e acentos), papel (cartões de resumo), situação (todas/ativas/desativadas) e ordenação (mais recentes / nome A–Z), com "Limpar filtros". Paginação de 10 em 10, feita no cliente.
+* **Painel "Gerenciar usuário"**: em vez de botões repetidos em cada linha, cada pessoa tem um botão "Gerenciar" que abre um painel com avatar, e-mail, data de cadastro, troca de papel ("Salvar papel", habilitado só quando o papel muda) e acesso (desativar com confirmação em duas etapas; reativar direto). Erros da API aparecem dentro do painel; o sucesso aparece como aviso na tela. As salvaguardas continuam no servidor (a própria conta fica bloqueada na interface e a API responde `403`).
+* **Limites conhecidos**: `GET /api/users/all` devolve todos os usuários, então busca, filtro, ordenação e paginação são feitos no cliente (suficiente para o volume de uma ONG; acima de alguns milhares de contas, mover para o servidor). Não há "último acesso" nem histórico de quem desativou, pois esses dados não existem no banco.
+* **Testes**: [`userManagementModel.spec.ts`](apps/mobile-web/test/screens/userManagementModel.spec.ts) e [`UserManagementScreen.spec.tsx`](apps/mobile-web/test/screens/UserManagementScreen.spec.tsx).
