@@ -1,11 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import type { User } from '@kapa/shared';
-import {
-  UserManagementScreen,
-  filterUsers,
-  readApiErrorMessage,
-} from '@/screens/userManagement';
+import { UserManagementScreen } from '@/screens/userManagement';
 import { buildStaffHomeCards } from '@/screens/home';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -47,28 +43,49 @@ function buildUser(overrides: Partial<User>): User {
   };
 }
 
-const ADMIN = buildUser({ id: 'admin-1', role: 'admin', username: 'Admin Kapa', email: 'admin@kapa.test' });
-const JULIA = buildUser({ id: 'user-1', username: 'Julia Barbosa', email: 'julia@kapa.test' });
+const ADMIN = buildUser({
+  id: 'admin-1',
+  role: 'admin',
+  username: 'Admin Kapa',
+  email: 'admin@kapa.test',
+  createdAt: '2026-11-04T10:00:00.000Z',
+});
+const JULIA = buildUser({
+  id: 'user-1',
+  username: 'Júlia Barbosa',
+  email: 'julia@kapa.test',
+  createdAt: '2026-11-03T10:00:00.000Z',
+});
 const DANILO = buildUser({
   id: 'user-2',
   role: 'volunteer',
   username: 'Danilo Santos',
   email: 'danilo@kapa.test',
+  createdAt: '2026-11-02T10:00:00.000Z',
   deactivatedAt: '2026-11-05T10:00:00.000Z',
 });
+
+type Options = { onSuccess?: () => void; onError?: (error: unknown) => void };
 
 describe('UserManagementScreen', () => {
   const roleMutate = jest.fn();
   const statusMutate = jest.fn();
+  const refetch = jest.fn();
+
+  function mockUsers(data: User[] | undefined, extra: Record<string, unknown> = {}) {
+    mockedUseAdminUsers.mockReturnValue({
+      data,
+      isLoading: false,
+      error: null,
+      refetch,
+      ...extra,
+    } as unknown as ReturnType<typeof useAdminUsers>);
+  }
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockedUseAuth.mockReturnValue({ user: ADMIN } as unknown as ReturnType<typeof useAuth>);
-    mockedUseAdminUsers.mockReturnValue({
-      data: [ADMIN, JULIA, DANILO],
-      isLoading: false,
-      error: null,
-    } as unknown as ReturnType<typeof useAdminUsers>);
+    mockUsers([ADMIN, JULIA, DANILO]);
     mockedUseUpdateUserRole.mockReturnValue({
       mutate: roleMutate,
       isPending: false,
@@ -79,188 +96,252 @@ describe('UserManagementScreen', () => {
     } as unknown as ReturnType<typeof useUpdateUserStatus>);
   });
 
-  it('redireciona quem não é administrador', async () => {
-    mockedUseAuth.mockReturnValue({
-      user: { ...ADMIN, role: 'adopter' },
-    } as unknown as ReturnType<typeof useAuth>);
+  describe('lista', () => {
+    it('redireciona quem não é administrador', async () => {
+      mockedUseAuth.mockReturnValue({
+        user: { ...ADMIN, role: 'adopter' },
+      } as unknown as ReturnType<typeof useAuth>);
 
-    await render(<UserManagementScreen />);
+      await render(<UserManagementScreen />);
 
-    expect(screen.getByText('redirect:/(protected)/(tabs)')).toBeTruthy();
-    expect(screen.queryByText('Gerenciar usuários')).toBeNull();
+      expect(screen.getByText('redirect:/(protected)/(tabs)')).toBeTruthy();
+      expect(screen.queryByText('Gerenciar usuários')).toBeNull();
+    });
+
+    it('mostra o resumo por papel e os usuários com papel, situação e cadastro', async () => {
+      await render(<UserManagementScreen />);
+
+      expect(screen.getByLabelText('Todos os usuários: 3')).toBeTruthy();
+      expect(screen.getByLabelText('Administradores: 1')).toBeTruthy();
+      expect(screen.getByLabelText('Voluntários: 1')).toBeTruthy();
+      expect(screen.getByLabelText('Adotantes: 1')).toBeTruthy();
+      expect(screen.getByLabelText('Protetores: 0')).toBeTruthy();
+      expect(screen.getByText('Júlia Barbosa')).toBeTruthy();
+      expect(screen.getByText('Desativado')).toBeTruthy();
+      expect(screen.getAllByText('Ativo')).toHaveLength(2);
+      expect(screen.getByText('Você')).toBeTruthy();
+      expect(screen.getByText('1–3 de 3 usuários')).toBeTruthy();
+    });
+
+    it('mostra as mais recentes primeiro e ordena por nome sob demanda', async () => {
+      await render(<UserManagementScreen />);
+      const order = () =>
+        screen
+          .getAllByLabelText(/^Gerenciar /)
+          .map((element) => element.props.accessibilityLabel);
+
+      expect(order()).toEqual([
+        'Gerenciar Admin Kapa',
+        'Gerenciar Júlia Barbosa',
+        'Gerenciar Danilo Santos',
+      ]);
+
+      await fireEvent.press(screen.getByLabelText('Nome A–Z'));
+
+      expect(order()).toEqual([
+        'Gerenciar Admin Kapa',
+        'Gerenciar Danilo Santos',
+        'Gerenciar Júlia Barbosa',
+      ]);
+    });
+
+    it('filtra pelo cartão de papel e limpa os filtros', async () => {
+      await render(<UserManagementScreen />);
+
+      await fireEvent.press(screen.getByLabelText('Voluntários: 1'));
+      expect(screen.queryByText('Júlia Barbosa')).toBeNull();
+      expect(screen.getByText('Danilo Santos')).toBeTruthy();
+
+      await fireEvent.press(screen.getByLabelText('Limpar filtros'));
+      expect(screen.getByText('Júlia Barbosa')).toBeTruthy();
+      expect(screen.queryByLabelText('Limpar filtros')).toBeNull();
+    });
+
+    it('filtra por situação', async () => {
+      await render(<UserManagementScreen />);
+
+      await fireEvent.press(screen.getByLabelText('Desativadas'));
+      expect(screen.queryByText('Júlia Barbosa')).toBeNull();
+      expect(screen.getByText('Danilo Santos')).toBeTruthy();
+
+      await fireEvent.press(screen.getByLabelText('Ativas'));
+      expect(screen.getByText('Júlia Barbosa')).toBeTruthy();
+      expect(screen.queryByText('Danilo Santos')).toBeNull();
+    });
+
+    it('busca ignorando acentos e mostra o estado vazio com opção de limpar', async () => {
+      await render(<UserManagementScreen />);
+      const search = screen.getByLabelText('Buscar usuário por nome ou e-mail');
+
+      await fireEvent.changeText(search, 'julia');
+      expect(screen.getByText('Júlia Barbosa')).toBeTruthy();
+      expect(screen.queryByText('Danilo Santos')).toBeNull();
+
+      await fireEvent.changeText(search, 'ninguem');
+      expect(screen.getByText('Nenhum usuário encontrado')).toBeTruthy();
+
+      await fireEvent.press(screen.getAllByLabelText('Limpar filtros')[0]);
+      expect(screen.getByText('Danilo Santos')).toBeTruthy();
+    });
+
+    it('pagina de 10 em 10 e volta para a primeira página ao filtrar', async () => {
+      const many = Array.from({ length: 13 }, (_, index) =>
+        buildUser({
+          id: `many-${index}`,
+          username: `Pessoa ${String(index).padStart(2, '0')}`,
+          email: `pessoa${index}@kapa.test`,
+          createdAt: `2026-10-${String(index + 1).padStart(2, '0')}T10:00:00.000Z`,
+        }),
+      );
+      mockUsers([ADMIN, ...many]);
+      await render(<UserManagementScreen />);
+
+      expect(screen.getByText('1–10 de 14 usuários')).toBeTruthy();
+      expect(screen.getByText('1 / 2')).toBeTruthy();
+
+      await fireEvent.press(screen.getByLabelText('Próxima'));
+      expect(screen.getByText('11–14 de 14 usuários')).toBeTruthy();
+
+      await fireEvent.press(screen.getByLabelText('Nome A–Z'));
+      expect(screen.getByText('1–10 de 14 usuários')).toBeTruthy();
+
+      await fireEvent.press(screen.getByLabelText('Próxima'));
+      await fireEvent.press(screen.getByLabelText('Anterior'));
+      expect(screen.getByText('1 / 2')).toBeTruthy();
+    });
+
+    it('mostra carregamento, erro com nova tentativa e lista vazia', async () => {
+      mockUsers(undefined, { isLoading: true });
+      const { rerender } = await render(<UserManagementScreen />);
+      expect(screen.getByText('Carregando usuários…')).toBeTruthy();
+
+      mockUsers(undefined, { error: new Error('falha') });
+      await rerender(<UserManagementScreen />);
+      expect(screen.getByText(/Não foi possível carregar os usuários/)).toBeTruthy();
+      await fireEvent.press(screen.getByLabelText('Tentar novamente'));
+      expect(refetch).toHaveBeenCalledTimes(1);
+
+      mockUsers([]);
+      await rerender(<UserManagementScreen />);
+      expect(screen.getByText('Nenhum usuário cadastrado ainda')).toBeTruthy();
+    });
   });
 
-  it('lista usuários com status e identifica a própria conta', async () => {
-    await render(<UserManagementScreen />);
+  describe('painel Gerenciar usuário', () => {
+    async function openJulia() {
+      await render(<UserManagementScreen />);
+      await fireEvent.press(screen.getByLabelText('Gerenciar Júlia Barbosa'));
+    }
 
-    expect(screen.getByText('Julia Barbosa')).toBeTruthy();
-    expect(screen.getByText('Danilo Santos')).toBeTruthy();
-    expect(screen.getByText('Desativado')).toBeTruthy();
-    expect(screen.getByText('Você')).toBeTruthy();
-  });
+    it('abre com os dados da pessoa e fecha pelo botão', async () => {
+      await openJulia();
 
-  it('filtra por busca e por papel', async () => {
-    await render(<UserManagementScreen />);
+      // a linha da lista e o painel mostram o mesmo e-mail e a mesma data
+      expect(screen.getAllByText('julia@kapa.test')).toHaveLength(2);
+      expect(screen.getAllByText('Cadastro em 03/11/2026')).toHaveLength(2);
 
-    await fireEvent.changeText(
-      screen.getByLabelText('Buscar usuário por nome ou e-mail'),
-      'julia',
-    );
-    expect(screen.getByText('Julia Barbosa')).toBeTruthy();
-    expect(screen.queryByText('Danilo Santos')).toBeNull();
+      await fireEvent.press(screen.getByLabelText('Fechar'));
+      expect(screen.getAllByText('Cadastro em 03/11/2026')).toHaveLength(1);
+    });
 
-    await fireEvent.changeText(
-      screen.getByLabelText('Buscar usuário por nome ou e-mail'),
-      '',
-    );
-    await fireEvent.press(screen.getAllByLabelText('Voluntário')[0]);
-    expect(screen.queryByText('Julia Barbosa')).toBeNull();
-    expect(screen.getByText('Danilo Santos')).toBeTruthy();
-  });
+    it('só permite salvar o papel quando ele muda e mostra o aviso de sucesso', async () => {
+      roleMutate.mockImplementation((_vars: unknown, options: Options) => options.onSuccess?.());
+      await openJulia();
 
-  it('desativa uma conta somente depois da confirmação', async () => {
-    await render(<UserManagementScreen />);
+      await fireEvent.press(screen.getByText('Salvar papel'));
+      expect(roleMutate).not.toHaveBeenCalled();
 
-    await fireEvent.press(screen.getAllByLabelText('Desativar conta')[1]);
-    expect(statusMutate).not.toHaveBeenCalled();
-    expect(screen.getByText('Desativar conta?')).toBeTruthy();
+      await fireEvent.press(screen.getByLabelText('Voluntário'));
+      await fireEvent.press(screen.getByText('Salvar papel'));
 
-    await fireEvent.press(screen.getByLabelText('Desativar'));
-    expect(statusMutate).toHaveBeenCalledWith(
-      { id: 'user-1', active: false },
-      expect.any(Object),
-    );
-  });
+      expect(roleMutate).toHaveBeenCalledWith(
+        { id: 'user-1', role: 'volunteer' },
+        expect.any(Object),
+      );
+      expect(
+        screen.getByText('Papel de Júlia Barbosa atualizado para voluntário.'),
+      ).toBeTruthy();
+      expect(screen.getAllByText('Cadastro em 03/11/2026')).toHaveLength(1);
+    });
 
-  it('reativa uma conta desativada', async () => {
-    await render(<UserManagementScreen />);
+    it('desativa em duas etapas e permite voltar atrás', async () => {
+      statusMutate.mockImplementation((_vars: unknown, options: Options) => options.onSuccess?.());
+      await openJulia();
 
-    await fireEvent.press(screen.getByLabelText('Reativar conta'));
-    await fireEvent.press(screen.getByLabelText('Reativar'));
+      await fireEvent.press(screen.getByLabelText('Desativar conta'));
+      expect(statusMutate).not.toHaveBeenCalled();
+      expect(screen.getByText('Confirma desativar a conta de Júlia Barbosa?')).toBeTruthy();
 
-    expect(statusMutate).toHaveBeenCalledWith(
-      { id: 'user-2', active: true },
-      expect.any(Object),
-    );
-  });
+      await fireEvent.press(screen.getByLabelText('Voltar'));
+      expect(screen.queryByLabelText('Confirmar desativação')).toBeNull();
 
-  it('altera o papel depois da confirmação e permite cancelar', async () => {
-    await render(<UserManagementScreen />);
+      await fireEvent.press(screen.getByLabelText('Desativar conta'));
+      await fireEvent.press(screen.getByLabelText('Confirmar desativação'));
 
-    await fireEvent.press(screen.getAllByLabelText('Administrador')[2]);
-    await fireEvent.press(screen.getByLabelText('Cancelar'));
-    expect(roleMutate).not.toHaveBeenCalled();
+      expect(statusMutate).toHaveBeenCalledWith(
+        { id: 'user-1', active: false },
+        expect.any(Object),
+      );
+      expect(screen.getByText('Júlia Barbosa foi desativado.')).toBeTruthy();
+    });
 
-    await fireEvent.press(screen.getAllByLabelText('Administrador')[2]);
-    await fireEvent.press(screen.getByLabelText('Alterar papel'));
-    expect(roleMutate).toHaveBeenCalledWith(
-      { id: 'user-1', role: 'admin' },
-      expect.any(Object),
-    );
-  });
+    it('reativa uma conta desativada direto, sem confirmação extra', async () => {
+      statusMutate.mockImplementation((_vars: unknown, options: Options) => options.onSuccess?.());
+      await render(<UserManagementScreen />);
 
-  it('mostra o aviso de sucesso depois de alterar papel, desativar e reativar', async () => {
-    type Options = { onSuccess: () => void };
-    roleMutate.mockImplementation((_vars: unknown, options: Options) => options.onSuccess());
-    statusMutate.mockImplementation((_vars: unknown, options: Options) => options.onSuccess());
-    await render(<UserManagementScreen />);
+      await fireEvent.press(screen.getByLabelText('Gerenciar Danilo Santos'));
+      await fireEvent.press(screen.getByLabelText('Reativar conta'));
 
-    await fireEvent.press(screen.getAllByLabelText('Administrador')[2]);
-    await fireEvent.press(screen.getByLabelText('Alterar papel'));
-    expect(screen.getByText('Papel de Julia Barbosa atualizado.')).toBeTruthy();
+      expect(statusMutate).toHaveBeenCalledWith(
+        { id: 'user-2', active: true },
+        expect.any(Object),
+      );
+      expect(screen.getByText('Danilo Santos foi reativado.')).toBeTruthy();
+    });
 
-    await fireEvent.press(screen.getAllByLabelText('Desativar conta')[1]);
-    await fireEvent.press(screen.getByLabelText('Desativar'));
-    expect(screen.getByText('Julia Barbosa foi desativado.')).toBeTruthy();
+    it('mostra o erro da API dentro do painel e mantém o painel aberto', async () => {
+      statusMutate.mockImplementation((_vars: unknown, options: Options) =>
+        options.onError?.({
+          response: { data: { message: 'Não é possível remover o último administrador' } },
+        }),
+      );
+      await openJulia();
 
-    await fireEvent.press(screen.getByLabelText('Reativar conta'));
-    await fireEvent.press(screen.getByLabelText('Reativar'));
-    expect(screen.getByText('Danilo Santos foi reativado.')).toBeTruthy();
-  });
+      await fireEvent.press(screen.getByLabelText('Desativar conta'));
+      await fireEvent.press(screen.getByLabelText('Confirmar desativação'));
 
-  it('mostra a mensagem da API quando a ação falha', async () => {
-    type Options = { onError: (error: unknown) => void };
-    statusMutate.mockImplementation((_vars: unknown, options: Options) =>
-      options.onError({
-        response: { data: { message: 'Não é possível remover o último administrador' } },
-      }),
-    );
-    await render(<UserManagementScreen />);
+      expect(screen.getByText('Não é possível remover o último administrador')).toBeTruthy();
+      expect(screen.getAllByText('Cadastro em 03/11/2026')).toHaveLength(2);
+    });
 
-    await fireEvent.press(screen.getAllByLabelText('Desativar conta')[1]);
-    await fireEvent.press(screen.getByLabelText('Desativar'));
+    it('mostra o erro ao falhar a troca de papel', async () => {
+      roleMutate.mockImplementation((_vars: unknown, options: Options) =>
+        options.onError?.(new Error('falha')),
+      );
+      await openJulia();
 
-    expect(screen.getByText('Não é possível remover o último administrador')).toBeTruthy();
-  });
+      await fireEvent.press(screen.getByLabelText('Protetor'));
+      await fireEvent.press(screen.getByText('Salvar papel'));
 
-  it('volta a mostrar todos os papéis ao limpar o filtro', async () => {
-    await render(<UserManagementScreen />);
+      expect(screen.getByText(/Não foi possível concluir a ação/)).toBeTruthy();
+    });
 
-    await fireEvent.press(screen.getAllByLabelText('Voluntário')[0]);
-    expect(screen.queryByText('Julia Barbosa')).toBeNull();
+    it('bloqueia as ações sobre a própria conta', async () => {
+      await render(<UserManagementScreen />);
 
-    await fireEvent.press(screen.getByLabelText('Todos'));
-    expect(screen.getByText('Julia Barbosa')).toBeTruthy();
-  });
+      await fireEvent.press(screen.getByLabelText('Gerenciar Admin Kapa'));
+      expect(
+        screen.getByText('Você não pode alterar a sua própria conta por aqui.'),
+      ).toBeTruthy();
 
-  it('bloqueia as ações sobre a própria conta', async () => {
-    mockedUseAdminUsers.mockReturnValue({
-      data: [ADMIN],
-      isLoading: false,
-      error: null,
-    } as unknown as ReturnType<typeof useAdminUsers>);
+      await fireEvent.press(screen.getByLabelText('Desativar conta'));
+      await fireEvent.press(screen.getByLabelText('Adotante'));
+      await fireEvent.press(screen.getByText('Salvar papel'));
 
-    await render(<UserManagementScreen />);
-
-    await fireEvent.press(screen.getByLabelText('Desativar conta'));
-    expect(screen.queryByText('Desativar conta?')).toBeNull();
-    expect(statusMutate).not.toHaveBeenCalled();
-    expect(
-      screen.getByText('Você não pode alterar a sua própria conta por aqui.'),
-    ).toBeTruthy();
-  });
-
-  it('mostra carregamento, erro e lista vazia', async () => {
-    mockedUseAdminUsers.mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      error: null,
-    } as unknown as ReturnType<typeof useAdminUsers>);
-    const { rerender } = await render(<UserManagementScreen />);
-    expect(screen.getByText('Carregando usuários...')).toBeTruthy();
-
-    mockedUseAdminUsers.mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      error: new Error('falha'),
-    } as unknown as ReturnType<typeof useAdminUsers>);
-    await rerender(<UserManagementScreen />);
-    expect(screen.getByText(/Não foi possível carregar os usuários/)).toBeTruthy();
-
-    mockedUseAdminUsers.mockReturnValue({
-      data: [],
-      isLoading: false,
-      error: null,
-    } as unknown as ReturnType<typeof useAdminUsers>);
-    await rerender(<UserManagementScreen />);
-    expect(screen.getByText('Nenhum usuário encontrado')).toBeTruthy();
-  });
-});
-
-describe('helpers da gestão de usuários', () => {
-  it('filterUsers combina busca e papel sem diferenciar maiúsculas', async () => {
-    const users = [ADMIN, JULIA, DANILO];
-
-    expect(filterUsers(users, 'DANILO', 'all')).toEqual([DANILO]);
-    expect(filterUsers(users, '', 'admin')).toEqual([ADMIN]);
-    expect(filterUsers(users, 'julia', 'admin')).toEqual([]);
-  });
-
-  it('readApiErrorMessage usa a mensagem da API ou um texto padrão', async () => {
-    expect(
-      readApiErrorMessage({ response: { data: { message: 'Mensagem da API' } } }),
-    ).toBe('Mensagem da API');
-    expect(readApiErrorMessage(new Error('x'))).toMatch(/Não foi possível concluir/);
+      expect(screen.queryByLabelText('Confirmar desativação')).toBeNull();
+      expect(statusMutate).not.toHaveBeenCalled();
+      expect(roleMutate).not.toHaveBeenCalled();
+    });
   });
 });
 
