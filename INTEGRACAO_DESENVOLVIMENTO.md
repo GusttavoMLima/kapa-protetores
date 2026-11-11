@@ -1201,3 +1201,9 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
   * Rota `/(protected)/gestao/usuarios` ([`usuarios.tsx`](apps/mobile-web/app/(protected)/gestao/usuarios.tsx)) e tela [`UserManagementScreen`](apps/mobile-web/src/screens/userManagement/index.tsx): busca por nome/e-mail, filtro por papel, troca de papel e desativar/reativar com modal de confirmação. Redireciona quem não é `admin`; a proteção real continua no servidor.
   * Hooks em [`useAdminUsers.ts`](apps/mobile-web/src/hooks/useAdminUsers.ts) e cartão "Usuários" na home do administrador (`buildStaffHomeCards`).
 * **Testes**: [`UserService.admin.spec.ts`](apps/server/test/services/UserService.admin.spec.ts), [`AuthService.deactivated.spec.ts`](apps/server/test/services/AuthService.deactivated.spec.ts), casos novos em [`UserController.spec.ts`](apps/server/test/controllers/UserController.spec.ts) e [`UserRouter.spec.ts`](apps/server/test/routes/UserRouter.spec.ts), e [`UserManagementScreen.spec.tsx`](apps/mobile-web/test/screens/UserManagementScreen.spec.tsx).
+
+### 45. Cartões da home no web: quebra de linha em vez de rolagem horizontal (issue #76)
+
+* **Problema**: `HomeCardCarouselSection` usava um `ScrollView` horizontal sem barra de rolagem. No navegador com mouse não há gesto de arrastar, então os últimos cartões (como "Usuários", do administrador) ficavam cortados e inacessíveis.
+* **Correção**: em [`src/screens/home/index.tsx`](apps/mobile-web/src/screens/home/index.tsx), quando `Platform.OS === 'web'` os cartões são renderizados em um `View` com `flex-wrap` (`testID="home-card-grid"`); no mobile o carrossel horizontal foi mantido.
+* **Testes**: casos de plataforma em [`HomeScreen.spec.tsx`](apps/mobile-web/test/screens/HomeScreen.spec.tsx).

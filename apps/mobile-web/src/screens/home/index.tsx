@@ -22,7 +22,7 @@ import {
   type IconProps,
 } from 'phosphor-react-native';
 import { type ComponentType, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
 export type HomeSpeciesFilter = 'all' | 'dog' | 'cat';
 
@@ -349,16 +349,29 @@ function HomeCardCarouselSection({
         )}
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: CAROUSEL_CARD_GAP }}
-        className="flex-row"
-      >
-        {cards.map((card) => (
-          <SecondaryCard key={card.title} {...card} />
-        ))}
-      </ScrollView>
+      {Platform.OS === 'web' ? (
+        // No navegador não há gesto de arrastar: os cartões quebram linha.
+        <View
+          testID="home-card-grid"
+          className="flex-row flex-wrap"
+          style={{ gap: CAROUSEL_CARD_GAP }}
+        >
+          {cards.map((card) => (
+            <SecondaryCard key={card.title} {...card} />
+          ))}
+        </View>
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: CAROUSEL_CARD_GAP }}
+          className="flex-row"
+        >
+          {cards.map((card) => (
+            <SecondaryCard key={card.title} {...card} />
+          ))}
+        </ScrollView>
+      )}
     </View>
   );
 }
