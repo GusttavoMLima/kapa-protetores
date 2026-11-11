@@ -46,6 +46,7 @@ import { VolunteerApplicationRepository } from '../repositories/VolunteerApplica
 import { VolunteerApplicationService } from '../services/VolunteerApplicationService';
 import { VolunteerApplicationController } from '../controllers/VolunteerApplicationController';
 import { VolunteerApplicationRouter } from './VolunteerApplicationRouter';
+import { EmailService } from '../services/EmailService';
 
 const jwtService = new JwtService(
   process.env.JWT_SECRET ?? '',
@@ -89,6 +90,7 @@ const userPhotoService = new UserPhotoService(
 );
 
 const eventsService = new EventsService(prisma);
+const emailService = new EmailService();
 const userService = new UserService(
   userRepository,
   redisService,
@@ -162,6 +164,7 @@ const adoptionRouter = new AdoptionRouter(
       new AdoptionRepository(prisma),
       redisService,
       eventsService,
+      emailService,
     ),
   ),
   authMiddleware,
@@ -197,6 +200,7 @@ const volunteerApplicationRouter = new VolunteerApplicationRouter(
       new VolunteerApplicationRepository(prisma),
       redisService,
       eventsService,
+      emailService,
     ),
   ),
   authMiddleware,

@@ -4,8 +4,10 @@ import {
   type VolunteerApplicationData,
   type VolunteerApplicationStatus,
 } from '@kapa/shared';
+import { logger } from '../config/logger';
 import { ConflictError, NotFoundError } from '../errors';
 import { VolunteerApplicationRepository } from '../repositories/VolunteerApplicationRepository';
+import type { EmailService } from './EmailService';
 import type { EventsService } from './EventsService';
 import type { CacheProvider } from './RedisService';
 import {
@@ -26,6 +28,7 @@ export class VolunteerApplicationService {
     private readonly repository: VolunteerApplicationRepository,
     private readonly cache?: CacheProvider,
     private readonly eventsService?: EventsService,
+    private readonly emailService?: EmailService,
   ) {}
 
   public async submitApplication(
@@ -164,6 +167,8 @@ export class VolunteerApplicationService {
         ]);
       }
 
+      this.notifyVolunteerStatusChange(updated, status);
+
       return updated;
     } catch (error) {
       if (!(error instanceof Error)) throw error;
@@ -172,5 +177,30 @@ export class VolunteerApplicationService {
       }
       throw error;
     }
+  }
+
+  private notifyVolunteerStatusChange(
+    updated: VolunteerApplication,
+    status: Exclude<VolunteerApplicationStatus, 'pending'>,
+  ): void {
+    if (!this.emailService || !updated.user?.email) {
+      return;
+    }
+
+    const volunteerName =
+      updated.application.fullName?.trim() || updated.user.username;
+
+    void this.emailService
+      .sendVolunteerStatusNotification({
+        volunteerEmail: updated.user.email,
+        volunteerName,
+        status,
+      })
+      .catch((err: unknown) => {
+        logger.warn(
+          { err, applicationId: updated.id, status },
+          '[VolunteerApplicationService] Falha ao enviar e-mail de notificação de voluntariado',
+        );
+      });
   }
 }

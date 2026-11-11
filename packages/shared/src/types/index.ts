@@ -6,3 +6,4 @@ export * from './adoption';
 export * from './event';
 export * from './favorite';
 export * from './post';
+export * from './email';

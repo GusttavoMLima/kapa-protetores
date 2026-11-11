@@ -1212,3 +1212,19 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 * **Problema**: `HomeCardCarouselSection` usava um `ScrollView` horizontal sem barra de rolagem. No navegador com mouse não há gesto de arrastar, então os últimos cartões (como "Usuários", do administrador) ficavam cortados e inacessíveis.
 * **Correção**: em [`src/screens/home/index.tsx`](apps/mobile-web/src/screens/home/index.tsx), quando `Platform.OS === 'web'` os cartões são renderizados em um `View` com `flex-wrap` (`testID="home-card-grid"`); no mobile o carrossel horizontal foi mantido.
 * **Testes**: casos de plataforma em [`HomeScreen.spec.tsx`](apps/mobile-web/test/screens/HomeScreen.spec.tsx).
+
+---
+
+### 46. Serviço de Envio de E-mails via Supabase Edge Function (`EmailService`)
+
+* **Contratos Compartilhados (`@kapa/shared` — [`packages/shared/src/types/email.ts`](packages/shared/src/types/email.ts))**:
+  * Interfaces estritas `SendEmailPayload`, `EmailTemplatePayload`, `EmailResponse`, `AdoptionStatusEmailData` e `VolunteerApplicationEmailData`.
+* **Camada de Serviço (`EmailService` — [`apps/server/src/services/EmailService.ts`](apps/server/src/services/EmailService.ts))**:
+  * Valida todos os destinatários (`to: string | string[]`) utilizando o value object de domínio [`Email.create`](apps/server/src/domains/Email.ts).
+  * Suporta envio tanto por corpo `html` quanto por `template` (`id` + `variables`), gerando corpo HTML sanitizado contra injeção (`escapeHtml`) em `sendAdoptionStatusNotification` e `sendVolunteerStatusNotification`.
+  * Normaliza `SUPABASE_URL`, suporta `SUPABASE_ANON_KEY` (com fallback para `SUPABASE_ANONKEY`), aplica timeout com `AbortSignal.timeout` (`10s`) e valida a resposta JSON da Edge Function em runtime com Zod (`edgeFunctionResponseSchema`), lançando erros de domínio (`ValidationError`, `ServiceError`).
+* **Integração Assíncrona Não Bloqueante nos Fluxos de Negócio**:
+  * Sem exposição de rota pública de envio de e-mail (prevenindo abuso de Open Relay/Phishing).
+  * Injetado em [`AdoptionService.updateWorkflow`](apps/server/src/services/AdoptionService.ts) e [`VolunteerApplicationService.updateStatus`](apps/server/src/services/VolunteerApplicationService.ts) via [`apps/server/src/routes/index.ts`](apps/server/src/routes/index.ts) utilizando promessas não bloqueantes com tratamento `.catch()` (`void this.emailService.send...().catch(...)`) e logs estruturados (`logger.warn`), garantindo que falhas externas de e-mail nunca revertam ou atrasem a atualização no banco.
+* **Testes Automatizados**:
+  * [`apps/server/test/services/EmailService.spec.ts`](apps/server/test/services/EmailService.spec.ts), [`apps/server/test/services/AdoptionService.spec.ts`](apps/server/test/services/AdoptionService.spec.ts) e [`apps/server/test/services/VolunteerApplicationService.spec.ts`](apps/server/test/services/VolunteerApplicationService.spec.ts).

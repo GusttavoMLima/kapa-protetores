@@ -4,6 +4,7 @@ import {
   type AdoptionApplication,
   type UpdateAdoptionStatusInput,
 } from '@kapa/shared';
+import { logger } from '../config/logger';
 import { BadRequestError, ConflictError, NotFoundError } from '../errors';
 import { AdoptionRepository } from '../repositories/AdoptionRepository';
 import {
@@ -14,6 +15,7 @@ import {
   buildUserCountsCacheKey,
   buildUserProfileCacheKey,
 } from './UserService';
+import type { EmailService } from './EmailService';
 import type { CacheProvider } from './RedisService';
 import type { EventsService } from './EventsService';
 import { SHELTER_BUDGET_PREDICTION_CACHE_KEY } from './PredictionService';
@@ -30,6 +32,7 @@ export class AdoptionService {
     private readonly repository: AdoptionRepository,
     private readonly cache?: CacheProvider,
     private readonly eventsService?: EventsService,
+    private readonly emailService?: EmailService,
   ) {}
 
   public async create(adopterId: string, animalId: string, application: AdoptionApplication): Promise<Adoption> {
@@ -121,6 +124,7 @@ export class AdoptionService {
       const updated = await this.repository.updateWorkflow(id, input);
       await this.emitStatusEvent(updated, input.status);
       await this.invalidateWorkflowCaches(updated);
+      this.notifyAdopterStatusChange(updated, input.status);
       return updated;
     } catch (error) {
       if (!(error instanceof Error)) throw error;
@@ -260,6 +264,41 @@ export class AdoptionService {
         });
       }
     }
+  }
+
+  private notifyAdopterStatusChange(
+    updated: Adoption,
+    status: UpdateAdoptionStatusInput['status'],
+  ): void {
+    if (
+      !this.emailService ||
+      !updated.adopter?.email ||
+      !updated.animal?.name ||
+      (status !== 'interviewing' &&
+        status !== 'approved' &&
+        status !== 'rejected')
+    ) {
+      return;
+    }
+
+    const adopterName =
+      updated.application?.fullName?.trim() || updated.adopter.username;
+    const animalImage = updated.animal.photos?.[0]?.photoUrl;
+
+    void this.emailService
+      .sendAdoptionStatusNotification({
+        adopterEmail: updated.adopter.email,
+        adopterName,
+        animalName: updated.animal.name,
+        ...(animalImage ? { animalImage } : {}),
+        status,
+      })
+      .catch((err: unknown) => {
+        logger.warn(
+          { err, adoptionId: updated.id, status },
+          '[AdoptionService] Falha ao enviar e-mail de notificação de adoção',
+        );
+      });
   }
 
   private async invalidateWorkflowCaches(updated: Adoption): Promise<void> {
