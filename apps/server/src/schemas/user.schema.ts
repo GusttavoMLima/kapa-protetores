@@ -104,3 +104,12 @@ export const updateRoleSchema = z.object({
 });
 
 export type UpdateRoleInput = z.infer<typeof updateRoleSchema>;
+
+export const updateUserStatusSchema = z.object({
+  active: z.boolean({
+    required_error: 'O campo active é obrigatório',
+    invalid_type_error: 'O campo active deve ser verdadeiro ou falso',
+  }),
+});
+
+export type UpdateUserStatusInput = z.infer<typeof updateUserStatusSchema>;

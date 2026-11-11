@@ -243,6 +243,33 @@ describe('UserController', () => {
     expect(appErr.statusCode).toBe(401);
   });
 
+  it('should reject signin of a deactivated account even with the correct password', async () => {
+    const user = new User();
+    user.setId('123e4567-e89b-12d3-a456-426614174000');
+    user.setUsername('Test User');
+    user.setEmail('user@example.com');
+    user.setPassword(Encrypt.saltHash('correct-password').toString('hex'));
+    user.setRole('adopter');
+    user.setCreatedAt(new Date().toISOString());
+    user.setDeactivatedAt(new Date());
+
+    const mockUserService = {
+      getByEmail: async () => user,
+    } as unknown as UserService;
+
+    const controller = new UserController(mockUserService);
+    const req = {
+      body: { email: 'user@example.com', password: 'correct-password' },
+    } as unknown as Request;
+
+    let forwardedError: unknown;
+    await controller.signIn(req, {} as Response, (err?: unknown) => {
+      forwardedError = err;
+    });
+
+    expect((forwardedError as { statusCode?: number }).statusCode).toBe(403);
+  });
+
   it('should sign in successfully with correct credentials', async () => {
     const user = new User();
     user.setId('123e4567-e89b-12d3-a456-426614174000');

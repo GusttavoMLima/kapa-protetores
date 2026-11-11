@@ -1,6 +1,7 @@
 import { DEFAULT_USER_ADOPTER_RULES, type AuthResponse } from '@kapa/shared';
 import type { UserRole } from '@kapa/shared';
-import { ConflictError, UnauthorizedError } from '../errors';
+import { ConflictError, ForbiddenError, UnauthorizedError } from '../errors';
+import { ACCOUNT_DEACTIVATED_MESSAGE } from './UserService';
 import { Email } from '../domains/Email';
 import { User } from '../models';
 import { UserRepository } from '../repositories/UserRepository';
@@ -61,6 +62,7 @@ export class AuthService {
     if (!user || !storedHash || !(await this.passwordHasher.verify(input.password, storedHash))) {
       throw new UnauthorizedError('E-mail ou senha inválidos.');
     }
+    if (!user.isActive()) throw new ForbiddenError(ACCOUNT_DEACTIVATED_MESSAGE);
     return this.createResponse(user);
   }
 
