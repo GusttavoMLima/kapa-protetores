@@ -14,7 +14,7 @@ describe('maioridade e dados pessoais', () => {
     expect(isAdult('2008-11-10', new Date('2026-11-10T01:00:00Z'))).toBe(false);
   });
   it('rejeita datas impossíveis, futuras ou ausentes e respeita anos bissextos', () => {
-    for (const value of ['2008-02-30', '2009-02-29', '2099-01-01', '', '10/11/2000']) expect(ageFromBirthDate(value, now)).toBeNull();
+    for (const value of ['2008-02-30', '2009-02-29', '2099-01-01', '', '10/11/2000', '200a-11-10', '2008-11-1x', '2008-11-10\n']) expect(ageFromBirthDate(value, now)).toBeNull();
     expect(ageFromBirthDate('2008-02-29', now)).toBe(18);
     expect(isAdult('2008-02-29', new Date('2026-02-28T15:00:00Z'))).toBe(false);
     expect(isAdult('2008-02-29', new Date('2026-03-01T15:00:00Z'))).toBe(true);
