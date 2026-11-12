@@ -98,6 +98,7 @@ const userService = new UserService(
   userRepository,
   redisService,
   eventsService,
+  emailService,
 );
 const userController = new UserController(
   userService,
@@ -112,6 +113,7 @@ const authService = new AuthService(
   jwtService,
   eventsService,
   userService,
+  emailService,
 );
 
 const authController = new AuthController(userService, authService);

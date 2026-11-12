@@ -5,12 +5,14 @@ import {
   type UserRole,
 } from '@kapa/shared';
 import { ConflictError, ForbiddenError, UnauthorizedError } from '../errors';
+import { logger } from '../config/logger';
 import { ACCOUNT_DEACTIVATED_MESSAGE, type UserService } from './UserService';
 import { Email } from '../domains/Email';
 import { User } from '../models';
 import { UserRepository } from '../repositories/UserRepository';
 import { PasswordHasher } from '../security/PasswordHasher';
 import { JwtService } from '../security/JwtService';
+import type { EmailService } from './EmailService';
 import type { EventsService } from './EventsService';
 
 export class AuthService {
@@ -20,6 +22,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly eventsService?: EventsService,
     private readonly userService?: UserService,
+    private readonly emailService?: EmailService,
   ) {}
 
   public async register(input: {
@@ -60,6 +63,21 @@ export class AuthService {
           provider: 'local',
         },
       });
+    }
+
+    if (this.emailService) {
+      const dto = created.toDTO();
+      void this.emailService
+        .sendWelcomeEmail({
+          userEmail: dto.email,
+          username: dto.username,
+        })
+        .catch((err: unknown) => {
+          logger.warn(
+            { err, userId: dto.id },
+            '[AuthService] Falha ao enviar e-mail de boas-vindas',
+          );
+        });
     }
 
     return this.createResponse(created);

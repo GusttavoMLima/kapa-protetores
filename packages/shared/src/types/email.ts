@@ -17,6 +17,11 @@ export interface EmailResponse {
   error?: string;
 }
 
+export interface WelcomeEmailData {
+  userEmail: string;
+  username: string;
+}
+
 export type AdoptionNotificationStatus =
   | 'approved'
   | 'rejected'

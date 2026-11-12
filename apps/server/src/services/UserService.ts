@@ -23,6 +23,8 @@ import { Email } from '../domains/Email';
 import { UUID } from '../domains/UUID';
 import { Url } from '../domains/Url';
 import { PasswordHasher } from '../security/PasswordHasher';
+import { logger } from '../config/logger';
+import type { EmailService } from './EmailService';
 import type { CacheProvider } from './RedisService';
 import type { EventsService } from './EventsService';
 
@@ -46,6 +48,7 @@ export class UserService {
     private readonly repository: UserRepository,
     private readonly cache?: CacheProvider,
     private readonly eventsService?: EventsService,
+    private readonly emailService?: EmailService,
   ) {}
 
   public async authenticateWithGoogle(idToken: string) {
@@ -300,6 +303,20 @@ export class UserService {
           provider: input.password ? 'local' : 'google',
         },
       });
+    }
+    if (this.emailService) {
+      const dto = created.toDTO();
+      void this.emailService
+        .sendWelcomeEmail({
+          userEmail: dto.email,
+          username: dto.username,
+        })
+        .catch((err: unknown) => {
+          logger.warn(
+            { err, userId: dto.id },
+            '[UserService] Falha ao enviar e-mail de boas-vindas',
+          );
+        });
     }
     return created;
   }

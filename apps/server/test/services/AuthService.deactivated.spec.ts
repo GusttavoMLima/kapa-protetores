@@ -64,12 +64,17 @@ describe('AuthService.login com conta desativada', () => {
     const hasher = { hash: jest.fn().mockResolvedValue('hashed-pass') };
     const jwt = { sign: jest.fn().mockReturnValue('register-token') };
     const eventsService = { createEvent: jest.fn().mockResolvedValue(undefined) };
+    const emailService = {
+      sendWelcomeEmail: jest.fn().mockResolvedValue({ success: true }),
+    };
 
     const service = new AuthService(
       repository as unknown as UserRepository,
       hasher as unknown as PasswordHasher,
       jwt as unknown as JwtService,
       eventsService as unknown as import('../../src/services/EventsService').EventsService,
+      undefined,
+      emailService as unknown as import('../../src/services/EmailService').EmailService,
     );
 
     const result = await service.register({
@@ -82,6 +87,10 @@ describe('AuthService.login com conta desativada', () => {
 
     expect(result.token).toBe('register-token');
     expect(eventsService.createEvent).toHaveBeenCalledTimes(1);
+    expect(emailService.sendWelcomeEmail).toHaveBeenCalledWith({
+      userEmail: 'teste@kapa.test',
+      username: 'Teste',
+    });
   });
 
   it('autentica via Google em AuthService.loginWithGoogle assinando JWT pelo JwtService', async () => {

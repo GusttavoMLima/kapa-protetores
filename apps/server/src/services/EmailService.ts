@@ -6,6 +6,7 @@ import {
   type EmailResponse,
   type SendEmailPayload,
   type VolunteerApplicationEmailData,
+  type WelcomeEmailData,
 } from '@kapa/shared';
 import { loadServerEnv } from '../config/env';
 import { logger } from '../config/logger';
@@ -74,7 +75,7 @@ export class EmailService {
   constructor(options?: EmailServiceOptions) {
     this.hasExplicitOptions = Boolean(
       options &&
-        (options.supabaseUrl !== undefined || options.anonKey !== undefined),
+      (options.supabaseUrl !== undefined || options.anonKey !== undefined),
     );
     this.functionName = (
       options?.functionName ?? DEFAULT_FUNCTION_NAME
@@ -268,6 +269,38 @@ export class EmailService {
             username: volunteerName,
             status: data.status,
             message,
+          },
+        },
+      },
+      token,
+    );
+  }
+
+  public async sendWelcomeEmail(
+    data: WelcomeEmailData,
+    token?: string,
+  ): Promise<EmailResponse> {
+    const userEmail = data.userEmail?.trim() ?? '';
+    const rawUsername = data.username?.trim() ?? '';
+
+    if (!userEmail || !rawUsername) {
+      throw new ValidationError('Email e nome do usuário são obrigatórios.');
+    }
+
+    if (!userEmail.includes('@')) {
+      throw new ValidationError('Envie um email válido');
+    }
+
+    const safeUsername = rawUsername.split(/\s+/)[0];
+
+    return this.sendEmail(
+      {
+        to: userEmail,
+        subject: 'Kapa protetores: Seja bem-vindo',
+        template: {
+          id: 'welcome',
+          variables: {
+            username: safeUsername,
           },
         },
       },

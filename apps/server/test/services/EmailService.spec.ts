@@ -174,5 +174,20 @@ describe('EmailService', () => {
     expect(volunteerBody.to).toBe('joao@example.com');
     expect(volunteerBody.template.id).toBe('volunteer-status');
     expect(volunteerBody.template.variables.status).toBe('approved');
+
+    await service.sendWelcomeEmail({
+      userEmail: 'ana@example.com',
+      username: 'Ana Clara Silva',
+    });
+
+    const [, welcomeReq] = fetchMock.mock.calls[2];
+    const welcomeBody = JSON.parse(welcomeReq.body);
+    expect(welcomeBody.to).toBe('ana@example.com');
+    expect(welcomeBody.template).toEqual({
+      id: 'welcome',
+      variables: {
+        username: 'Ana',
+      },
+    });
   });
 });
