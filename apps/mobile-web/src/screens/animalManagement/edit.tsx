@@ -68,7 +68,11 @@ function AnimalEditor({ id }: { id: string }) {
     }
     saveInFlight.current = true; setSaving(true); setError(''); setErrors({}); setSuccess(false);
     try {
-      let result = await updateManagedAnimal(id, parsed.data);
+      const { medicationNotes, ...fields } = parsed.data;
+      let result = await updateManagedAnimal(id, {
+        ...fields,
+        medicationNotes: medicationNotes === (animal?.medicationNotes ?? '') ? undefined : medicationNotes,
+      });
       if (newPhotoUris.length > 0) {
         const uploadResult = await uploadAnimalPhotos(id, newPhotoUris);
         setNewPhotoUris([]);
@@ -145,6 +149,16 @@ function AnimalEditor({ id }: { id: string }) {
               <ChoiceGroup label="Vermifugado" value={values.dewormed} options={triageOptions} onChange={(value) => change('dewormed', value)} disabled={saving} />
               <ChoiceGroup label="Vacinação registrada" value={values.vaccinated} options={[{ value: true, label: 'Sim' }, { value: false, label: 'Não' }]} onChange={(value) => change('vaccinated', value)} disabled={saving} />
               <PrimaryInputText label="Temperamento *" value={values.mood} onChangeText={(value) => change('mood', value)} erro={errors.mood} maxLength={120} editable={!saving} />
+              <PrimaryInputText
+                label="Medicação em uso"
+                placeholder="Medicamento, dose e horários conforme orientação veterinária"
+                value={values.medicationNotes}
+                onChangeText={(value) => change('medicationNotes', value)}
+                erro={errors.medicationNotes}
+                multiline
+                maxLength={2000}
+                editable={!saving}
+              />
               <PrimaryInputText label="Observações internas" value={values.observations} onChangeText={(value) => change('observations', value)} multiline maxLength={4000} editable={!saving} />
             </Section>
             <View className="gap-4 flex-col md:flex-row md:items-center justify-between">

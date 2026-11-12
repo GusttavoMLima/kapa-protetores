@@ -26,6 +26,7 @@ import {
 import { PrimaryMenuItem } from '@/components/menuItems/primary';
 import { PetCard } from '@/components/cards/pet';
 import ProfileBlob from '@/../assets/profile-blob.svg';
+import { canUseAdoption, isShelterStaff } from '@/navigation/access';
 
 const RECENT_FAVORITES_LIMIT = 2;
 const RECENT_EVENTS_LIMIT = 5;
@@ -187,7 +188,7 @@ export function ProfileScreen() {
         <Text className="mt-2 text-sm font-body-medium text-ink-muted">
           {UserRoleEnum[user.role] || 'Adotador'}
         </Text>
-        <View className="mt-8 flex flex-row items-center gap-4">
+        {canUseAdoption(user.role) && <View className="mt-8 flex flex-row items-center gap-4">
           <Text className="text-center uppercase font-body-medium">
             <Text className="text-orange-dark font-bold text-xl">
               {data?.counts.favorites ?? 0}
@@ -200,17 +201,18 @@ export function ProfileScreen() {
             </Text>{' '}
             {'\n'} Processos
           </Text>
-        </View>
+        </View>}
       </View>
 
       <View className="w-full gap-2 p-4 sm:p-6 md:w-1/2 md:mx-auto">
+        {isShelterStaff(user.role) && <PrimaryMenuItem label="Gestão do abrigo" description="Voltar para os cuidados e a rotina da equipe" icon={PawPrintIcon} iconColor={palette.denim} onPress={() => router.push('/')} />}
         <PrimaryMenuItem
           label="Editar Perfil"
           icon={UserIcon}
           iconColor={palette.orangeDark}
           onPress={() => router.push('/(protected)/(adopter)/edit-profile')}
         />
-        {user.role !== 'admin' && user.role !== 'protector' && (
+        {canUseAdoption(user.role) && (
           <>
             <PrimaryMenuItem
               label="Preferências de Adoção"
@@ -239,7 +241,7 @@ export function ProfileScreen() {
         />
       </View>
 
-      <View className="w-full md:w-1/2 md:mx-auto p-4">
+      {canUseAdoption(user.role) && <View className="w-full md:w-1/2 md:mx-auto p-4">
         <View className="flex-row items-center justify-between mb-4">
           <Text className="font-heading font-bold text-denim text-xl">
             Meus Favoritos
@@ -294,7 +296,7 @@ export function ProfileScreen() {
             </Text>
           )}
         </View>
-      </View>
+      </View>}
 
       <View className="w-full md:w-1/2 md:mx-auto p-4 pb-10">
         <View className="flex-row items-center justify-between mb-4">

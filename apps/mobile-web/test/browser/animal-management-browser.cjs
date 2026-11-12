@@ -10,7 +10,8 @@ async function main() {
   try {
     const context = await browser.newContext({ viewport: { width: 1440, height: 1050 } });
     await context.addInitScript(() => {
-      localStorage.setItem('@kapa:auth-token', JSON.stringify('isolated-browser-test'));
+      const payload = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 }));
+      localStorage.setItem('@kapa:auth-token', JSON.stringify(`fixture.${payload}.fixture`));
       localStorage.setItem('@kapa:user-data', JSON.stringify({ id: 'test-user', username: 'Equipe de teste', role: 'admin', email: 'test@example.com', rules: ['admin:*'] }));
     });
     const statuses = ['rescued', 'treating', 'available', 'adopted'];
@@ -31,6 +32,15 @@ async function main() {
       if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers });
       if (mode === 'error') return respond(null, 500);
       if (mode === 'forbidden') return respond(null, 403);
+      if (url.pathname === '/api/animals/management/budget-prediction') {
+        const category = { count: 0, totalCost: 0 };
+        return respond({
+          totalPredictedBudget: 0, activeAnimalsCount: 0, averageCostPerAnimal: 0,
+          bySpecies: { dog: category, cat: category, other: category },
+          byStatus: { rescued: category, treating: category, available: category },
+          animals: [],
+        });
+      }
       if (url.pathname === '/api/animals/management') {
         const query = url.searchParams;
         const available = mode === 'empty' ? [] : animals;
@@ -99,12 +109,14 @@ async function main() {
     for (const blockedRole of ['adopter', 'volunteer']) {
       const blockedContext = await browser.newContext();
       await blockedContext.addInitScript((role) => {
-        localStorage.setItem('@kapa:auth-token', JSON.stringify(`isolated-${role}-test`));
-        localStorage.setItem('@kapa:user-data', JSON.stringify({ role, username: 'Usuário sem gestão' }));
+        const payload = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 }));
+        localStorage.setItem('@kapa:auth-token', JSON.stringify(`fixture.${payload}.fixture`));
+        localStorage.setItem('@kapa:user-data', JSON.stringify({ id: 'blocked-user', role, username: 'Usuário sem gestão' }));
+        localStorage.setItem('@kapa:has-adopter-profile', 'true');
       }, blockedRole);
       const blockedPage = await blockedContext.newPage();
       await blockedPage.goto(`${base}/gestao/animais`);
-      await blockedPage.getByText('Seu perfil não tem permissão para gerenciar animais.', { exact: true }).waitFor();
+      await blockedPage.waitForURL((url) => url.pathname === (blockedRole === 'adopter' ? '/adopet' : '/'));
       await blockedPage.goto(`${base}/cadastro-animal`);
       await blockedPage.getByText('Seu perfil não tem permissão para gerenciar animais.', { exact: true }).waitFor();
       await blockedContext.close();

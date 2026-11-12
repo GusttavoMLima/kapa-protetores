@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { ArrowLeftIcon, PawPrintIcon } from 'phosphor-react-native';
+import { PawPrintIcon } from 'phosphor-react-native';
 import { isAxiosError } from 'axios';
 import { router } from 'expo-router';
 import type { AdopterProfile, Animal } from '@kapa/shared';
@@ -20,6 +20,7 @@ import {
 } from '@/components/forms/searchAdopt';
 import { PetCard } from '@/components/cards/pet';
 import { PrimaryButton } from '@/components/buttons/primary';
+import { PageHeading } from '@/components/layout/PageHeading';
 import { useAdopterProfileMe } from '@/hooks/useAdopterProfile';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useToggleFavorite } from '@/hooks/useFavorites';
@@ -27,9 +28,6 @@ import {
   calculatePetCompatibility,
   formatCompatibilityLabel,
 } from '@/utils/petCompatibility';
-
-const DEFAULT_PET_PHOTO =
-  'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80';
 
 function formatPetCharacteristics(
   animal: Animal,
@@ -113,7 +111,7 @@ export function AdoptScreen() {
     <ScrollView
       className="flex-1"
       style={{ backgroundColor: palette.cream }}
-      contentContainerStyle={{ padding: 16, paddingBottom: 48, gap: 20 }}
+      contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 24, width: '100%', maxWidth: 1140, alignSelf: 'center' }}
       refreshControl={
         <RefreshControl
           refreshing={isRefetching}
@@ -123,15 +121,7 @@ export function AdoptScreen() {
         />
       }
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Voltar para o início"
-        className="min-h-10 self-start flex-row items-center gap-2 py-2 pr-4"
-        onPress={() => router.replace('/(protected)/(tabs)')}
-      >
-        <ArrowLeftIcon size={18} color={palette.denim} />
-        <Text className="font-body-medium text-sm text-denim">Voltar ao início</Text>
-      </Pressable>
+      <PageHeading eyebrow="ENCONTRE SEU NOVO MELHOR AMIGO" title="Um encontro. Uma vida inteira." description="Cada focinho tem uma história. Encontre um companheiro que combine com você e dê o primeiro passo para um novo começo." />
       <SearchAdoptForm onSearch={handleSearch} initialFilters={filters} />
 
       <View className="flex-row items-center justify-between border-t border-line pt-4">
@@ -201,7 +191,7 @@ export function AdoptScreen() {
             <PetCard
               key={animal.id}
               name={animal.name}
-              imgUrl={animal.photos?.[0]?.photoUrl ?? DEFAULT_PET_PHOTO}
+              imgUrl={animal.photos?.[0]?.photoUrl ?? ''}
               characteristics={formatPetCharacteristics(animal, adopterProfile)}
               isFavorited={favoritedIds.has(animal.id)}
               onPress={() =>

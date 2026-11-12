@@ -14,7 +14,7 @@ const cardShadow = Platform.select({
 
 export const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: palette.cream },
-  content: { width: '100%', maxWidth: 640, alignSelf: 'center', paddingHorizontal: 20, paddingTop: 24, paddingBottom: 40, gap: 20 },
+  content: { width: '100%', maxWidth: 1140, alignSelf: 'center', paddingHorizontal: 20, paddingTop: 24, paddingBottom: 40, gap: 20 },
   hero: { flexDirection: 'row', gap: 14, alignItems: 'center' },
   heroIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: palette.peach, alignItems: 'center', justifyContent: 'center' },
   heroCopy: { flex: 1, gap: 4 },

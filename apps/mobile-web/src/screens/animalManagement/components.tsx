@@ -50,7 +50,7 @@ export function AnimalThumbnail({ animal }: { animal: Animal }) {
 }
 
 export function ChoiceGroup<T extends string | number | boolean>({ label, options, value, onChange, disabled = false }: {
-  label: string; options: readonly { value: T; label: string }[]; value: T; onChange: (value: T) => void; disabled?: boolean;
+  label: string; options: readonly { value: T; label: string }[]; value: T | null; onChange: (value: T) => void; disabled?: boolean;
 }) {
   return <View className="gap-2">
     <Text className="font-body-medium text-sm text-ink">{label}</Text>

@@ -30,10 +30,14 @@ import { PrimaryInputText } from '@/components/inputText/primary';
 import { useAuth } from '@/hooks/useAuth';
 import {
   useCreateVolunteerApplication,
+  useEditVolunteerApplication,
   useMyVolunteerApplication,
 } from '@/hooks/useVolunteerApplications';
 import { palette } from '@/theme';
 import { cn } from '@/utils/cn';
+import { PageHeading } from '@/components/layout/PageHeading';
+import { EligibilityNotice } from '@/components/feedback/EligibilityNotice';
+import { isAdult, isValidPhone } from '@kapa/shared';
 
 const volunteerFormSchema = z.object({
   fullName: z.string().trim().min(3, 'Informe seu nome completo.').max(120),
@@ -132,10 +136,11 @@ export function VolunteerScreen() {
   const {
     data: myApplication,
     isLoading,
-    refetch,
   } = useMyVolunteerApplication(Boolean(user));
   const { mutateAsync: submitVolunteerApplication, isPending: isSubmitting } =
     useCreateVolunteerApplication();
+  const { mutateAsync: editVolunteerApplication, isPending: isSaving } = useEditVolunteerApplication();
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [submissionError, setSubmissionError] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -157,12 +162,14 @@ export function VolunteerScreen() {
   const {
     control,
     handleSubmit,
+    setValue,
+    reset,
     formState: { errors },
   } = useForm<VolunteerFormData>({
     resolver: zodResolver(volunteerFormSchema),
     defaultValues: {
       fullName: user?.username ?? '',
-      phone: '',
+      phone: user?.phone ?? '',
       areasOfInterest: [],
       availability: undefined,
       motivation: '',
@@ -170,11 +177,26 @@ export function VolunteerScreen() {
     },
   });
 
+  const isEditing = editingId !== null && myApplication?.id === editingId && myApplication.status === 'pending';
+
+  function closeEditor() {
+    setEditingId(null);
+    setSubmissionError('');
+    reset();
+    setValue('phone', user?.phone ?? '');
+  }
+
   async function onSubmit(data: VolunteerFormData) {
     setSubmissionError('');
     try {
-      await submitVolunteerApplication(data);
-      setShowSuccessModal(true);
+      if (isEditing) {
+        await editVolunteerApplication({ id: editingId, application: data });
+        closeEditor();
+      } else {
+        setEditingId(null);
+        await submitVolunteerApplication(data);
+        setShowSuccessModal(true);
+      }
     } catch (error) {
       if (isAxiosError<{ message?: string; error?: string }>(error)) {
         setSubmissionError(
@@ -189,6 +211,16 @@ export function VolunteerScreen() {
       }
     }
   }
+
+  useEffect(() => { setValue('phone', user?.phone ?? ''); }, [setValue, user?.phone]);
+  useEffect(() => {
+    if (editingId && !isEditing) {
+      reset();
+      setValue('phone', user?.phone ?? '');
+    }
+  }, [editingId, isEditing, reset, setValue, user?.phone]);
+
+  if (!isAdult(user?.birthDate) || !isValidPhone(user?.phone)) return <EligibilityNotice user={user} />;
 
   if (isLoading && !isAlreadyVolunteerOrStaff) {
     return (
@@ -215,19 +247,7 @@ export function VolunteerScreen() {
             <Text className="font-body-medium text-sm text-denim">Voltar</Text>
           </Pressable>
 
-          {/* Hero Card */}
-          <View className="bg-white rounded-2xl border border-line p-6 gap-3">
-            <View className="size-12 rounded-full bg-peach items-center justify-center">
-              <HandHeartIcon size={26} color={palette.orange} weight="fill" />
-            </View>
-            <Text className="font-heading-bold text-2xl md:text-3xl text-ink">
-              Seja Voluntário na Kapa
-            </Text>
-            <Text className="font-body text-base leading-6 text-ink-muted">
-              Doe seu tempo e carinho para transformar a rotina dos animais
-              resgatados em Mogi-Guaçu.
-            </Text>
-          </View>
+          <PageHeading icon={HandHeartIcon} eyebrow="SEU TEMPO FAZ A DIFERENÇA" title="Seja Voluntário na Kapa" description="Doe seu tempo e carinho para transformar a rotina dos animais resgatados." />
 
           {/* State 1: Approved Volunteer or Staff */}
           {isApproved ? (
@@ -268,11 +288,17 @@ export function VolunteerScreen() {
               </View>
 
               {user?.role === 'volunteer' ? (
-                <PrimaryButton
-                  title="Ver atividades disponíveis"
-                  accessibilityLabel="Ver atividades disponíveis para voluntários"
-                  onPress={() => router.push('/(protected)/(tabs)/activities')}
-                />
+                <>
+                  <PrimaryButton
+                    title="Ver atividades disponíveis"
+                    accessibilityLabel="Ver atividades disponíveis para voluntários"
+                    onPress={() => router.push('/(protected)/(tabs)/activities')}
+                  />
+                  <PrimaryButton
+                    title="Consultar medicação dos animais"
+                    onPress={() => router.push('/cuidados-animais')}
+                  />
+                </>
               ) : (
                 <PrimaryButton
                   title="Gerenciar atividades da semana"
@@ -281,7 +307,7 @@ export function VolunteerScreen() {
                 />
               )}
             </View>
-          ) : myApplication?.status === 'pending' ? (
+          ) : myApplication?.status === 'pending' && !isEditing ? (
             /* State 2: Pending Volunteer Application */
             <View className="bg-white rounded-2xl border border-line p-6 gap-5">
               <View className="flex-row items-start justify-between gap-3">
@@ -353,8 +379,12 @@ export function VolunteerScreen() {
               </View>
 
               <PrimaryButton
-                title="Atualizar status"
-                onPress={() => void refetch()}
+                title="Editar inscrição"
+                onPress={() => {
+                  reset({ ...myApplication.application, phone: user?.phone ?? '' }, { keepDefaultValues: true });
+                  setSubmissionError('');
+                  setEditingId(myApplication.id);
+                }}
               />
             </View>
           ) : (
@@ -398,6 +428,7 @@ export function VolunteerScreen() {
                   render={({ field: { onChange, value } }) => (
                     <PrimaryInputText
                       label="Telefone / WhatsApp com DDD"
+                      editable={false}
                       value={value}
                       onChangeText={onChange}
                       placeholder="(19) 99999-9999"
@@ -562,17 +593,18 @@ export function VolunteerScreen() {
                 />
               </View>
 
-              {submissionError ? (
+              {submissionError && (editingId === null || isEditing) ? (
                 <Text className="font-body-medium text-sm text-danger text-center">
                   {submissionError}
                 </Text>
               ) : null}
 
               <PrimaryButton
-                title="Enviar inscrição de voluntariado"
-                loading={isSubmitting}
+                title={isEditing ? 'Salvar alterações' : 'Enviar inscrição de voluntariado'}
+                loading={isSubmitting || isSaving}
                 onPress={handleSubmit(onSubmit)}
               />
+              {isEditing ? <PrimaryButton title="Cancelar edição" disabled={isSaving} onPress={closeEditor} /> : null}
             </>
           )}
         </View>

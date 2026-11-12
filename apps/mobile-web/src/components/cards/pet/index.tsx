@@ -203,10 +203,10 @@ export const PetCard = memo(
               </>
             ) : (
               <View
-                accessibilityLabel={`Foto de ${name}`}
-                className="w-full h-full items-center justify-center bg-peach"
+                className="w-full h-full items-center justify-center gap-2 bg-peach"
               >
                 <PawPrintIcon size={44} color={palette.denim} weight="duotone" />
+                <Text className="font-body text-sm text-ink-muted">Sem foto</Text>
               </View>
             )}
           </View>

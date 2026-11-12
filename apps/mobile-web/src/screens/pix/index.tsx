@@ -19,9 +19,9 @@ import { palette } from '@/theme';
 
 export const PIX_CONFIG = {
   keyType: 'CNPJ',
-  keyValue: '12.345.678/0001-90',
-  recipientName: 'Associação Kapa Protetores de Animais',
-  bankName: 'Banco Cooperativo Sicredi / Cora SCD',
+  keyValue: '05095176000198',
+  recipientName: 'KAPA - KAMAEL ASSOCIACAO PROTETORA DOS ANIMAIS',
+  bankName: 'BANCO BRADESCO SA',
   city: 'São Paulo - SP',
   suggestedAmounts: [10, 25, 50, 100],
 } as const;

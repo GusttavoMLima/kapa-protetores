@@ -118,6 +118,7 @@ export function CadastroAnimalScreen() {
   const [publicacoes, setPublicacoes] = useState('');
   const [status, setStatus] = useState<StatusAnimal>('resgatado');
   const [observacoes, setObservacoes] = useState('');
+  const [medicacaoEmUso, setMedicacaoEmUso] = useState('');
   const [salvando, setSalvando] = useState(false);
   const salvandoRef = useRef(false);
   const [tentouSalvar, setTentouSalvar] = useState(false);
@@ -243,6 +244,7 @@ export function CadastroAnimalScreen() {
         humor,
         publicacoes: publicacoes.trim(),
         observacoes: observacoes.trim(),
+        medicacaoEmUso: medicacaoEmUso.trim(),
         fotoUri: fotosUris[0],
         fotosUris,
         status,
@@ -443,6 +445,14 @@ export function CadastroAnimalScreen() {
 
           <View className="gap-3 rounded-2xl border border-line bg-card p-4 shadow-card">
             <Text className="font-heading-medium text-xl leading-7 text-orange-dark">Saúde</Text>
+            <PrimaryInputText
+              label="Medicação em uso"
+              placeholder="Medicamento, dose e horários conforme orientação veterinária"
+              value={medicacaoEmUso}
+              onChangeText={setMedicacaoEmUso}
+              multiline
+              maxLength={2000}
+            />
             <Text className="font-body-medium text-sm leading-4 text-ink">Castrado</Text>
             <PrimaryChipGroup
               value={castrado}

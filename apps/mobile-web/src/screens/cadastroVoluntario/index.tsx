@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { router } from 'expo-router';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -11,6 +12,7 @@ import { UserPlus } from 'phosphor-react-native';
 import { PrimaryButton } from '@/components/buttons/primary';
 import { PrimaryInputText } from '@/components/inputText/primary';
 import { PrimaryChipGroup } from '@/components/chips/primaryChip';
+import { BackLink } from '@/screens/animalManagement/components';
 import { palette } from '@/theme';
 import { ApiError, apiRequest } from '@/services/api';
 import type { User, UserRole } from '@kapa/shared';
@@ -108,6 +110,14 @@ export function CadastroUsuarioScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          <BackLink
+            label="Gestão do abrigo"
+            onPress={() => {
+              if (savingRef.current) return;
+              if (router.canGoBack()) router.back();
+              else router.replace('/(protected)/(tabs)');
+            }}
+          />
           <View className="items-center gap-2 pb-1">
             <View className="mb-1 h-14 w-14 items-center justify-center rounded-full bg-peach">
               <UserPlus size={28} weight="fill" color={palette.orange} />

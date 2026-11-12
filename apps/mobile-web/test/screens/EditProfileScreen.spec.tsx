@@ -21,6 +21,8 @@ jest.mock('expo-router', () => ({
 const mockUpdateUserData = jest.fn().mockResolvedValue(undefined);
 const mockUser = {
   id: 'user-1',
+  birthDate: '1990-01-01',
+  phone: '19999998888',
   username: 'Danilo Silva',
   email: 'danilo@example.com',
   avatar: 'https://example.com/danilo.jpg',
@@ -136,6 +138,8 @@ describe('EditProfileScreen', () => {
 
     await waitFor(() => {
       expect(updateUserProfile).toHaveBeenCalledWith({
+        birthDate: '1990-01-01',
+        phone: '19999998888',
         username: 'Danilo Santos',
         email: 'danilo.santos@example.com',
         avatar: 'https://example.com/danilo.jpg',
