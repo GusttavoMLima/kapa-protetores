@@ -1,3 +1,9 @@
+export const FOSTER_CARE_FAQ = {
+  question: 'Como funciona ser Lar Temporário (LT)?',
+  answer:
+    'Você acolhe um animal em recuperação ou à espera de adoção em sua casa. A KAPA fornece toda a ração necessária, medicamentos e acompanhamento veterinário sem custos para você.',
+};
+
 export const FAQ_SUPPORT_ITEMS = [
   {
     question: 'Como o valor das doações é utilizado?',
@@ -9,11 +15,7 @@ export const FAQ_SUPPORT_ITEMS = [
     answer:
       'Não há valor mínimo! Toda ajuda, seja de R$ 5, R$ 10 ou R$ 50, faz uma diferença imediata na compra de ração e medicamentos da semana.',
   },
-  {
-    question: 'Como funciona ser Lar Temporário (LT)?',
-    answer:
-      'Você acolhe um animal em recuperação ou à espera de adoção em sua casa. A KAPA fornece toda a ração necessária, medicamentos e acompanhamento veterinário sem custos para você.',
-  },
+  FOSTER_CARE_FAQ,
   {
     question: 'Onde posso entregar doações de ração e cobertores?',
     answer:

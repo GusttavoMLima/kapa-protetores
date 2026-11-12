@@ -50,12 +50,20 @@ export interface Animal {
 
   mood: string;
   observations?: string | null;
+  medicationNotes?: string | null;
 
   status: AnimalStatus;
 
   createdAt: string;
 
   photos?: AnimalPhoto[];
+}
+
+export interface AnimalCareProfile {
+  id: string;
+  name: string;
+  status: AnimalStatus;
+  medicationNotes: string | null;
 }
 
 export type CreateAnimalInput = Omit<Animal, 'id' | 'createdAt' | 'photos'>;
@@ -137,6 +145,7 @@ export interface LegacyAnimal {
   humor?: Humor;
   publicacoes?: string;
   observacoes: string;
+  medicacaoEmUso?: string;
   fotoUri?: string;
   fotosUris?: string[];
   status: StatusAnimal;
