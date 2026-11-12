@@ -188,20 +188,14 @@ export class CommunityEventRepository {
             if (!result) throw new Error('COMMUNITY_EVENT_NOT_FOUND');
             return this.toListItem(result);
           },
-          {
-            isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-            maxWait: 15000,
-            timeout: 30000,
-          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
         );
       } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
           if (error.code === 'P2002') {
             throw new Error('COMMUNITY_EVENT_ALREADY_JOINED');
           }
-          if ((error.code === 'P2034' || error.code === 'P2028') && attempt < 2) {
-            continue;
-          }
+          if (error.code === 'P2034' && attempt < 2) continue;
         }
         throw error;
       }

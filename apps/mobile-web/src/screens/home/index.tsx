@@ -111,23 +111,6 @@ const USER_MANAGEMENT_CARD: SecondaryCardProps = {
   },
 };
 
-const SHELTER_DASHBOARD_CARD: SecondaryCardProps = {
-  icon: {
-    component: (
-      <SparkleIcon size={CARD_ICON_SIZE} color={palette.orange} weight="fill" />
-    ),
-    backgroundColor: palette.peach,
-  },
-  title: 'Painel do abrigo',
-  description:
-    'Consulte indicadores de adoção, triagem e previsão mensal de custos por IA.',
-  link: {
-    label: 'Abrir painel',
-    href: '/(protected)/gestao/dashboard',
-    color: palette.orange,
-  },
-};
-
 const SHELTER_ANIMALS_CARD: SecondaryCardProps = {
   icon: {
     component: (
@@ -244,7 +227,6 @@ export function buildStaffHomeCards(role?: UserRole): SecondaryCardProps[] {
   const cards: SecondaryCardProps[] = [];
 
   if (canManageAnimals(role)) {
-    cards.push(SHELTER_DASHBOARD_CARD);
     if (role === 'admin') {
       cards.push(ADOPTION_REQUESTS_CARD);
     }

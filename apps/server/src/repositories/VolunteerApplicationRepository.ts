@@ -64,94 +64,73 @@ export class VolunteerApplicationRepository {
     userId: string,
     application: VolunteerApplicationData,
   ): Promise<VolunteerApplication> {
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      try {
-        const record = await this.prisma.$transaction(
-          async (transaction) => {
-            const user = await transaction.user.findUnique({
-              where: { id: userId },
-              select: {
-                id: true,
-                username: true,
-                email: true,
-                avatar: true,
-                role: true,
-              },
-            });
+    try {
+      const record = await this.prisma.$transaction(
+        async (transaction) => {
+          const user = await transaction.user.findUnique({
+            where: { id: userId },
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              avatar: true,
+              role: true,
+            },
+          });
 
-            if (!user) throw new Error('USER_NOT_FOUND');
-            const profile = await transaction.user.findUnique({
-              where: { id: userId },
-              select: { birth_date: true, phone: true },
-            });
-            const personalData = requireAdultProfile(
-              profile?.birth_date,
-              profile?.phone,
-            );
-            if (user.role !== 'adopter') {
-              throw new Error('VOLUNTEER_ROLE_ALREADY_GRANTED');
-            }
+          if (!user) throw new Error('USER_NOT_FOUND');
+          const profile = await transaction.user.findUnique({ where: { id: userId }, select: { birth_date: true, phone: true } });
+          const personalData = requireAdultProfile(profile?.birth_date, profile?.phone);
+          if (user.role !== 'adopter') {
+            throw new Error('VOLUNTEER_ROLE_ALREADY_GRANTED');
+          }
 
-            const existing = await transaction.volunteerApplications.findFirst({
-              where: {
-                user_id: userId,
-                status: 'pending',
-              },
-              select: { id: true },
-            });
+          const existing = await transaction.volunteerApplications.findFirst({
+            where: {
+              user_id: userId,
+              status: 'pending',
+            },
+            select: { id: true },
+          });
 
-            if (existing) throw new Error('VOLUNTEER_APPLICATION_ALREADY_PENDING');
+          if (existing) throw new Error('VOLUNTEER_APPLICATION_ALREADY_PENDING');
 
-            return transaction.volunteerApplications.create({
-              data: {
-                user_id: userId,
-                full_name: application.fullName,
-                phone: personalData.phone,
-                areas_of_interest: application.areasOfInterest,
-                availability: application.availability,
-                motivation: application.motivation,
-                accepts_terms: application.acceptsTerms,
-              },
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    username: true,
-                    email: true,
-                    avatar: true,
-                    role: true,
-                  },
+          return transaction.volunteerApplications.create({
+            data: {
+              user_id: userId,
+              full_name: application.fullName,
+              phone: personalData.phone,
+              areas_of_interest: application.areasOfInterest,
+              availability: application.availability,
+              motivation: application.motivation,
+              accepts_terms: application.acceptsTerms,
+            },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  username: true,
+                  email: true,
+                  avatar: true,
+                  role: true,
                 },
               },
-            });
-          },
-          {
-            isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-            maxWait: 15000,
-            timeout: 30000,
-          },
-        );
+            },
+          });
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
 
-        return this.toDTO(record);
-      } catch (error) {
-        if (
-          error instanceof Prisma.PrismaClientKnownRequestError &&
-          (error.code === 'P2034' || error.code === 'P2028') &&
-          attempt < 2
-        ) {
-          continue;
-        }
-        if (
-          error instanceof Prisma.PrismaClientKnownRequestError &&
-          error.code === 'P2034'
-        ) {
-          throw new Error('VOLUNTEER_APPLICATION_RETRY');
-        }
-        throw error;
+      return this.toDTO(record);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2034'
+      ) {
+        throw new Error('VOLUNTEER_APPLICATION_RETRY');
       }
+      throw error;
     }
-
-    throw new Error('VOLUNTEER_APPLICATION_RETRY');
   }
 
   public async updatePending(

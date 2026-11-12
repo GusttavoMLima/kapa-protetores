@@ -1,16 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { googleAuthSchema } from '../schemas/auth.schema';
-import type { AuthService } from '../services/AuthService';
 import { UserService } from '../services/UserService';
 import { Jwt } from '../utils/Jwt';
 import { BadRequestError } from '../errors';
 import type { ApiResponse, User as SharedUser } from '@kapa/shared';
 
 export class AuthController {
-  constructor(
-    private readonly userService: UserService,
-    private readonly authService?: AuthService,
-  ) {}
+  constructor(private readonly userService: UserService) {}
 
   public googleSignIn = async (
     req: Request,
@@ -28,18 +24,6 @@ export class AuthController {
       }
 
       const { idToken } = parseResult.data;
-
-      if (this.authService) {
-        const data = await this.authService.loginWithGoogle(idToken);
-        const response: ApiResponse<{ token: string; user: SharedUser }> = {
-          success: true,
-          message: 'Autenticado com sucesso',
-          data,
-        };
-        res.status(200).json(response);
-        return;
-      }
-
       const user = await this.userService.authenticateWithGoogle(idToken);
       const token = Jwt.generateUserToken(user);
 

@@ -5,8 +5,6 @@ import { Pool, type PoolConfig } from 'pg';
 import { logger } from '../config/logger';
 
 export const DEFAULT_POSTGRES_POOL_MAX = 10;
-export const DEFAULT_PRISMA_TRANSACTION_MAX_WAIT_MS = 15000;
-export const DEFAULT_PRISMA_TRANSACTION_TIMEOUT_MS = 30000;
 
 export function createPostgresPoolConfig(
   connectionString: string,
@@ -45,13 +43,7 @@ export class PrismaService {
     });
 
     const adapter = new PrismaPg(this.pool);
-    this.client = new PrismaClient({
-      adapter,
-      transactionOptions: {
-        maxWait: DEFAULT_PRISMA_TRANSACTION_MAX_WAIT_MS,
-        timeout: DEFAULT_PRISMA_TRANSACTION_TIMEOUT_MS,
-      },
-    });
+    this.client = new PrismaClient({ adapter });
   }
 
   public static getInstance(): PrismaService {

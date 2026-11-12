@@ -7,7 +7,6 @@ module.exports = {
     '^expo-modules-core/(.*)$': '<rootDir>/../../node_modules/expo/node_modules/expo-modules-core/$1',
   },
   testMatch: ['<rootDir>/test/**/*.spec.{ts,tsx}'],
-  testTimeout: 15000,
   clearMocks: true,
   watchman: false,
 };
