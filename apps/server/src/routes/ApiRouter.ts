@@ -10,6 +10,7 @@ import { AdoptionRouter } from './AdoptionRouter';
 import { FavoriteRouter } from './FavoriteRouter';
 import { VolunteerApplicationRouter } from './VolunteerApplicationRouter';
 import type { FosterApplicationRouter } from './FosterApplicationRouter';
+import { DashboardRouter } from './DashboardRouter';
 
 export class ApiRouter {
   public readonly router: Router = Router();
@@ -26,6 +27,7 @@ export class ApiRouter {
     private readonly favoriteRouter?: FavoriteRouter,
     private readonly volunteerApplicationRouter?: VolunteerApplicationRouter,
     private readonly fosterApplicationRouter?: FosterApplicationRouter,
+    private readonly dashboardRouter?: DashboardRouter,
   ) {
     this.initRoutes();
   }
@@ -54,6 +56,9 @@ export class ApiRouter {
         '/volunteer-applications',
         this.volunteerApplicationRouter.router,
       );
+    }
+    if (this.dashboardRouter) {
+      this.router.use('/dashboard', this.dashboardRouter.router);
     }
   }
 }

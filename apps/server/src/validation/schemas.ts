@@ -6,8 +6,14 @@ export const registerSchema = z.object({
   phone: phoneSchema,
   username: z.string().trim().min(3).max(80),
   email: z.string().trim().email().max(254).transform((value) => value.toLowerCase()),
-  password: z.string().min(12).max(128),
+  password: z.string().min(6).max(128),
   role: z.literal('adopter').default('adopter'),
+  avatar: z
+    .union([z.string().trim().url(), z.literal('')])
+    .nullish()
+    .transform((val) => (val === '' ? null : val)),
+  latitude: z.number().min(-90).max(90).nullish(),
+  longitude: z.number().min(-180).max(180).nullish(),
 }).strict();
 
 export const animalManagementQuerySchema = z.object({

@@ -2,6 +2,7 @@ import type { Adoption } from '@kapa/shared';
 import { ConflictError, NotFoundError } from '../../src/errors';
 import { AdoptionRepository } from '../../src/repositories/AdoptionRepository';
 import { AdoptionService } from '../../src/services/AdoptionService';
+import type { EmailService } from '../../src/services/EmailService';
 
 const adoption: Adoption = {
   id: 'cmzrequest0000000000000001',
@@ -107,5 +108,83 @@ describe('AdoptionService', () => {
     await expect(
       service.updateWorkflow(adoption.id, { status: 'approved' }),
     ).resolves.toEqual(completed);
+  });
+
+  it('dispara notificação por e-mail de forma não bloqueante ao atualizar status', async () => {
+    const sendAdoptionStatusNotification = jest
+      .fn()
+      .mockRejectedValue(new Error('Edge function timeout'));
+    const emailService = {
+      sendAdoptionStatusNotification,
+    } as unknown as EmailService;
+
+    const serviceWithEmail = new AdoptionService(
+      repository,
+      undefined,
+      undefined,
+      emailService,
+    );
+
+    const inContact: Adoption = {
+      ...adoption,
+      status: 'interviewing',
+      application,
+      adopter: {
+        id: adoption.adopterId,
+        username: 'ana',
+        email: 'ana@example.com',
+        avatar: null,
+        role: 'adopter',
+        rules: ['user:self'],
+        createdAt: '2026-10-15T00:00:00.000Z',
+      },
+      animal: {
+        id: adoption.animalId,
+        name: 'Thor',
+        species: 'dog',
+        breed: 'SRD',
+        age: 2,
+        ageStage: 2,
+        weightKg: 14,
+        gender: 'male',
+        size: 2,
+        energyLevel: 3,
+        kidFriendly: 4,
+        noiseLevel: 2,
+        apartmentFriendly: true,
+        otherPetFriendly: true,
+        healthCondition: 'healthy',
+        castrated: 'yes',
+        vaccinated: true,
+        dewormed: 'yes',
+        rescuedAt: '2026-09-01T00:00:00.000Z',
+        place: 'Centro',
+        mood: 'Brincalhão',
+        status: 'available',
+        createdAt: '2026-09-01T00:00:00.000Z',
+        photos: [
+          {
+            id: 'photo-1',
+            photoUrl: 'https://example.com/thor.jpg',
+            uploadedAt: '2026-09-01T00:00:00.000Z',
+          },
+        ],
+      },
+    };
+
+    jest.mocked(repository.findById).mockResolvedValue(adoption);
+    jest.mocked(repository.updateWorkflow).mockResolvedValue(inContact);
+
+    await expect(
+      serviceWithEmail.updateWorkflow(adoption.id, { status: 'interviewing' }),
+    ).resolves.toEqual(inContact);
+
+    expect(sendAdoptionStatusNotification).toHaveBeenCalledWith({
+      adopterEmail: 'ana@example.com',
+      adopterName: 'Ana Souza',
+      animalName: 'Thor',
+      animalImage: 'https://example.com/thor.jpg',
+      status: 'interviewing',
+    });
   });
 });

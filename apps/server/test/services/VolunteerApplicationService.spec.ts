@@ -6,6 +6,7 @@ import {
 } from '@kapa/shared';
 import { ConflictError, NotFoundError } from '../../src/errors';
 import { VolunteerApplicationRepository } from '../../src/repositories/VolunteerApplicationRepository';
+import type { EmailService } from '../../src/services/EmailService';
 import { EventsService } from '../../src/services/EventsService';
 import { VolunteerApplicationService } from '../../src/services/VolunteerApplicationService';
 
@@ -57,11 +58,18 @@ function createMocks() {
   const getCache = jest.fn().mockResolvedValue(null);
   const setCache = jest.fn().mockResolvedValue(undefined);
   const deleteCache = jest.fn().mockResolvedValue(undefined);
+  const sendVolunteerStatusNotification = jest
+    .fn()
+    .mockResolvedValue({ success: true });
+  const emailService = {
+    sendVolunteerStatusNotification,
+  } as unknown as EmailService;
 
   const service = new VolunteerApplicationService(
     repository,
     { getCache, setCache, deleteCache },
     eventsService,
+    emailService,
   );
 
   return {
@@ -74,6 +82,7 @@ function createMocks() {
     getCache,
     setCache,
     deleteCache,
+    sendVolunteerStatusNotification,
   };
 }
 
@@ -244,5 +253,59 @@ describe('VolunteerApplicationService', () => {
       }),
     );
     expect(deleteCache).toHaveBeenCalledTimes(4);
+  });
+
+  it('sends volunteer notification email asynchronously without failing when email delivery rejects', async () => {
+    const {
+      service,
+      updateStatus,
+      eventsCreate,
+      sendVolunteerStatusNotification,
+    } = createMocks();
+
+    sendVolunteerStatusNotification.mockRejectedValueOnce(
+      new Error('Email service unavailable'),
+    );
+
+    updateStatus.mockResolvedValue({
+      id: VALID_APP_ID,
+      userId: VALID_USER_ID,
+      status: 'rejected',
+      application: sampleApplicationData,
+      appliedAt: '2026-10-26T12:00:00.000Z',
+      updatedAt: '2026-10-26T12:05:00.000Z',
+      user: {
+        id: VALID_USER_ID,
+        username: 'Maria',
+        email: 'maria@example.com',
+        avatar: null,
+        role: 'adopter',
+      },
+    });
+
+    eventsCreate.mockResolvedValue({
+      id: 'clxyz9999999999abcdefghij',
+      type: SystemEventTypes.VOLUNTEER_APPLICATION_REJECTED,
+      user_id: VALID_USER_ID,
+      animal_id: null,
+      payload: {
+        applicationId: VALID_APP_ID,
+        rejectedByUserId: VALID_REVIEWER_ID,
+      },
+      emitted_at: new Date('2026-10-26T12:05:00.000Z'),
+    });
+
+    const updated = await service.updateStatus(
+      VALID_APP_ID,
+      'rejected',
+      VALID_REVIEWER_ID,
+    );
+
+    expect(updated.status).toBe('rejected');
+    expect(sendVolunteerStatusNotification).toHaveBeenCalledWith({
+      volunteerEmail: 'maria@example.com',
+      volunteerName: 'Maria Voluntária',
+      status: 'rejected',
+    });
   });
 });

@@ -1,8 +1,13 @@
 import dotenv from 'dotenv';
 import path from 'node:path';
 
-dotenv.config();
+export function loadServerEnv(): void {
+  dotenv.config();
+  dotenv.config({ path: path.resolve(__dirname, '../../.env'), override: true });
+  dotenv.config({
+    path: path.resolve(process.cwd(), 'apps/server/.env'),
+    override: true,
+  });
+}
 
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
-
-dotenv.config({ path: path.resolve(process.cwd(), 'apps/server/.env') });
+loadServerEnv();

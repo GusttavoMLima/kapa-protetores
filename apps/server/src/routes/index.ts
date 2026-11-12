@@ -49,6 +49,10 @@ import { VolunteerApplicationRouter } from './VolunteerApplicationRouter';
 import { FosterApplicationRouter } from './FosterApplicationRouter';
 import { FosterApplicationController } from '../controllers/FosterApplicationController';
 import { FosterApplicationService } from '../services/FosterApplicationService';
+import { EmailService } from '../services/EmailService';
+import { DashboardService } from '../services/DashboardService';
+import { DashboardController } from '../controllers/DashboardController';
+import { DashboardRouter } from './DashboardRouter';
 
 const jwtService = new JwtService(
   process.env.JWT_SECRET ?? '',
@@ -92,10 +96,12 @@ const userPhotoService = new UserPhotoService(
 );
 
 const eventsService = new EventsService(prisma);
+const emailService = new EmailService();
 const userService = new UserService(
   userRepository,
   redisService,
   eventsService,
+  emailService,
 );
 const userController = new UserController(
   userService,
@@ -104,7 +110,16 @@ const userController = new UserController(
 );
 const userRouter = new UserRouter(userController, authMiddleware);
 
-const authController = new AuthController(userService);
+const authService = new AuthService(
+  userRepository,
+  new PasswordHasher(),
+  jwtService,
+  eventsService,
+  userService,
+  emailService,
+);
+
+const authController = new AuthController(userService, authService);
 const authRouter = new AuthRouter(authController);
 
 const animalRepository = new PostgresAnimalRepository(prisma);
@@ -134,12 +149,6 @@ const animalsRouter = new AnimalsRouter(
   animalManagementAccess(userRepository, true),
 );
 
-const authService = new AuthService(
-  userRepository,
-  new PasswordHasher(),
-  jwtService,
-);
-
 const credentialsRouter = new CredentialsRouter(
   new CredentialsController(authService),
   authMiddleware,
@@ -166,6 +175,7 @@ const adoptionRouter = new AdoptionRouter(
       new AdoptionRepository(prisma),
       redisService,
       eventsService,
+      emailService,
     ),
   ),
   authMiddleware,
@@ -201,9 +211,18 @@ const volunteerApplicationRouter = new VolunteerApplicationRouter(
       new VolunteerApplicationRepository(prisma),
       redisService,
       eventsService,
+      emailService,
     ),
   ),
   authMiddleware,
+);
+
+const dashboardRouter = new DashboardRouter(
+  new DashboardController(
+    new DashboardService(prisma, predictionService, redisService),
+  ),
+  authMiddleware,
+  animalManagementAccess(userRepository),
 );
 
 const apiRouterInstance = new ApiRouter(
@@ -223,6 +242,7 @@ const apiRouterInstance = new ApiRouter(
     userRepository,
     animalManagementAccess(userRepository),
   ),
+  dashboardRouter,
 );
 
 export const apiRouter = apiRouterInstance;

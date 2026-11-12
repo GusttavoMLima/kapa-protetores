@@ -1188,8 +1188,13 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 * **4. Diário do Pet / Mural de Atualizações (`tb_animal_post` — `GET` & `POST /api/animals/:id/posts`)**:
   * Expostos os endpoints `GET /api/animals/:id/posts` (listagem cronológica pública de atualizações do animal) e `POST /api/animals/:id/posts` (publicação restrita a `admin` e `protector` com validação Zod `createAnimalPostSchema`) em [`AnimalsRouter.ts`](apps/server/src/routes/AnimalsRouter.ts), [`AnimalsController.ts`](apps/server/src/controllers/AnimalsController.ts), [`AnimalService.ts`](apps/server/src/services/AnimalService.ts), [`PostgresAnimalRepository.ts`](apps/server/src/repositories/PostgresAnimalRepository.ts) e [`InMemoryAnimalRepository.ts`](apps/server/src/repositories/InMemoryAnimalRepository.ts).
   * Criado hook [`useAnimalPosts.ts`](apps/mobile-web/src/hooks/useAnimalPosts.ts) e seção **Diário de {pet}** em [`AdoptPetDetailsScreen`](apps/mobile-web/src/screens/adopt/details.tsx) com formulário rápido de publicação para protetores/administradores.
+* **5. Resiliência de Transações Interativas no Prisma (`P2028`) e Otimização de Consultas de Adoção ([`PrismaService.ts`](apps/server/src/database/PrismaService.ts), [`AdoptionRepository.ts`](apps/server/src/repositories/AdoptionRepository.ts), [`VolunteerApplicationRepository.ts`](apps/server/src/repositories/VolunteerApplicationRepository.ts) e [`CommunityEventRepository.ts`](apps/server/src/repositories/CommunityEventRepository.ts))**:
+  * Configurado `transactionOptions: { maxWait: 15000, timeout: 30000 }` no `PrismaClient` (`PrismaService.ts`) e nas transações interativas `Serializable` (`AdoptionRepository`, `VolunteerApplicationRepository`, `CommunityEventRepository`) com retentativa automática para códigos `P2028` e `P2034`, alinhando o tempo de aquisição de transação ao `connectionTimeoutMillis: 15000` do pool `pg` no Supabase.
+  * Omitida a coluna binária `signed_contract_data` (`Bytes`) nas consultas de metadados e listagens de `AdoptionRepository` (`ADOPTION_METADATA_SELECT`), carregando os bytes do PDF exclusivamente no download (`findSignedContract`).
 * **Testes Automatizados**:
-  * [`apps/mobile-web/test/utils/petCompatibility.spec.ts`](apps/mobile-web/test/utils/petCompatibility.spec.ts), [`apps/mobile-web/test/screens/AdoptPetDetailsScreen.spec.tsx`](apps/mobile-web/test/screens/AdoptPetDetailsScreen.spec.tsx), [`apps/mobile-web/test/screens/VolunteerActivitiesScreen.spec.tsx`](apps/mobile-web/test/screens/VolunteerActivitiesScreen.spec.tsx), [`apps/server/test/services/CommunityEventService.spec.ts`](apps/server/test/services/CommunityEventService.spec.ts) e [`apps/server/test/integration/animalManagement.spec.ts`](apps/server/test/integration/animalManagement.spec.ts).
+  * [`apps/mobile-web/test/utils/petCompatibility.spec.ts`](apps/mobile-web/test/utils/petCompatibility.spec.ts), [`apps/mobile-web/test/screens/AdoptPetDetailsScreen.spec.tsx`](apps/mobile-web/test/screens/AdoptPetDetailsScreen.spec.tsx), [`apps/mobile-web/test/screens/VolunteerActivitiesScreen.spec.tsx`](apps/mobile-web/test/screens/VolunteerActivitiesScreen.spec.tsx), [`apps/server/test/services/CommunityEventService.spec.ts`](apps/server/test/services/CommunityEventService.spec.ts), [`apps/server/test/database/PrismaService.spec.ts`](apps/server/test/database/PrismaService.spec.ts) e [`apps/server/test/integration/animalManagement.spec.ts`](apps/server/test/integration/animalManagement.spec.ts).
+
+---
 
 ### 44. Painel de Administração de Usuários e Desativação de Contas (issue #74)
 
@@ -1290,3 +1295,49 @@ Implementação em `src/screens/adoptionRequests/` (`model`, componentes, cartã
 - A migração `20261111230000_add_foster_home_details` adiciona `home_address`, `has_other_animals`, `has_perimeter_barrier` e `has_secure_gate`. O envio exige o endereço da casa e respostas explícitas de Sim ou Não. As candidaturas anteriores preservam valores nulos, exibidos como **Não informado**. O endereço e as respostas são retornados apenas ao titular e à equipe autorizada.
 - Lar Temporário e ficha de adoção usam os mesmos campos de endereço (CEP, rua, número, bairro e cidade) e a mesma consulta ViaCEP. Lar Temporário combina os campos preenchidos no endereço salvo da candidatura.
 - Administradores e protetores analisam candidaturas em **Gestão do abrigo → Lar Temporário**. `GET /api/foster-applications` lista resultados paginados e `PATCH /api/foster-applications/:id/status` registra uma decisão sobre a candidatura pendente. As permissões são verificadas no banco e o status é atualizado de forma atômica.
+
+---
+
+### 47. Serviço de Envio de E-mails via Supabase Edge Function (`EmailService`)
+
+* **Contratos Compartilhados (`@kapa/shared` — [`packages/shared/src/types/email.ts`](packages/shared/src/types/email.ts))**:
+  * Interfaces estritas `SendEmailPayload`, `EmailTemplatePayload`, `EmailResponse`, `AdoptionStatusEmailData`, `VolunteerApplicationEmailData` e `WelcomeEmailData`.
+* **Camada de Serviço (`EmailService` — [`apps/server/src/services/EmailService.ts`](apps/server/src/services/EmailService.ts))**:
+  * Valida todos os destinatários (`to: string | string[]`) utilizando o value object de domínio [`Email.create`](apps/server/src/domains/Email.ts).
+  * Suporta envio exclusivamente por `html` ou exclusivamente por `template` (`id` + `variables`) em `sendAdoptionStatusNotification`, `sendVolunteerStatusNotification` e `sendWelcomeEmail`.
+  * Normaliza `SUPABASE_URL`, suporta `SUPABASE_ANON_KEY` (com fallback para `SUPABASE_ANONKEY`), aplica timeout com `AbortSignal.timeout` (`10s`) e valida a resposta JSON da Edge Function em runtime com Zod (`edgeFunctionResponseSchema`), lançando erros de domínio (`ValidationError`, `ServiceError`).
+* **Integração Assíncrona Não Bloqueante nos Fluxos de Negócio**:
+  * Sem exposição de rota pública de envio de e-mail (prevenindo abuso de Open Relay/Phishing).
+  * Injetado em [`AdoptionService.updateWorkflow`](apps/server/src/services/AdoptionService.ts), [`VolunteerApplicationService.updateStatus`](apps/server/src/services/VolunteerApplicationService.ts), [`AuthService.register`](apps/server/src/services/AuthService.ts) (cadastro local com e-mail e senha) e [`UserService.create`](apps/server/src/services/UserService.ts) (primeiro cadastro via Google OAuth em `authenticateWithGoogle`) via [`apps/server/src/routes/index.ts`](apps/server/src/routes/index.ts) utilizando promessas não bloqueantes com tratamento `.catch()` (`void this.emailService.send...().catch(...)`) e logs estruturados (`logger.warn`), garantindo que falhas externas de e-mail nunca revertam ou atrasem a atualização no banco.
+  * Em [`AdoptionRepository.updateWorkflow`](apps/server/src/repositories/AdoptionRepository.ts), a query `transaction.adoptions.update` inclui `animal: { include: { photos: true } }` e `adopter` para popular `adopter.email`, `animal.name` e `animalImage` no disparo dos templates `ADOPTION_TEMPLATE_IDS`.
+* **Testes Automatizados**:
+  * [`apps/server/test/services/EmailService.spec.ts`](apps/server/test/services/EmailService.spec.ts), [`apps/server/test/services/AdoptionService.spec.ts`](apps/server/test/services/AdoptionService.spec.ts) e [`apps/server/test/services/VolunteerApplicationService.spec.ts`](apps/server/test/services/VolunteerApplicationService.spec.ts).
+
+---
+
+### 48. Painel do Abrigo (Dashboard) e Decomposição de Custos ONNX por Categoria, Espécie e Porte
+
+* **Decomposição de Custos por IA (`PredictionService` — [`apps/server/src/services/PredictionService.ts`](apps/server/src/services/PredictionService.ts) e [`packages/shared/src/types/animal.ts`](packages/shared/src/types/animal.ts))**:
+  * O método `predictAnimalCostWithBreakdown` avalia o modelo ONNX `adopet_tree_model.onnx` de forma contrafactual (vetor real vs. animal saudável vs. animal saudável com protocolo preventivo completo) para decompor o custo mensal previsto de cada animal em:
+    * `nutrition` (**Alimentação e Dieta**)
+    * `veterinary` (**Veterinário e Reabilitação Clínica**)
+    * `preventives` (**Vacinas, Vermífugo e Castração**)
+    * `hygiene` (**Higiene, Limpeza e Manejo**)
+  * `ShelterBudgetPrediction` agora retorna `byCategory`, `bySpecies` (com `averageCost` por cão/gato e `breakdown` por categoria), `bySize` (`small`, `medium`, `large`) e `byStatus`.
+* **Endpoint e Serviço do Dashboard (`GET /api/dashboard/summary`)**:
+  * Contratos compartilhados em [`packages/shared/src/types/dashboard.ts`](packages/shared/src/types/dashboard.ts) (`ShelterDashboardSummary`).
+  * Implementado em [`DashboardService.ts`](apps/server/src/services/DashboardService.ts), [`DashboardController.ts`](apps/server/src/controllers/DashboardController.ts) e [`DashboardRouter.ts`](apps/server/src/routes/DashboardRouter.ts), protegido por `authMiddleware.authenticate` + `animalManagementAccess` (`admin` e `protector`) e armazenado em cache Redis (`dashboard:shelter:summary`, TTL `60s`).
+* **Interface Mobile e Web (`/(protected)/gestao/dashboard`)**:
+  * Hook [`useShelterDashboard.ts`](apps/mobile-web/src/hooks/useShelterDashboard.ts), tela [`DashboardScreen`](apps/mobile-web/src/screens/dashboard/index.tsx), rota [`dashboard.tsx`](apps/mobile-web/app/(protected)/gestao/dashboard.tsx) e atalho **"Painel do abrigo"** em [`HomeScreen`](apps/mobile-web/src/screens/home/index.tsx).
+  * Atualização do card de previsão de custos em [`AnimalManagementScreen`](apps/mobile-web/src/screens/animalManagement/index.tsx) para exibir o custo médio por cão/gato e o detalhamento por categoria (`Alimentação`, `Veterinário`, `Vacinas & Preventivos`, `Higiene & Manejo`).
+* **Testes Automatizados**:
+  * [`apps/server/test/services/PredictionService.spec.ts`](apps/server/test/services/PredictionService.spec.ts), [`apps/server/test/services/DashboardService.spec.ts`](apps/server/test/services/DashboardService.spec.ts), [`apps/server/test/routes/DashboardRouter.spec.ts`](apps/server/test/routes/DashboardRouter.spec.ts) e [`apps/mobile-web/test/screens/DashboardScreen.spec.tsx`](apps/mobile-web/test/screens/DashboardScreen.spec.tsx).
+
+---
+
+### 49. Consolidação dos Fluxos de Autenticação no `AuthService`
+
+* **Unificação (`AuthService` — [`apps/server/src/services/AuthService.ts`](apps/server/src/services/AuthService.ts))**:
+  * `AuthService.register`: passa a suportar `avatar`, `latitude` e `longitude` opcionais e emite o evento `SystemEventTypes.USER_REGISTERED` (`provider: 'local'`) via `EventsService`.
+  * `AuthService.loginWithGoogle`: centraliza a emissão do JWT de login social no `JwtService` após validação pela `UserService.authenticateWithGoogle`, utilizado por [`AuthController.googleSignIn`](apps/server/src/controllers/AuthController.ts).
+  * No cliente ([`authProvider.tsx`](apps/mobile-web/src/contexts/authProvider.tsx)), `signIn` (`POST /auth/login`), `signUp` (`POST /auth/register`) e `handleGoogleLogin` (`POST /auth/google`) passam todos pelas rotas `/api/auth/*` e pelo `AuthService`.
