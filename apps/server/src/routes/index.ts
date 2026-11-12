@@ -106,7 +106,15 @@ const userController = new UserController(
 );
 const userRouter = new UserRouter(userController, authMiddleware);
 
-const authController = new AuthController(userService);
+const authService = new AuthService(
+  userRepository,
+  new PasswordHasher(),
+  jwtService,
+  eventsService,
+  userService,
+);
+
+const authController = new AuthController(userService, authService);
 const authRouter = new AuthRouter(authController);
 
 const animalRepository = new PostgresAnimalRepository(prisma);
@@ -133,12 +141,6 @@ const animalsRouter = new AnimalsRouter(
   new AnimalPhotosController(animalPhotoService),
   authMiddleware,
   animalManagementAccess(userRepository),
-);
-
-const authService = new AuthService(
-  userRepository,
-  new PasswordHasher(),
-  jwtService,
 );
 
 const credentialsRouter = new CredentialsRouter(

@@ -1249,3 +1249,12 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
   * Atualização do card de previsão de custos em [`AnimalManagementScreen`](apps/mobile-web/src/screens/animalManagement/index.tsx) para exibir o custo médio por cão/gato e o detalhamento por categoria (`Alimentação`, `Veterinário`, `Vacinas & Preventivos`, `Higiene & Manejo`).
 * **Testes Automatizados**:
   * [`apps/server/test/services/PredictionService.spec.ts`](apps/server/test/services/PredictionService.spec.ts), [`apps/server/test/services/DashboardService.spec.ts`](apps/server/test/services/DashboardService.spec.ts), [`apps/server/test/routes/DashboardRouter.spec.ts`](apps/server/test/routes/DashboardRouter.spec.ts) e [`apps/mobile-web/test/screens/DashboardScreen.spec.tsx`](apps/mobile-web/test/screens/DashboardScreen.spec.tsx).
+
+---
+
+### 48. Consolidação dos Fluxos de Autenticação no `AuthService`
+
+* **Unificação (`AuthService` — [`apps/server/src/services/AuthService.ts`](apps/server/src/services/AuthService.ts))**:
+  * `AuthService.register`: passa a suportar `avatar`, `latitude` e `longitude` opcionais e emite o evento `SystemEventTypes.USER_REGISTERED` (`provider: 'local'`) via `EventsService`.
+  * `AuthService.loginWithGoogle`: centraliza a emissão do JWT de login social no `JwtService` após validação pela `UserService.authenticateWithGoogle`, utilizado por [`AuthController.googleSignIn`](apps/server/src/controllers/AuthController.ts).
+  * No cliente ([`authProvider.tsx`](apps/mobile-web/src/contexts/authProvider.tsx)), `signIn` (`POST /auth/login`), `signUp` (`POST /auth/register`) e `handleGoogleLogin` (`POST /auth/google`) passam todos pelas rotas `/api/auth/*` e pelo `AuthService`.
