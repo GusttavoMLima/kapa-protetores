@@ -1,11 +1,13 @@
 import { z } from 'zod';
-import type {
-  AdoptionNotificationStatus,
-  AdoptionStatusEmailData,
-  EmailResponse,
-  SendEmailPayload,
-  VolunteerApplicationEmailData,
+import {
+  ADOPTION_TEMPLATE_IDS,
+  type AdoptionNotificationStatus,
+  type AdoptionStatusEmailData,
+  type EmailResponse,
+  type SendEmailPayload,
+  type VolunteerApplicationEmailData,
 } from '@kapa/shared';
+import { loadServerEnv } from '../config/env';
 import { logger } from '../config/logger';
 import { Email } from '../domains/Email';
 import { ServiceError, ValidationError } from '../errors';
@@ -62,12 +64,21 @@ function normalizeRecipients(to: string | string[]): string | string[] {
 }
 
 export class EmailService {
-  private readonly supabaseUrl: string;
-  private readonly anonKey: string;
-  private readonly functionUrl: string;
+  private supabaseUrl: string;
+  private anonKey: string;
+  private readonly functionName: string;
+  private functionUrl: string;
   private readonly timeoutMs: number;
+  private readonly hasExplicitOptions: boolean;
 
   constructor(options?: EmailServiceOptions) {
+    this.hasExplicitOptions = Boolean(
+      options &&
+        (options.supabaseUrl !== undefined || options.anonKey !== undefined),
+    );
+    this.functionName = (
+      options?.functionName ?? DEFAULT_FUNCTION_NAME
+    ).replace(/^\/+/, '');
     this.supabaseUrl = normalizeBaseUrl(
       options?.supabaseUrl ?? process.env.SUPABASE_URL ?? '',
     );
@@ -77,11 +88,8 @@ export class EmailService {
       process.env.SUPABASE_ANONKEY ??
       ''
     ).trim();
-    const functionName = (
-      options?.functionName ?? DEFAULT_FUNCTION_NAME
-    ).replace(/^\/+/, '');
     this.functionUrl = this.supabaseUrl
-      ? `${this.supabaseUrl}/functions/v1/${functionName}`
+      ? `${this.supabaseUrl}/functions/v1/${this.functionName}`
       : '';
     this.timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
@@ -90,6 +98,22 @@ export class EmailService {
         '[EmailService] SUPABASE_URL ou SUPABASE_ANON_KEY não configurados no ambiente.',
       );
     }
+  }
+
+  private refreshEnvIfNeeded(): void {
+    if (this.hasExplicitOptions || (this.functionUrl && this.anonKey)) {
+      return;
+    }
+    loadServerEnv();
+    this.supabaseUrl = normalizeBaseUrl(process.env.SUPABASE_URL ?? '');
+    this.anonKey = (
+      process.env.SUPABASE_ANON_KEY ??
+      process.env.SUPABASE_ANONKEY ??
+      ''
+    ).trim();
+    this.functionUrl = this.supabaseUrl
+      ? `${this.supabaseUrl}/functions/v1/${this.functionName}`
+      : '';
   }
 
   public async sendEmail(
@@ -118,8 +142,19 @@ export class EmailService {
       );
     }
 
+    if (hasHtml && hasTemplate) {
+      throw new ValidationError(
+        "Não é permitido enviar 'html' e 'template' na mesma requisição.",
+      );
+    }
+
+    this.refreshEnvIfNeeded();
+
     if (!this.functionUrl || !this.anonKey) {
-      throw new ServiceError('Serviço de e-mail não configurado.', 503);
+      throw new ServiceError(
+        'Serviço de e-mail não configurado (verifique SUPABASE_URL e SUPABASE_ANON_KEY no .env).',
+        503,
+      );
     }
 
     const bearerToken = authToken?.trim() || this.anonKey;
@@ -196,10 +231,10 @@ export class EmailService {
         to: data.adopterEmail,
         subject: `Kapa Protetores: Atualização na adoção de ${animalName}`,
         template: {
-          id: data.templateId ?? 'adoption-status',
+          id: data.templateId ?? ADOPTION_TEMPLATE_IDS[data.status],
           variables: {
             username: adopterName,
-            pet_name:animalName,
+            pet_name: animalName,
             status: statusLabel,
             ...(data.animalImage ? { pet_image_url: data.animalImage } : {}),
           },

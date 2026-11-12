@@ -30,6 +30,7 @@ export default function ProtectedLayout() {
       <Stack.Screen name="gestao/solicitacoes" />
       <Stack.Screen name="gestao/voluntarios" />
       <Stack.Screen name="gestao/usuarios" />
+      <Stack.Screen name="gestao/dashboard" />
       <Stack.Screen name="manage-activities" />
       <Stack.Screen name="adopter-profile" />
       <Stack.Screen name="(adopter)/pix" />

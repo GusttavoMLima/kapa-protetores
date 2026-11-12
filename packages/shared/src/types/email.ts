@@ -39,3 +39,9 @@ export interface VolunteerApplicationEmailData {
   status: VolunteerNotificationStatus;
   templateId?: string;
 }
+
+export const ADOPTION_TEMPLATE_IDS: Record<AdoptionNotificationStatus, string> = {
+  interviewing: 'adoption-interviewing',
+  approved: 'adoption-approved',
+  rejected: 'adoption-rejected',
+};

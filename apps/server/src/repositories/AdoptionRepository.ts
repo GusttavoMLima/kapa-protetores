@@ -227,7 +227,20 @@ export class AdoptionRepository {
                 ? { contract_sent_at: null }
                 : {}),
           },
-          select: ADOPTION_METADATA_SELECT,
+          select: {
+            ...ADOPTION_METADATA_SELECT,
+            animal: { include: { photos: true } },
+            adopter: {
+              select: {
+                id: true,
+                username: true,
+                email: true,
+                role: true,
+                rules: true,
+                created_at: true,
+              },
+            },
+          },
         });
       },
       {
@@ -236,7 +249,36 @@ export class AdoptionRepository {
       },
     );
 
-    return this.toDTO(record, true);
+    return {
+      ...this.toDTO(record, true),
+      ...(record.animal
+        ? {
+            animal: {
+              ...record.animal,
+              weightKg: Number(record.animal.weight_kg),
+              rescuedAt: record.animal.rescued_at.toISOString(),
+              createdAt: record.animal.created_at.toISOString(),
+              photos: record.animal.photos.map((photo) => ({
+                id: photo.id,
+                photoUrl: photo.photo_url,
+                uploadedAt: photo.uploaded_at.toISOString(),
+              })),
+            },
+          }
+        : {}),
+      ...(record.adopter
+        ? {
+            adopter: {
+              id: record.adopter.id,
+              username: record.adopter.username,
+              email: record.adopter.email,
+              role: record.adopter.role,
+              rules: record.adopter.rules,
+              createdAt: record.adopter.created_at.toISOString(),
+            },
+          }
+        : {}),
+    } as unknown as Adoption;
   }
 
   public async saveSignedContract(

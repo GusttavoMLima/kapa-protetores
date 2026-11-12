@@ -47,6 +47,9 @@ import { VolunteerApplicationService } from '../services/VolunteerApplicationSer
 import { VolunteerApplicationController } from '../controllers/VolunteerApplicationController';
 import { VolunteerApplicationRouter } from './VolunteerApplicationRouter';
 import { EmailService } from '../services/EmailService';
+import { DashboardService } from '../services/DashboardService';
+import { DashboardController } from '../controllers/DashboardController';
+import { DashboardRouter } from './DashboardRouter';
 
 const jwtService = new JwtService(
   process.env.JWT_SECRET ?? '',
@@ -206,6 +209,14 @@ const volunteerApplicationRouter = new VolunteerApplicationRouter(
   authMiddleware,
 );
 
+const dashboardRouter = new DashboardRouter(
+  new DashboardController(
+    new DashboardService(prisma, predictionService, redisService),
+  ),
+  authMiddleware,
+  animalManagementAccess(userRepository),
+);
+
 const apiRouterInstance = new ApiRouter(
   healthRouter,
   animalsRouter,
@@ -217,6 +228,7 @@ const apiRouterInstance = new ApiRouter(
   adoptionRouter,
   favoriteRouter,
   volunteerApplicationRouter,
+  dashboardRouter,
 );
 
 export const apiRouter = apiRouterInstance;

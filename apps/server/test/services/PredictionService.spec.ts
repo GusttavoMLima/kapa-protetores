@@ -2,7 +2,7 @@ import type { PrismaClient } from '@prisma/client';
 import { PredictionService } from '../../src/services/PredictionService';
 
 describe('PredictionService (ONNX TreeEnsembleRegressor)', () => {
-  it('loads adopet_tree_model.onnx and predicts future shelter budget accurately', async () => {
+  it('loads adopet_tree_model.onnx and predicts future shelter budget with itemized cost breakdown', async () => {
     const findMany = jest.fn().mockResolvedValue([
       {
         id: 'clxyz1111111111abcdefghij',
@@ -70,27 +70,91 @@ describe('PredictionService (ONNX TreeEnsembleRegressor)', () => {
     expect(result.animals[1].predictedCost).toBeCloseTo(690.32, 2);
     expect(result.animals[2].predictedCost).toBeCloseTo(220.0, 2);
     expect(result.totalPredictedBudget).toBeCloseTo(1305.58, 2);
+
+    // Every animal's breakdown sums exactly to its predictedCost
+    for (const animal of result.animals) {
+      const sum =
+        animal.breakdown.nutrition +
+        animal.breakdown.veterinary +
+        animal.breakdown.preventives +
+        animal.breakdown.hygiene;
+      expect(sum).toBeCloseTo(animal.predictedCost, 2);
+    }
+
+    // Rex is injured and unvaccinated/uncastrated, so veterinary and preventives > 0
+    expect(result.animals[1].breakdown.veterinary).toBeGreaterThan(0);
+    expect(result.animals[1].breakdown.preventives).toBeGreaterThan(0);
+
+    // Aggregate category breakdown sums to totalPredictedBudget
+    const categorySum =
+      result.byCategory.nutrition +
+      result.byCategory.veterinary +
+      result.byCategory.preventives +
+      result.byCategory.hygiene;
+    expect(categorySum).toBeCloseTo(result.totalPredictedBudget, 2);
+
+    // Species averages and totals
     expect(result.bySpecies.dog.count).toBe(2);
+    expect(result.bySpecies.dog.averageCost).toBeCloseTo(542.79, 2);
     expect(result.bySpecies.cat.count).toBe(1);
+    expect(result.bySpecies.cat.averageCost).toBeCloseTo(220.0, 2);
+
+    // Size breakdown
+    expect(result.bySize.small.count).toBe(1);
+    expect(result.bySize.medium.count).toBe(1);
+    expect(result.bySize.large.count).toBe(1);
+
     expect(result.byStatus.treating.count).toBe(1);
     expect(setCache).toHaveBeenCalledTimes(1);
   });
 
   it('returns cached prediction when Redis cache hits', async () => {
     const findMany = jest.fn();
+    const emptySummary = {
+      count: 0,
+      totalCost: 0,
+      averageCost: 0,
+      breakdown: { nutrition: 0, veterinary: 0, preventives: 0, hygiene: 0 },
+    };
     const cachedPrediction = {
       totalPredictedBudget: 500,
       activeAnimalsCount: 2,
       averageCostPerAnimal: 250,
+      byCategory: {
+        nutrition: 360,
+        veterinary: 0,
+        preventives: 0,
+        hygiene: 140,
+      },
       bySpecies: {
-        dog: { count: 1, totalCost: 300 },
-        cat: { count: 1, totalCost: 200 },
-        other: { count: 0, totalCost: 0 },
+        dog: {
+          ...emptySummary,
+          count: 1,
+          totalCost: 300,
+          averageCost: 300,
+        },
+        cat: {
+          ...emptySummary,
+          count: 1,
+          totalCost: 200,
+          averageCost: 200,
+        },
+        other: emptySummary,
+      },
+      bySize: {
+        small: emptySummary,
+        medium: emptySummary,
+        large: emptySummary,
       },
       byStatus: {
-        rescued: { count: 0, totalCost: 0 },
-        treating: { count: 0, totalCost: 0 },
-        available: { count: 2, totalCost: 500 },
+        rescued: emptySummary,
+        treating: emptySummary,
+        available: {
+          ...emptySummary,
+          count: 2,
+          totalCost: 500,
+          averageCost: 250,
+        },
       },
       animals: [],
     };

@@ -1226,5 +1226,26 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 * **Integração Assíncrona Não Bloqueante nos Fluxos de Negócio**:
   * Sem exposição de rota pública de envio de e-mail (prevenindo abuso de Open Relay/Phishing).
   * Injetado em [`AdoptionService.updateWorkflow`](apps/server/src/services/AdoptionService.ts) e [`VolunteerApplicationService.updateStatus`](apps/server/src/services/VolunteerApplicationService.ts) via [`apps/server/src/routes/index.ts`](apps/server/src/routes/index.ts) utilizando promessas não bloqueantes com tratamento `.catch()` (`void this.emailService.send...().catch(...)`) e logs estruturados (`logger.warn`), garantindo que falhas externas de e-mail nunca revertam ou atrasem a atualização no banco.
+  * Em [`AdoptionRepository.updateWorkflow`](apps/server/src/repositories/AdoptionRepository.ts), a query `transaction.adoptions.update` inclui `animal: { include: { photos: true } }` e `adopter` para popular `adopter.email`, `animal.name` e `animalImage` no disparo dos templates `ADOPTION_TEMPLATE_IDS`.
 * **Testes Automatizados**:
   * [`apps/server/test/services/EmailService.spec.ts`](apps/server/test/services/EmailService.spec.ts), [`apps/server/test/services/AdoptionService.spec.ts`](apps/server/test/services/AdoptionService.spec.ts) e [`apps/server/test/services/VolunteerApplicationService.spec.ts`](apps/server/test/services/VolunteerApplicationService.spec.ts).
+
+---
+
+### 47. Painel do Abrigo (Dashboard) e Decomposição de Custos ONNX por Categoria, Espécie e Porte
+
+* **Decomposição de Custos por IA (`PredictionService` — [`apps/server/src/services/PredictionService.ts`](apps/server/src/services/PredictionService.ts) e [`packages/shared/src/types/animal.ts`](packages/shared/src/types/animal.ts))**:
+  * O método `predictAnimalCostWithBreakdown` avalia o modelo ONNX `adopet_tree_model.onnx` de forma contrafactual (vetor real vs. animal saudável vs. animal saudável com protocolo preventivo completo) para decompor o custo mensal previsto de cada animal em:
+    * `nutrition` (**Alimentação e Dieta**)
+    * `veterinary` (**Veterinário e Reabilitação Clínica**)
+    * `preventives` (**Vacinas, Vermífugo e Castração**)
+    * `hygiene` (**Higiene, Limpeza e Manejo**)
+  * `ShelterBudgetPrediction` agora retorna `byCategory`, `bySpecies` (com `averageCost` por cão/gato e `breakdown` por categoria), `bySize` (`small`, `medium`, `large`) e `byStatus`.
+* **Endpoint e Serviço do Dashboard (`GET /api/dashboard/summary`)**:
+  * Contratos compartilhados em [`packages/shared/src/types/dashboard.ts`](packages/shared/src/types/dashboard.ts) (`ShelterDashboardSummary`).
+  * Implementado em [`DashboardService.ts`](apps/server/src/services/DashboardService.ts), [`DashboardController.ts`](apps/server/src/controllers/DashboardController.ts) e [`DashboardRouter.ts`](apps/server/src/routes/DashboardRouter.ts), protegido por `authMiddleware.authenticate` + `animalManagementAccess` (`admin` e `protector`) e armazenado em cache Redis (`dashboard:shelter:summary`, TTL `60s`).
+* **Interface Mobile e Web (`/(protected)/gestao/dashboard`)**:
+  * Hook [`useShelterDashboard.ts`](apps/mobile-web/src/hooks/useShelterDashboard.ts), tela [`DashboardScreen`](apps/mobile-web/src/screens/dashboard/index.tsx), rota [`dashboard.tsx`](apps/mobile-web/app/(protected)/gestao/dashboard.tsx) e atalho **"Painel do abrigo"** em [`HomeScreen`](apps/mobile-web/src/screens/home/index.tsx).
+  * Atualização do card de previsão de custos em [`AnimalManagementScreen`](apps/mobile-web/src/screens/animalManagement/index.tsx) para exibir o custo médio por cão/gato e o detalhamento por categoria (`Alimentação`, `Veterinário`, `Vacinas & Preventivos`, `Higiene & Manejo`).
+* **Testes Automatizados**:
+  * [`apps/server/test/services/PredictionService.spec.ts`](apps/server/test/services/PredictionService.spec.ts), [`apps/server/test/services/DashboardService.spec.ts`](apps/server/test/services/DashboardService.spec.ts), [`apps/server/test/routes/DashboardRouter.spec.ts`](apps/server/test/routes/DashboardRouter.spec.ts) e [`apps/mobile-web/test/screens/DashboardScreen.spec.tsx`](apps/mobile-web/test/screens/DashboardScreen.spec.tsx).

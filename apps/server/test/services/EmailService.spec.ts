@@ -154,11 +154,11 @@ describe('EmailService', () => {
     const adoptionBody = JSON.parse(adoptionReq.body);
     expect(adoptionBody.to).toBe('maria@example.com');
     expect(adoptionBody.template).toEqual({
-      id: 'adoption-status',
+      id: 'adoption-approved',
       variables: {
         username: 'Maria <Silva>',
-        animalName: 'Thor',
-        animalImage: 'https://example.com/thor.jpg',
+        pet_name: 'Thor',
+        pet_image_url: 'https://example.com/thor.jpg',
         status: 'Aprovada!',
       },
     });

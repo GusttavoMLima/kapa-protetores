@@ -7,3 +7,4 @@ export * from './event';
 export * from './favorite';
 export * from './post';
 export * from './email';
+export * from './dashboard';
