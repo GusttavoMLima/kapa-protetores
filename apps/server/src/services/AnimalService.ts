@@ -226,6 +226,7 @@ export class AnimalService {
     if (input.mood !== undefined) animal.setMood(input.mood);
     if (input.observations !== undefined)
       animal.setObservations(input.observations);
+    if (input.medicationNotes !== undefined) animal.setMedicationNotes(input.medicationNotes);
     if (input.status !== undefined) animal.setStatus(input.status);
 
     const created = await this.animalRepository.create(animal);

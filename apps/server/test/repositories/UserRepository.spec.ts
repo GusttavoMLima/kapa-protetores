@@ -1,8 +1,19 @@
 import { UserRepository } from '../../src/repositories/UserRepository';
 import { UUID } from '../../src/domains/UUID';
 import type { PrismaClient } from '@prisma/client';
+import { User } from '../../src/models/User';
 
 describe('UserRepository', () => {
+  it('persiste nascimento como DATE, normaliza celular e devolve no perfil', async () => {
+    const create = jest.fn().mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({ ...data, id: '123e4567-e89b-12d3-a456-426614174000', created_at: new Date() }));
+    const repository = new UserRepository({ user: { create } } as unknown as PrismaClient);
+    const user = new User();
+    user.setUsername('Ana Souza'); user.setEmail('ana@example.com');
+    user.setBirthDate('1990-05-10'); user.setPhone('(19) 99999-8888');
+    const saved = await repository.create(user);
+    expect(create).toHaveBeenCalledWith({ data: expect.objectContaining({ birth_date: new Date('1990-05-10T00:00:00Z'), phone: '19999998888' }) });
+    expect(saved.toDTO()).toMatchObject({ birthDate: '1990-05-10', phone: '19999998888' });
+  });
   it('should map user with relations count and data correctly in UserRepository', async () => {
     const mockPrisma = {
       user: {

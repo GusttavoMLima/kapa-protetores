@@ -17,6 +17,8 @@ export class UserRepository implements IUserRepository {
 
   private mapToDomain(record: PrismaUser) {
     const user = new User();
+    user.setBirthDate(record.birth_date?.toISOString().slice(0, 10));
+    user.setPhone(record.phone);
     user.setId(record.id);
     user.setUsername(record.username);
     user.setEmail(record.email);
@@ -74,6 +76,8 @@ export class UserRepository implements IUserRepository {
         id: true,
         username: true,
         email: true,
+        birth_date: true,
+        phone: true,
         avatar: true,
         role: true,
         rules: true,
@@ -96,6 +100,8 @@ export class UserRepository implements IUserRepository {
       id: data.id,
       username: data.username,
       email: data.email,
+      birthDate: data.birth_date?.toISOString().slice(0, 10) ?? null,
+      phone: data.phone ?? null,
       avatar: data.avatar,
       role: data.role,
       rules: data.rules,
@@ -270,6 +276,8 @@ export class UserRepository implements IUserRepository {
       data: {
         ...(id ? { id } : {}),
         username: user.getUsername(),
+        birth_date: user.getBirthDate() ? new Date(`${user.getBirthDate()}T00:00:00.000Z`) : null,
+        phone: user.getPhone(),
         email: user.getEmail().toString(),
         password: user.getPassword() ?? undefined,
         role: user.getRole(),
@@ -331,6 +339,8 @@ export class UserRepository implements IUserRepository {
         },
         data: {
           username: user.getUsername(),
+          birth_date: user.getBirthDate() ? new Date(`${user.getBirthDate()}T00:00:00.000Z`) : null,
+          phone: user.getPhone(),
           email: user.getEmail().toString(),
           password: user.getPassword() ?? undefined,
           role: user.getRole(),

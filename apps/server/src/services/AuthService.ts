@@ -16,6 +16,8 @@ export class AuthService {
   ) {}
 
   public async register(input: {
+    birthDate: string;
+    phone: string;
     username: string;
     email: string;
     password: string;
@@ -30,6 +32,8 @@ export class AuthService {
     user.setUsername(input.username);
     user.setEmail(email);
     user.setRole('adopter');
+    user.setBirthDate(input.birthDate);
+    user.setPhone(input.phone);
     user.setRules(Array.from(DEFAULT_USER_ADOPTER_RULES));
     user.setPassword(await this.passwordHasher.hash(input.password));
     const created = await this.repository.create(user);

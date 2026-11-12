@@ -45,6 +45,7 @@ export class PostgresAnimalRepository implements IAnimalRepository {
     animal.setPlace(record.place);
     animal.setMood(record.mood);
     animal.setObservations(record.observations);
+    animal.setMedicationNotes(record.medication_notes);
     animal.setStatus(record.status);
     animal.setCreatedAt(record.created_at.toISOString());
     animal.setPhotos((record.photos ?? []).map((photo) => ({
@@ -100,6 +101,7 @@ export class PostgresAnimalRepository implements IAnimalRepository {
         place: animal.getPlace(),
         mood: animal.getMood(),
         observations: animal.getObservations(),
+        medication_notes: animal.getMedicationNotes(),
         status: animal.getStatus(),
       },
     });
@@ -146,6 +148,7 @@ export class PostgresAnimalRepository implements IAnimalRepository {
           deworming_doses: input.vermifugoDoses?.map((dose) => ({ ...dose })),
           rescued_at: input.rescuedAt === undefined ? undefined : new Date(input.rescuedAt),
           place: input.place, mood: input.mood, observations: input.observations, status: input.status,
+          medication_notes: input.medicationNotes,
         },
         include: { photos: { orderBy: { uploaded_at: 'desc' } } },
       });

@@ -1,6 +1,9 @@
 import { z } from 'zod';
+import { birthDateSchema, phoneSchema } from '../schemas/personalData.schema';
 
 export const registerSchema = z.object({
+  birthDate: birthDateSchema,
+  phone: phoneSchema,
   username: z.string().trim().min(3).max(80),
   email: z.string().trim().email().max(254).transform((value) => value.toLowerCase()),
   password: z.string().min(12).max(128),
@@ -101,6 +104,8 @@ export const createAnimalSchema = z.object({
   place: z.string().trim().max(240),
   mood: z.string().trim().min(1).max(120),
   observations: z.string().trim().max(4000).nullable().optional(),
+  medicationNotes: z.string().trim().max(2000).nullable()
+    .transform((value) => value || null).optional(),
   status: z.enum(['rescued', 'treating', 'available', 'adopted']),
 }).strict();
 
