@@ -443,6 +443,7 @@ Os dois fluxos emitem JWT com o mesmo segredo obrigatório, emissor, audiência 
 - A antiga tela de cadastro de voluntário foi transformada em cadastro geral de usuários.
 - A nova rota `/cadastro-usuario` só pode ser acessada por administradores autenticados e permite selecionar `adopter`, `protector`, `volunteer` ou `admin`.
 - A URL anterior `/cadastro-voluntario` redireciona para `/cadastro-usuario` para preservar links existentes.
+- O botão **Gestão do abrigo** no topo do cadastro volta à tela anterior ou abre a gestão quando a rota foi acessada diretamente.
 - O formulário de animal converte os campos legados em português para o formato de domínio usado pela API.
 - Erros de cadastro de animal agora distinguem sessão expirada, erro retornado pela API e indisponibilidade do servidor.
 - A rota visual `/cadastro-animal` está pública temporariamente. O backend continua protegido.
@@ -468,6 +469,8 @@ Os dois fluxos emitem JWT com o mesmo segredo obrigatório, emissor, audiência 
 - A rota antiga duplicada de animais permanece removida. A verificação de hashes legados foi mantida apenas para compatibilidade com contas da outra branch.
 
 ### Upload opcional de foto
+
+Na página inicial, no catálogo e nos detalhes de adoção, animais sem imagem cadastrada aparecem com o ícone de pata e a indicação **Sem foto**.
 
 - A foto não é obrigatória para cadastrar um animal.
 - Quando existe uma foto, o cliente primeiro cria o animal e depois envia um `multipart/form-data` para `POST /api/animals/:id/photos`.
@@ -1106,6 +1109,8 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 * **Endpoints da API ([`VolunteerApplicationRouter.ts`](apps/server/src/routes/VolunteerApplicationRouter.ts) e [`VolunteerApplicationService.ts`](apps/server/src/services/VolunteerApplicationService.ts))**:
   * `POST /api/volunteer-applications`: envia a ficha de voluntariado do usuário autenticado (`fullName`, `phone`, `areasOfInterest`, `availability`, `motivation`, `acceptsTerms`), bloqueando duplicidade de solicitações pendentes.
   * `GET /api/volunteer-applications/mine`: retorna a solicitação mais recente do usuário autenticado.
+  * `PATCH /api/volunteer-applications/:id`: permite ao titular editar uma solicitação pendente. A API valida os dados da ficha, usa o telefone do perfil e exige que a solicitação ainda esteja pendente no momento da gravação.
+    * A tela de inscrição exibe a solicitação pendente e consulta o status ao reabrir a tela ou voltar à janela do navegador.
   * `GET /api/volunteer-applications`: listagem administrativa restrita a `admin` e `protector`.
   * `PATCH /api/volunteer-applications/:id/status`: aprova (`approved`) ou recusa (`rejected`) uma candidatura de voluntariado.
 * **Telas Mobile / Web (`apps/mobile-web`)**:
@@ -1213,9 +1218,87 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 * **Correção**: em [`src/screens/home/index.tsx`](apps/mobile-web/src/screens/home/index.tsx), quando `Platform.OS === 'web'` os cartões são renderizados em um `View` com `flex-wrap` (`testID="home-card-grid"`); no mobile o carrossel horizontal foi mantido.
 * **Testes**: casos de plataforma em [`HomeScreen.spec.tsx`](apps/mobile-web/test/screens/HomeScreen.spec.tsx).
 
+### 46. Redesenho da tela de gestão de usuários (issue #78)
+
+* **Objetivo**: alinhar `/(protected)/gestao/usuarios` ao padrão das telas de gestão (referência: `gestao/animais`) e melhorar o uso. Substitui a descrição da tela da seção 44; as rotas e a API não mudaram.
+* **Estrutura** (`apps/mobile-web/src/screens/userManagement/`):
+  * [`index.tsx`](apps/mobile-web/src/screens/userManagement/index.tsx): tela. Cabeçalho (`ADMINISTRAÇÃO` + título + descrição), resumo clicável por papel (Todos, Administradores, Protetores, Voluntários, Adotantes), cartão com busca e filtros, tabela no desktop e cartões empilhados no mobile, paginação, estados de carregamento, erro (com "Tentar novamente") e vazio. Mesmos tokens do `DESIGN.md` e componentes de `animalManagement/components` (`BackLink`, `ChoiceGroup`, `Notice`, `TextButton`).
+  * [`components.tsx`](apps/mobile-web/src/screens/userManagement/components.tsx): `UserAvatar` (foto com iniciais como alternativa), `RoleBadge`, `UserStatusBadge` e o painel `ManageUserModal`.
+  * [`model.ts`](apps/mobile-web/src/screens/userManagement/model.ts): lógica pura e testável (filtro, ordenação, contagem, paginação, iniciais, data e mensagem de erro da API).
+* **Filtros**: busca por nome ou e-mail (ignora maiúsculas e acentos), papel (cartões de resumo), situação (todas/ativas/desativadas) e ordenação (mais recentes / nome A–Z), com "Limpar filtros". Paginação de 10 em 10, feita no cliente.
+* **Painel "Gerenciar usuário"**: em vez de botões repetidos em cada linha, cada pessoa tem um botão "Gerenciar" que abre um painel com avatar, e-mail, data de cadastro, troca de papel ("Salvar papel", habilitado só quando o papel muda) e acesso (desativar com confirmação em duas etapas; reativar direto). Erros da API aparecem dentro do painel; o sucesso aparece como aviso na tela. As salvaguardas continuam no servidor (a própria conta fica bloqueada na interface e a API responde `403`).
+* **Limites conhecidos**: `GET /api/users/all` devolve todos os usuários, então busca, filtro, ordenação e paginação são feitos no cliente (suficiente para o volume de uma ONG; acima de alguns milhares de contas, mover para o servidor). Não há "último acesso" nem histórico de quem desativou, pois esses dados não existem no banco.
+* **Testes**: [`userManagementModel.spec.ts`](apps/mobile-web/test/screens/userManagementModel.spec.ts) e [`UserManagementScreen.spec.tsx`](apps/mobile-web/test/screens/UserManagementScreen.spec.tsx).
 ---
 
-### 46. Serviço de Envio de E-mails via Supabase Edge Function (`EmailService`)
+### 44. Navegação por perfil e identidade visual Kapa (10/11/2026)
+
+Dados de doação PIX atualizados conforme informados pela associação: chave CNPJ `05095176000198`, favorecido `KAPA - KAMAEL ASSOCIACAO PROTETORA DOS ANIMAIS`, instituição `BANCO BRADESCO SA`. A tela e a ação de copiar usam a mesma configuração `PIX_CONFIG` em `src/screens/pix/index.tsx`.
+
+A interface autenticada separa a rotina da equipe da jornada de adoção. A política de apresentação está em `apps/mobile-web/src/navigation/access.ts`, aplicada no layout protegido inclusive para URLs diretas. A autorização das operações continua sendo validada pela API; nenhuma permissão do servidor ou estrutura do banco foi modificada.
+
+| Perfil | Navegação principal | Telas complementares |
+| --- | --- | --- |
+| Administrador | Gestão, Perfil | Solicitações de adoção e contratos, animais e edição/cadastro, organização de atividades, candidaturas de voluntários, cadastro de usuários da equipe |
+| Protetor | Gestão, Perfil | Animais e edição/cadastro, organização de atividades, candidaturas de voluntários; sem análise de adoções nem cadastro administrativo de usuários |
+| Adotante | Adotar, Apoiar, Voluntariado, Perfil | Detalhes do animal e ficha de adoção, PIX, favoritos, minhas solicitações/contratos, preferências de adoção e candidatura ao voluntariado |
+| Voluntário | Início, Adotar, Apoiar, Atividades, Perfil | Jornada de adoção e apoio preservada, participação/cancelamento em atividades e situação da candidatura |
+
+Edição do próprio perfil e histórico pessoal permanecem disponíveis a todos os perfis autenticados. Login, cadastro público, retorno OAuth, acesso negado e página inexistente mantêm suas finalidades anteriores. Os cadastros de animal e usuário conservam seus próprios controles de acesso. O cadastro legado de voluntário continua redirecionando ao cadastro administrativo existente.
+
+O adotante inicia no catálogo; o preenchimento inicial obrigatório das preferências permanece. O administrador recebe um painel exclusivo com os quatro cards de gestão, sem ofertas de adoção, apoio ou candidatura. Favoritos, processos e preferências de adoção saem do perfil da equipe. A URL `/volunteer` foi preservada e sua tela passou para o grupo de abas.
+
+O painel, catálogo, apoio, candidatura, solicitações de adoção, acompanhamento de adoções, gestão de animais e gestão de atividades usam a paleta e tipografia do `DESIGN.md`, cabeçalhos acolhedores, cartões arredondados e larguras responsivas. A fotografia da equipe foi obtida do Figma Kapa (quadro Home `15:661`) e armazenada em `assets/figma/kapa-team.png`. Cabeçalho e rótulos de navegação identificam a área da equipe/comunidade.
+
+Testes: matriz de acesso por perfil, regressão do painel administrativo e teste de navegador `test/browser/role-navigation-browser.cjs` com respostas de API simuladas, verificando abas, redirecionamento por URL, perfil e ausência de transbordamento horizontal em desktop/celular. A validação visual não escreve no Supabase.
+
+### 45. Nascimento, celular e maioridade nas solicitações
+
+O cadastro público (`POST /users/create` e `POST /auth/register`) exige `birthDate` (`YYYY-MM-DD`) e `phone`. A data deve existir no calendário e não ser futura; o celular aceita formatação e é salvo apenas com dígitos. A idade é calculada, nunca persistida como número. Menores podem cadastrar uma conta e navegar.
+
+`PATCH /users/me` permite atualizar nascimento e celular do próprio usuário. As respostas autenticadas de cadastro/login/perfil incluem esses campos; eles não são adicionados ao JWT. Editar Perfil permite completar contas antigas, criadas pelo Google ou pela administração. Dados faltantes não são inventados nem inferidos de fichas antigas.
+
+A ficha de adoção recebe nascimento e celular do perfil, e a candidatura de voluntariado recebe o celular. Esses campos são apresentados preenchidos; a atualização é feita em Editar Perfil. Perfis incompletos recebem orientação para completar os dados; menores de 18 anos completos não recebem o formulário de envio.
+
+No servidor, a verificação usa a data salva no usuário autenticado, lida dentro da transação de criação. Enviar um nascimento adulto no corpo não contorna uma data de menor no perfil. Faltam dados: HTTP 400; menor: HTTP 403. A aprovação de candidaturas de voluntariado antigas também verifica maioridade. O cálculo considera o calendário de `America/Sao_Paulo`, incluindo a data exata do aniversário e anos bissextos.
+
+**Banco (aprovado pelo usuário; não aplicado ao Supabase pelo agente):** migration `20261111000000_user_personal_data`, tabela `public.tb_users`, colunas `birth_date DATE NULL` e `phone VARCHAR(20) NULL`. Permanecem anuláveis para preservar contas existentes e login Google; novos cadastros públicos exigem os campos na API. O modelo Prisma usa `birth_date DateTime? @db.Date` e `phone String? @db.VarChar(20)`.
+
+A migration SQL está em `apps/server/prisma/migrations/20261111000000_user_personal_data/migration.sql`. Preferir aplicar pelo histórico Prisma (`npm run prisma:migrate:deploy --workspace=@kapa/server`) após conferir migrations pendentes. Se as colunas forem criadas manualmente com o mesmo SQL, registrar essa migration como aplicada com `npm exec --workspace=@kapa/server -- prisma migrate resolve --applied 20261111000000_user_personal_data` antes do próximo deploy; não executar as duas criações. O código atualizado depende dessas colunas antes de iniciar a API.
+
+Testes cobrem cadastro obrigatório, conta de menor, normalização de celular, perfil preenchido, ausência do envio para menores/perfis incompletos, aniversário de 18 anos, datas impossíveis/futuras, anos bissextos, persistência no repositório e tentativa de adulteração da ficha. Testes de navegador usam APIs simuladas, sem escrever no banco remoto.
+
+### 46. Caixa de solicitações de adoção — UX administrativa
+
+A tela `/gestao/solicitacoes` mantém acesso exclusivo de administrador e monta a consulta de fichas somente após verificar esse perfil na interface. As permissões e validações da API permanecem responsáveis pela autorização das operações.
+
+O layout reutiliza cabeçalho, fontes, cores e componentes do Kapa. A referência visual é o arquivo Figma Kapa, quadro Home `15:661`; não há um quadro específico de gestão no arquivo. A adaptação apresenta indicadores de total, análise, contato e novos lares, busca local por família/pet/cidade sem distinção de acentos e filtros para todas as cinco situações, incluindo cancelamentos. A lista prioriza análise, depois contato; dentro da etapa, mostra os pedidos mais recentes primeiro. Indicadores refletem os registros recebidos, antes da busca.
+
+Os cartões exibem pet, família, etapa, recebimento e cidade. Uma ficha por vez é expandida, organizando contato, moradia, convivência e compromissos em blocos responsivos, com anotações internas e acompanhamento visual das etapas. Dados ausentes não fazem o registro desaparecer: a ficha informa indisponibilidade e não oferece alterações. Fichas encerradas preservam observações para consulta.
+
+Pré-aprovação, WhatsApp, geração/impressão de contrato, registro do envio, upload, visualização e download de PDF permanecem disponíveis nas etapas correspondentes. O envio de mensagem do contrato informa que o PDF deve ser anexado à conversa manualmente. A conclusão continua desabilitada até existir assinatura anexada. Recusa e conclusão exigem confirmação em modal; operações exibem carregamento e retorno de sucesso/erro na própria ficha. A lista oferece atualização, nova tentativa e estados distintos para ausência de pedidos e filtros sem resultados.
+
+Implementação em `src/screens/adoptionRequests/` (`model`, componentes, cartão e painel de contrato). Nenhuma mudança de banco, endpoint ou regra de negócio foi necessária. A validação inclui testes de autorização visual, busca, filtros, expansão, anotações, confirmação, contrato, estados de carregamento/vazio/erro e teste de navegador `test/browser/adoption-requests-browser.cjs` em desktop/celular. Nesse teste, inclusive alterações e upload são respostas simuladas; nenhum dado real do Supabase é modificado.
+
+### Medicação em uso dos animais
+
+- A migração `20261111210000_add_animal_medication_notes` adiciona a coluna de texto opcional `tb_animals.medication_notes`. Animais existentes começam com valor nulo.
+- Cadastro e edição da equipe aceitam `medicationNotes` com até 2.000 caracteres. A edição preserva o valor quando o campo é omitido e limpa a anotação ao receber texto vazio ou `null`.
+- Voluntários consultam o campo no perfil de adoção e em **Voluntariado → Consultar medicação dos animais**, que também lista animais resgatados ou em tratamento. As rotas `GET /api/animals/care` e `GET /api/animals/care/:id` exigem JWT e papel atual de voluntário, protetor ou administrador. Elas retornam somente identificação, nome, situação e medicação. A API pública de adoção não expõe a anotação.
+
+### Lar Temporário
+
+- Em **Apoie a Kapa**, o card **Lar Temporário** abre `/lar-temporario` para adotantes e voluntários autenticados. A tela usa a mesma descrição da FAQ e oferece retorno para Apoie a Kapa.
+- A migração `20261111220000_add_foster_applications` cria `tb_foster_applications` com uma candidatura por usuário, disponibilidade, observações sobre o espaço, status e datas. A FK remove a candidatura se a conta for excluída. A tabela tem RLS habilitada e é acessada pelo backend.
+- `POST /api/foster-applications` registra a candidatura como pendente, com o usuário obtido do JWT. `GET /api/foster-applications/mine` retorna a candidatura da conta atual. Adotantes e voluntários podem acessar essas rotas.
+- A tela mostra o formulário quando a API retorna `data: null`. Se receber HTTP 401 na consulta ou no envio, oferece um botão para encerrar a sessão local e entrar novamente.
+- A migração `20261111230000_add_foster_home_details` adiciona `home_address`, `has_other_animals`, `has_perimeter_barrier` e `has_secure_gate`. O envio exige o endereço da casa e respostas explícitas de Sim ou Não. As candidaturas anteriores preservam valores nulos, exibidos como **Não informado**. O endereço e as respostas são retornados apenas ao titular e à equipe autorizada.
+- Lar Temporário e ficha de adoção usam os mesmos campos de endereço (CEP, rua, número, bairro e cidade) e a mesma consulta ViaCEP. Lar Temporário combina os campos preenchidos no endereço salvo da candidatura.
+- Administradores e protetores analisam candidaturas em **Gestão do abrigo → Lar Temporário**. `GET /api/foster-applications` lista resultados paginados e `PATCH /api/foster-applications/:id/status` registra uma decisão sobre a candidatura pendente. As permissões são verificadas no banco e o status é atualizado de forma atômica.
+
+---
+
+### 47. Serviço de Envio de E-mails via Supabase Edge Function (`EmailService`)
 
 * **Contratos Compartilhados (`@kapa/shared` — [`packages/shared/src/types/email.ts`](packages/shared/src/types/email.ts))**:
   * Interfaces estritas `SendEmailPayload`, `EmailTemplatePayload`, `EmailResponse`, `AdoptionStatusEmailData`, `VolunteerApplicationEmailData` e `WelcomeEmailData`.
@@ -1232,7 +1315,7 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 
 ---
 
-### 47. Painel do Abrigo (Dashboard) e Decomposição de Custos ONNX por Categoria, Espécie e Porte
+### 48. Painel do Abrigo (Dashboard) e Decomposição de Custos ONNX por Categoria, Espécie e Porte
 
 * **Decomposição de Custos por IA (`PredictionService` — [`apps/server/src/services/PredictionService.ts`](apps/server/src/services/PredictionService.ts) e [`packages/shared/src/types/animal.ts`](packages/shared/src/types/animal.ts))**:
   * O método `predictAnimalCostWithBreakdown` avalia o modelo ONNX `adopet_tree_model.onnx` de forma contrafactual (vetor real vs. animal saudável vs. animal saudável com protocolo preventivo completo) para decompor o custo mensal previsto de cada animal em:
@@ -1252,7 +1335,7 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 
 ---
 
-### 48. Consolidação dos Fluxos de Autenticação no `AuthService`
+### 49. Consolidação dos Fluxos de Autenticação no `AuthService`
 
 * **Unificação (`AuthService` — [`apps/server/src/services/AuthService.ts`](apps/server/src/services/AuthService.ts))**:
   * `AuthService.register`: passa a suportar `avatar`, `latitude` e `longitude` opcionais e emite o evento `SystemEventTypes.USER_REGISTERED` (`provider: 'local'`) via `EventsService`.

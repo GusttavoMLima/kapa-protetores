@@ -56,6 +56,8 @@ Em PRs criados dentro do próprio repositório, o workflow publica um comentári
 
 O job gera relatórios LCOV para `server` e `mobile-web`, normaliza os caminhos a partir da raiz do monorepo e os consolida em `coverage/lcov.info`. Esse relatório permanece disponível como artefato por sete dias e alimenta o SonarCloud. PRs de forks executam a cobertura, mas não recebem permissão para publicar comentários.
 
+O Jest do servidor registra a cobertura do código compartilhado em `packages/shared`, e o CI normaliza esses caminhos no LCOV. O SonarCloud classifica os scripts de teste de navegador e os auxiliares de testes do servidor como testes.
+
 ### Proteção das branches
 
 Configure regras para `development` e `main` exigindo os seis checks listados acima. Para `development`, mantenha também aprovação de outro desenvolvedor, discussões resolvidas e Squash and merge, conforme o [`CONTRIBUTING.md`](../CONTRIBUTING.md).

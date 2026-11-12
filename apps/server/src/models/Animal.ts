@@ -35,6 +35,7 @@ export class Animal implements IAnimal {
   private place!: string;
   private mood!: string;
   private observations: string | null = null;
+  private medicationNotes: string | null = null;
   private status: AnimalStatus = 'rescued';
   private createdAt!: string;
   private photos: AnimalPhoto[] = [];
@@ -302,10 +303,19 @@ export class Animal implements IAnimal {
       place: this.place,
       mood: this.mood,
       observations: this.observations,
+      medicationNotes: this.medicationNotes,
       status: this.status,
       createdAt: this.createdAt,
       photos: this.photos,
     };
+  }
+
+  public getMedicationNotes(): string | null {
+    return this.medicationNotes;
+  }
+
+  public setMedicationNotes(notes: string | null): void {
+    this.medicationNotes = notes;
   }
 
   public toJSON(): IAnimalDTO {

@@ -9,6 +9,7 @@ import { AdopterProfileRouter } from './AdopterProfileRouter';
 import { AdoptionRouter } from './AdoptionRouter';
 import { FavoriteRouter } from './FavoriteRouter';
 import { VolunteerApplicationRouter } from './VolunteerApplicationRouter';
+import type { FosterApplicationRouter } from './FosterApplicationRouter';
 import { DashboardRouter } from './DashboardRouter';
 
 export class ApiRouter {
@@ -25,6 +26,7 @@ export class ApiRouter {
     private readonly adoptionRouter?: AdoptionRouter,
     private readonly favoriteRouter?: FavoriteRouter,
     private readonly volunteerApplicationRouter?: VolunteerApplicationRouter,
+    private readonly fosterApplicationRouter?: FosterApplicationRouter,
     private readonly dashboardRouter?: DashboardRouter,
   ) {
     this.initRoutes();
@@ -37,6 +39,9 @@ export class ApiRouter {
     this.router.use('/auth', this.credentialsRouter.router);
     this.router.use('/users', this.userRouter.router);
     this.router.use('/community-events', this.communityEventRouter.router);
+    if (this.fosterApplicationRouter) {
+      this.router.use('/foster-applications', this.fosterApplicationRouter.router);
+    }
     if (this.adopterProfileRouter) {
       this.router.use('/adopter-profiles', this.adopterProfileRouter.router);
     }

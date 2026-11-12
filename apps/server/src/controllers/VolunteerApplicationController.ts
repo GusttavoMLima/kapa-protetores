@@ -42,6 +42,23 @@ export class VolunteerApplicationController {
     }
   };
 
+  public updatePending = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user?.sub;
+      if (!userId) throw new UnauthorizedError('Usuário não autenticado.');
+
+      const params = volunteerApplicationIdParamsSchema.safeParse(req.params);
+      if (!params.success) throw new BadRequestError('Identificador de solicitação inválido.');
+      const body = volunteerApplicationDataSchema.safeParse(req.body);
+      if (!body.success) throw new BadRequestError('Dados inválidos para solicitação de voluntariado.');
+
+      const data = await this.service.updatePending(params.data.id, userId, body.data);
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   public getMine = async (
     req: Request,
     res: Response,

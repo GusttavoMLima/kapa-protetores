@@ -35,6 +35,7 @@ import type {
 } from '@kapa/shared';
 import { palette } from '@/theme';
 import { styles } from './styles';
+import { PageHeading } from '@/components/layout/PageHeading';
 
 type Feedback = { kind: 'success' | 'error'; message: string } | undefined;
 
@@ -240,15 +241,7 @@ export function ActivitiesScreen() {
                 <ArrowLeftIcon size={20} color={palette.denim} weight="bold" />
                 <Text style={styles.backButtonText}>Voltar ao início</Text>
               </Pressable>
-              <View style={styles.hero}>
-                <View style={styles.heroIcon}>
-                  <CalendarIcon size={28} color={palette.orange} weight="fill" />
-                </View>
-                <View style={styles.heroCopy}>
-                  <Text style={styles.title}>Atividades da semana</Text>
-                  <Text style={styles.subtitle}>Organize as ações e prepare as vagas para os voluntários.</Text>
-                </View>
-              </View>
+              <PageHeading eyebrow="GESTÃO DO ABRIGO • TEMPO QUE TRANSFORMA" icon={CalendarIcon} title="Atividades da semana" description="Organize os encontros, prepare as vagas e reúna nossa rede de voluntários. Cada hora dedicada faz diferença." />
 
               {feedback ? (
                 <View style={[styles.feedback, feedback.kind === 'error' && styles.feedbackError]} accessibilityLiveRegion="polite">

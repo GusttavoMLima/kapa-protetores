@@ -67,6 +67,19 @@ describe('HomeScreen', () => {
     } as ReturnType<typeof useAuth>);
   });
 
+  it('separa a gestão do admin e abre cada card sem carregar o catálogo', async () => {
+    mockedUseAuth.mockReturnValue({ user: { role: 'admin', username: 'Equipe' } } as ReturnType<typeof useAuth>);
+    const screen = await render(<HomeScreen />);
+    expect(screen.queryByText('Adotar Agora')).toBeNull();
+    expect(screen.queryByText('Ser Voluntario')).toBeNull();
+    expect(mockedUseAdoptAnimals).not.toHaveBeenCalled();
+    for (const title of ['Solicitações de adoção', 'Animais do abrigo', 'Organizar atividades', 'Candidaturas de voluntários']) {
+      await fireEvent.press(screen.getByText(title));
+    }
+    expect(router.push).toHaveBeenCalledTimes(4);
+    expect(screen.getByLabelText('Cadastrar usuário da equipe')).toBeTruthy();
+  });
+
   it('mostra animais disponíveis cadastrados', async () => {
     mockedUseAdoptAnimals.mockReturnValue({
       data: [availableAnimal, { ...availableAnimal, id: 'pet-2', status: 'adopted' }],
@@ -140,22 +153,20 @@ describe('HomeScreen', () => {
     it('no web mostra todos os cartões em linhas que quebram, sem rolagem horizontal', async () => {
       Platform.OS = 'web';
 
-      const { getAllByTestId, getByText } = await renderAsAdmin();
+      const { getByTestId, queryByTestId, getByText } = await renderAsAdmin();
 
-      const grids = getAllByTestId('home-card-grid');
-      expect(grids).toHaveLength(2);
-      for (const grid of grids) {
-        expect(grid.props.className).toContain('flex-wrap');
-      }
+      expect(getByTestId('home-card-grid').props.className).toContain('flex-wrap');
+      expect(queryByTestId('home-card-carousel')).toBeNull();
       expect(getByText('Usuários')).toBeTruthy();
     });
 
     it('no mobile mantém o carrossel horizontal', async () => {
       Platform.OS = 'ios';
 
-      const { queryByTestId, getByText } = await renderAsAdmin();
+      const { getByTestId, queryByTestId, getByText } = await renderAsAdmin();
 
       expect(queryByTestId('home-card-grid')).toBeNull();
+      expect(getByTestId('home-card-carousel')).toBeTruthy();
       expect(getByText('Usuários')).toBeTruthy();
     });
   });

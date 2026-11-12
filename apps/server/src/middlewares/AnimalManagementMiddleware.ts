@@ -5,6 +5,7 @@ import { UnauthorizedError, ForbiddenError } from '../errors';
 
 export function animalManagementAccess(
   repository: Pick<UserRepository, 'findByIdValue'>,
+  allowVolunteers = false,
 ): RequestHandler {
   return async (req, _res, next) => {
     try {
@@ -12,7 +13,10 @@ export function animalManagementAccess(
       const user = await repository.findByIdValue(req.user.sub);
       if (!user) throw new UnauthorizedError();
       // Read the current role so a revoked permission cannot outlive its JWT.
-      if (!canManageAnimals(user.getRole())) throw new ForbiddenError();
+      const role = user.getRole();
+      if (!canManageAnimals(role) && !(allowVolunteers && role === 'volunteer')) {
+        throw new ForbiddenError();
+      }
       next();
     } catch (error) {
       next(error);

@@ -111,6 +111,7 @@ function toCreateAnimalInput(animal: LegacyAnimal): CreateAnimalInput {
     place: animal.localResgate,
     mood: animal.humor ?? animal.temperamento,
     observations: animal.observacoes || null,
+    medicationNotes: animal.medicacaoEmUso?.trim() || null,
     status: animal.status === 'em_tratamento' ? 'treating' : animal.status === 'disponivel' ? 'available' : animal.status === 'adotado' ? 'adopted' : 'rescued',
   };
 }

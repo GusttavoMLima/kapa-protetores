@@ -1,10 +1,12 @@
 import '@/../global.css';
-import { Redirect, Stack } from 'expo-router';
+import { Redirect, Stack, usePathname } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '@/hooks/useAuth';
+import { canVisitScreen, homeForRole } from '@/navigation/access';
 
 export default function ProtectedLayout() {
-  const { isLogged, isReady } = useAuth();
+  const { isLogged, isReady, user } = useAuth();
+  const pathname = usePathname();
 
   if (!isReady) {
     return (
@@ -18,6 +20,10 @@ export default function ProtectedLayout() {
     return <Redirect href={'/signIn'} />;
   }
 
+  if (!canVisitScreen(user?.role, pathname)) {
+    return <Redirect href={homeForRole(user?.role)} />;
+  }
+
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
@@ -26,7 +32,6 @@ export default function ProtectedLayout() {
       <Stack.Screen name="my-adoptions" />
       <Stack.Screen name="my-events" />
       <Stack.Screen name="my-favorites" />
-      <Stack.Screen name="volunteer" />
       <Stack.Screen name="gestao/solicitacoes" />
       <Stack.Screen name="gestao/voluntarios" />
       <Stack.Screen name="gestao/usuarios" />

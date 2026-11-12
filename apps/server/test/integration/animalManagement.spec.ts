@@ -69,9 +69,10 @@ describe('animal management authorization, filters, edits and public boundary', 
         generatedAt: new Date().toISOString(),
       }),
     };
-    app.use('/animals', new AnimalsRouter(new AnimalsController(service, mockPredictionService as never), { upload: async (_req, res) => { res.json({ success: true }); } }, new AuthMiddleware(jwt), animalManagementAccess({
+    const users = {
       findByIdValue: async (userId: string) => { const role = roles.get(userId); if (!role) return null; const user = new User(); user.setRole(role); return user; },
-    })).router);
+    };
+    app.use('/animals', new AnimalsRouter(new AnimalsController(service, mockPredictionService as never), { upload: async (_req, res) => { res.json({ success: true }); } }, new AuthMiddleware(jwt), animalManagementAccess(users), animalManagementAccess(users, true)).router);
     app.use(ErrorHandler.handle);
     server = app.listen(0, '127.0.0.1');
     await new Promise<void>((resolve) => server.once('listening', resolve));
@@ -130,12 +131,42 @@ describe('animal management authorization, filters, edits and public boundary', 
     const { data } = await (await request('')).json();
     expect(data.length).toBe(1);
     expect(data[0].status).toBe('available');
-    for (const field of ['observations', 'place', 'healthCondition', 'rescuedAt']) {
+    for (const field of ['observations', 'place', 'healthCondition', 'rescuedAt', 'medicationNotes']) {
       expect(field in data[0]).toBe(false);
     }
     for (const animal of animals.filter((animal) => animal.getStatus() !== 'available')) {
       expect((await request(`/${animal.getId().getValue()}`)).status).toBe(404);
     }
+  });
+
+  it('records and clears medication notes and restricts care profiles to current shelter roles', async () => {
+    const notes = 'Orientação veterinária registrada';
+    const created = await request('', token('admin'), 'POST', { ...input, medicationNotes: `  ${notes}  ` });
+    expect(created.status).toBe(201);
+    const { data: animal } = await created.json();
+    const carePath = `/care/${animal.id}`;
+    expect((await request(carePath)).status).toBe(401);
+    expect((await request(carePath, token('revoked', 'volunteer'))).status).toBe(403);
+    const care = await request(carePath, token('volunteer', 'adopter'));
+    expect(care.status).toBe(200);
+    expect(care.headers.get('cache-control')).toBe('no-store');
+    expect((await care.json()).data).toEqual({
+      id: animal.id, name: input.name, status: 'rescued', medicationNotes: notes,
+    });
+    const page = await request('/care?status=treating', token('volunteer', 'volunteer'));
+    expect((await page.json()).data.items).toEqual([
+      expect.objectContaining({ status: 'treating', medicationNotes: null }),
+    ]);
+    const editPath = `/management/${animal.id}`;
+    expect((await request(editPath, token('volunteer'), 'PATCH', { medicationNotes: null })).status).toBe(403);
+    expect((await request(editPath, token('admin'), 'PATCH', { medicationNotes: 'x'.repeat(2001) })).status).toBe(400);
+    expect((await request(editPath, token('admin'), 'PATCH', { status: 'available' })).status).toBe(200);
+    const publicProfile = await request(`/${animal.id}`);
+    expect((await publicProfile.json()).data).not.toHaveProperty('medicationNotes');
+    expect((await (await request(carePath, token('volunteer'))).json()).data.medicationNotes).toBe(notes);
+    const cleared = await request(editPath, token('admin'), 'PATCH', { medicationNotes: '  ' });
+    expect(cleared.status).toBe(200);
+    expect((await cleared.json()).data.medicationNotes).toBeNull();
   });
 
   it('PATCH preserves hidden fields and photos, validates body and missing IDs', async () => {

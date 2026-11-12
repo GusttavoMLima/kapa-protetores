@@ -23,6 +23,8 @@ import {
 } from 'phosphor-react-native';
 import { type ComponentType, useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { isShelterStaff } from '@/navigation/access';
+import { ShelterDashboard } from './ShelterDashboard';
 
 export type HomeSpeciesFilter = 'all' | 'dog' | 'cat';
 
@@ -35,9 +37,6 @@ const HERO_SPARKLE_ICON_SIZE = 14;
 const CAROUSEL_CARD_GAP = 16;
 const SCROLL_BOTTOM_PADDING = 40;
 const SOFT_DENIM_BACKGROUND = '#E8EEF5';
-
-const DEFAULT_PET_PHOTO =
-  'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80';
 
 const COMMUNITY_HOME_CARDS: readonly SecondaryCardProps[] = [
   {
@@ -74,7 +73,7 @@ const COMMUNITY_HOME_CARDS: readonly SecondaryCardProps[] = [
     description: 'Descubra como nos apoiar com seu tempo ou doações.',
     link: {
       label: 'Como ajudar',
-      href: '/(protected)/volunteer',
+      href: '/(protected)/(tabs)/volunteer',
       color: palette.denim,
     },
   },
@@ -146,6 +145,15 @@ const SHELTER_ANIMALS_CARD: SecondaryCardProps = {
 };
 
 const ACTIVITY_MANAGEMENT_CARDS: readonly SecondaryCardProps[] = [
+  {
+    icon: {
+      component: <PawPrintIcon size={CARD_ICON_SIZE} color={palette.denim} weight="fill" />,
+      backgroundColor: palette.peach,
+    },
+    title: 'Lar Temporário',
+    description: 'Analise candidaturas para acolher animais do abrigo.',
+    link: { label: 'Ver lares temporários', href: '/gestao/lares-temporarios', color: palette.denim },
+  },
   {
     icon: {
       component: (
@@ -467,6 +475,13 @@ function FeaturedPetsStateCard({
 
 export function HomeScreen() {
   const { user } = useAuth();
+  return isShelterStaff(user?.role)
+    ? <ShelterDashboard cards={buildStaffHomeCards(user?.role)} />
+    : <CommunityHomeScreen />;
+}
+
+function CommunityHomeScreen() {
+  const { user } = useAuth();
   const { data: animals = [], isLoading: isLoadingAnimals } = useAdoptAnimals();
   const { data: profile } = useUserProfile();
   const { mutate: toggleFavorite } = useToggleFavorite();
@@ -572,7 +587,7 @@ export function HomeScreen() {
                   <PetCard
                     key={animal.id}
                     name={animal.name}
-                    imgUrl={animal.photos?.[0]?.photoUrl ?? DEFAULT_PET_PHOTO}
+                    imgUrl={animal.photos?.[0]?.photoUrl ?? ''}
                     characteristics={formatPetCharacteristics(animal)}
                     isFavorited={favoritedIds.has(animal.id)}
                     onPress={() => handleOpenPetDetails(animal.id)}

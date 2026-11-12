@@ -124,9 +124,9 @@ jobs:
         shell: bash
         run: |
           mkdir -p coverage/server coverage/mobile
-          npm --prefix apps/server run test:cov -- --coverageDirectory=../../coverage/server --coverageReporters=lcov
+          npm --prefix apps/server run test:cov -- --coverageDirectory="$GITHUB_WORKSPACE/coverage/server" --coverageReporters=lcov
           npm --prefix apps/mobile-web test -- --coverage --coverageDirectory=../../coverage/mobile --coverageReporters=lcov
-          sed 's|^SF:|SF:apps/server/|' coverage/server/lcov.info > coverage/lcov.info
+          sed -e 's|^SF:|SF:apps/server/|' -e 's|^SF:apps/server/../../packages/shared/|SF:packages/shared/|' coverage/server/lcov.info > coverage/lcov.info
           sed 's|^SF:|SF:apps/mobile-web/|' coverage/mobile/lcov.info >> coverage/lcov.info
 
       - name: Upload coverage report

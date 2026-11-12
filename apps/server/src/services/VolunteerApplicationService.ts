@@ -79,6 +79,33 @@ export class VolunteerApplicationService {
     }
   }
 
+  public async updatePending(
+    id: string,
+    userId: string,
+    application: VolunteerApplicationData,
+  ): Promise<VolunteerApplication> {
+    let updated: VolunteerApplication;
+    try {
+      updated = await this.repository.updatePending(id, userId, application);
+    } catch (error) {
+      if (!(error instanceof Error)) throw error;
+      if (error.message === 'USER_NOT_FOUND' || error.message === 'VOLUNTEER_APPLICATION_NOT_FOUND') {
+        throw new NotFoundError('Solicitação de voluntariado não encontrada.');
+      }
+      if (error.message === 'VOLUNTEER_APPLICATION_ALREADY_REVIEWED') {
+        throw new ConflictError('A equipe já analisou esta solicitação.');
+      }
+      throw error;
+    }
+    if (this.cache) {
+      await Promise.all([
+        this.cache.deleteCache(buildUserVolunteerApplicationCacheKey(userId)),
+        this.cache.deleteCache(ADMIN_VOLUNTEER_APPLICATIONS_CACHE_KEY),
+      ]);
+    }
+    return updated;
+  }
+
   public async getMyApplication(
     userId: string,
   ): Promise<VolunteerApplication | null> {

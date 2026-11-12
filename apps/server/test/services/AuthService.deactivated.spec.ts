@@ -78,6 +78,8 @@ describe('AuthService.login com conta desativada', () => {
     );
 
     const result = await service.register({
+      birthDate: '1995-05-10',
+      phone: '19999998888',
       username: 'Teste',
       email: 'teste@kapa.test',
       password: 'password123',

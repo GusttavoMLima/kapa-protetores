@@ -3,6 +3,7 @@ import { ActivityIndicator, Image, Pressable, ScrollView, Text, View } from 'rea
 import { ArrowLeftIcon, CheckCircleIcon, ClockIcon, PawPrintIcon, XCircleIcon } from 'phosphor-react-native';
 import { useMyAdoptions } from '@/hooks/useAdoptions';
 import { palette } from '@/theme';
+import { PageHeading } from '@/components/layout/PageHeading';
 
 const statusInfo = {
   pending: { label: 'Em análise', description: 'O abrigo ainda está avaliando a sua ficha.', color: palette.orangeDark, background: palette.peach, Icon: ClockIcon },
@@ -16,7 +17,7 @@ export function MyAdoptionsScreen() {
   const { data: adoptions = [], isLoading, error, refetch } = useMyAdoptions();
 
   return (
-    <ScrollView className="flex-1 bg-cream" contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 20 }}>
+    <ScrollView className="flex-1 bg-cream" contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 24, width: '100%', maxWidth: 1140, alignSelf: 'center' }}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Voltar para o perfil"
@@ -26,11 +27,7 @@ export function MyAdoptionsScreen() {
         <ArrowLeftIcon size={18} color={palette.denim} />
         <Text className="font-body-medium text-sm text-denim">Voltar ao perfil</Text>
       </Pressable>
-      <View className="items-center bg-white rounded-2xl border border-line px-5 py-6 gap-2">
-        <View className="w-12 h-12 rounded-full bg-peach items-center justify-center"><PawPrintIcon size={26} color={palette.orange} weight="fill" /></View>
-        <Text className="font-heading-bold text-3xl text-ink text-center">Minhas solicitações</Text>
-        <Text className="font-body text-base text-ink-muted text-center">Acompanhe aqui cada processo de adoção.</Text>
-      </View>
+      <PageHeading eyebrow="SEU CAMINHO ATÉ UM NOVO AMIGO" title="Minhas solicitações" description="Cada etapa é um passo mais perto de um novo começo. Acompanhe aqui suas fichas e as respostas da equipe Kapa." />
 
       {isLoading ? <View className="py-16 items-center gap-3"><ActivityIndicator size="large" color={palette.orange} /><Text className="font-body text-ink-muted">Carregando solicitações...</Text></View>
         : error ? <View className="bg-white rounded-2xl border border-danger-soft p-6 items-center gap-3"><Text className="font-heading-bold text-danger text-center">Não foi possível carregar suas solicitações.</Text><Pressable onPress={() => void refetch()} className="bg-orange px-5 py-3 rounded-lg"><Text className="font-body-bold text-white">Tentar novamente</Text></Pressable></View>

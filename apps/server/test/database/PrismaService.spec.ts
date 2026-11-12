@@ -29,6 +29,7 @@ import {
 
 describe('PrismaService PostgreSQL pool configuration', () => {
   it('leaves verified TLS parameters in the connection string for pg to process', () => {
+    jest.replaceProperty(process, 'env', { ...process.env, DB_POOL_MAX: '' });
     const connectionString =
       'postgresql://user:password@aws-0-region.pooler.supabase.com:5432/postgres' +
       '?sslmode=verify-full&sslrootcert=/etc/secrets/supabase-ca.crt';

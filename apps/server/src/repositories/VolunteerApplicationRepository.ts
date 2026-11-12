@@ -1,4 +1,5 @@
 import { Prisma, type PrismaClient } from '@prisma/client';
+import { requireAdultProfile } from '../domains/adultEligibility';
 import type {
   CommunityEventType,
   UserRole,
@@ -79,6 +80,14 @@ export class VolunteerApplicationRepository {
             });
 
             if (!user) throw new Error('USER_NOT_FOUND');
+            const profile = await transaction.user.findUnique({
+              where: { id: userId },
+              select: { birth_date: true, phone: true },
+            });
+            const personalData = requireAdultProfile(
+              profile?.birth_date,
+              profile?.phone,
+            );
             if (user.role !== 'adopter') {
               throw new Error('VOLUNTEER_ROLE_ALREADY_GRANTED');
             }
@@ -97,7 +106,7 @@ export class VolunteerApplicationRepository {
               data: {
                 user_id: userId,
                 full_name: application.fullName,
-                phone: application.phone,
+                phone: personalData.phone,
                 areas_of_interest: application.areasOfInterest,
                 availability: application.availability,
                 motivation: application.motivation,
@@ -143,6 +152,41 @@ export class VolunteerApplicationRepository {
     }
 
     throw new Error('VOLUNTEER_APPLICATION_RETRY');
+  }
+
+  public async updatePending(
+    id: string,
+    userId: string,
+    application: VolunteerApplicationData,
+  ): Promise<VolunteerApplication> {
+    const profile = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { birth_date: true, phone: true },
+    });
+    if (!profile) throw new Error('USER_NOT_FOUND');
+    const { phone } = requireAdultProfile(profile.birth_date, profile.phone);
+
+    try {
+      const record = await this.prisma.volunteerApplications.update({
+        where: { id, user_id: userId, status: 'pending' },
+        data: {
+          full_name: application.fullName,
+          phone,
+          areas_of_interest: application.areasOfInterest,
+          availability: application.availability,
+          motivation: application.motivation,
+          accepts_terms: application.acceptsTerms,
+        },
+      });
+      return this.toDTO(record);
+    } catch (error) {
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2025') throw error;
+      const owned = await this.prisma.volunteerApplications.findFirst({
+        where: { id, user_id: userId },
+        select: { id: true },
+      });
+      throw new Error(owned ? 'VOLUNTEER_APPLICATION_ALREADY_REVIEWED' : 'VOLUNTEER_APPLICATION_NOT_FOUND');
+    }
   }
 
   public async findLatestByUserId(
@@ -212,6 +256,8 @@ export class VolunteerApplicationRepository {
       }
 
       if (status === 'approved' && existing.user.role === 'adopter') {
+        const profile = await transaction.user.findUnique({ where: { id: existing.user_id }, select: { birth_date: true, phone: true } });
+        requireAdultProfile(profile?.birth_date, profile?.phone);
         await transaction.user.update({
           where: { id: existing.user_id },
           data: { role: 'volunteer' },

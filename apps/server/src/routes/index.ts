@@ -46,6 +46,9 @@ import { VolunteerApplicationRepository } from '../repositories/VolunteerApplica
 import { VolunteerApplicationService } from '../services/VolunteerApplicationService';
 import { VolunteerApplicationController } from '../controllers/VolunteerApplicationController';
 import { VolunteerApplicationRouter } from './VolunteerApplicationRouter';
+import { FosterApplicationRouter } from './FosterApplicationRouter';
+import { FosterApplicationController } from '../controllers/FosterApplicationController';
+import { FosterApplicationService } from '../services/FosterApplicationService';
 import { EmailService } from '../services/EmailService';
 import { DashboardService } from '../services/DashboardService';
 import { DashboardController } from '../controllers/DashboardController';
@@ -143,6 +146,7 @@ const animalsRouter = new AnimalsRouter(
   new AnimalPhotosController(animalPhotoService),
   authMiddleware,
   animalManagementAccess(userRepository),
+  animalManagementAccess(userRepository, true),
 );
 
 const credentialsRouter = new CredentialsRouter(
@@ -232,6 +236,12 @@ const apiRouterInstance = new ApiRouter(
   adoptionRouter,
   favoriteRouter,
   volunteerApplicationRouter,
+  new FosterApplicationRouter(
+    new FosterApplicationController(new FosterApplicationService(prisma)),
+    authMiddleware,
+    userRepository,
+    animalManagementAccess(userRepository),
+  ),
   dashboardRouter,
 );
 

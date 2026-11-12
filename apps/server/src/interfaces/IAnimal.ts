@@ -30,6 +30,7 @@ export interface IAnimal {
   getPlace(): string;
   getMood(): string;
   getObservations(): string | null;
+  getMedicationNotes(): string | null;
   getStatus(): AnimalStatus;
   getCreatedAt(): string;
 
@@ -55,6 +56,7 @@ export interface IAnimal {
   setPlace(place: string): void;
   setMood(mood: string): void;
   setObservations(observations: string | null): void;
+  setMedicationNotes(notes: string | null): void;
   setStatus(status: AnimalStatus): void;
   setCreatedAt(date: string): void;
   toDTO(): import('@kapa/shared').Animal;

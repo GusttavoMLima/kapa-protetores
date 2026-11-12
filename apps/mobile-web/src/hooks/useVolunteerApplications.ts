@@ -34,11 +34,33 @@ export function useMyVolunteerApplication(enabled = true) {
   return useQuery({
     queryKey: ['volunteer-applications', 'mine'],
     enabled,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const response = await kapaService.get<
         ApiResponse<VolunteerApplication | null>
       >('/volunteer-applications/mine');
       return response.data.data;
+    },
+  });
+}
+
+export function useEditVolunteerApplication() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, application }: { id: string; application: VolunteerApplicationData }) => {
+      const response = await kapaService.patch<ApiResponse<VolunteerApplication>>(
+        `/volunteer-applications/${encodeURIComponent(id)}`, application,
+      );
+      return response.data.data;
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData<VolunteerApplication | null>(['volunteer-applications', 'mine'], (current) =>
+        current?.id === updated.id && current.status === 'pending' ? updated : current,
+      );
+      void queryClient.invalidateQueries({ queryKey: ['volunteer-applications', 'admin'] });
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ['volunteer-applications', 'mine'] });
     },
   });
 }

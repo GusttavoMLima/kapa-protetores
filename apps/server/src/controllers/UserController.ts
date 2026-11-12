@@ -255,7 +255,7 @@ export class UserController {
         );
       }
 
-      const { email, password, username, avatar, latitude, longitude } =
+      const { email, password, username, avatar, latitude, longitude, birthDate, phone } =
         parsedBody.data;
 
       let existingUser;
@@ -272,6 +272,8 @@ export class UserController {
       }
 
       const user = await this.userService.create({
+        birthDate,
+        phone,
         email,
         username,
         avatar: avatar ?? undefined,

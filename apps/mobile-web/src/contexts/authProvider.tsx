@@ -13,6 +13,8 @@ import {
 } from 'react';
 
 export interface SignUpData {
+  birthDate: string;
+  phone: string;
   username: string;
   email: string;
   password: string;
