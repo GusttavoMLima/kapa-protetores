@@ -128,9 +128,6 @@ export function AnimalManagementScreen() {
                 <Text className="font-heading-bold text-base text-denim">
                   {formatCurrencyBRL(budgetPrediction.bySpecies.dog.totalCost)}
                 </Text>
-                <Text className="font-body text-xs text-ink-muted">
-                  Média {formatCurrencyBRL(budgetPrediction.bySpecies.dog.averageCost ?? 0)} / cão
-                </Text>
               </View>
               <View className="flex-1 min-w-[140px] rounded-lg bg-cream p-3 gap-0.5">
                 <Text className="font-body-medium text-xs text-ink-muted">
@@ -138,9 +135,6 @@ export function AnimalManagementScreen() {
                 </Text>
                 <Text className="font-heading-bold text-base text-denim">
                   {formatCurrencyBRL(budgetPrediction.bySpecies.cat.totalCost)}
-                </Text>
-                <Text className="font-body text-xs text-ink-muted">
-                  Média {formatCurrencyBRL(budgetPrediction.bySpecies.cat.averageCost ?? 0)} / gato
                 </Text>
               </View>
               <View className="flex-1 min-w-[140px] rounded-lg bg-cream p-3 gap-0.5">
@@ -152,43 +146,6 @@ export function AnimalManagementScreen() {
                 </Text>
               </View>
             </View>
-
-            {budgetPrediction.byCategory ? (
-              <View className="flex-row flex-wrap gap-3 pt-2 border-t border-border">
-                <View className="flex-1 min-w-[130px] rounded-lg bg-peach/50 p-3 gap-0.5">
-                  <Text className="font-body-medium text-xs text-denim">
-                    Alimentação
-                  </Text>
-                  <Text className="font-heading-bold text-sm text-ink">
-                    {formatCurrencyBRL(budgetPrediction.byCategory.nutrition)}
-                  </Text>
-                </View>
-                <View className="flex-1 min-w-[130px] rounded-lg bg-peach/50 p-3 gap-0.5">
-                  <Text className="font-body-medium text-xs text-denim">
-                    Veterinário
-                  </Text>
-                  <Text className="font-heading-bold text-sm text-ink">
-                    {formatCurrencyBRL(budgetPrediction.byCategory.veterinary)}
-                  </Text>
-                </View>
-                <View className="flex-1 min-w-[130px] rounded-lg bg-peach/50 p-3 gap-0.5">
-                  <Text className="font-body-medium text-xs text-denim">
-                    Vacinas & Preventivos
-                  </Text>
-                  <Text className="font-heading-bold text-sm text-ink">
-                    {formatCurrencyBRL(budgetPrediction.byCategory.preventives)}
-                  </Text>
-                </View>
-                <View className="flex-1 min-w-[130px] rounded-lg bg-peach/50 p-3 gap-0.5">
-                  <Text className="font-body-medium text-xs text-denim">
-                    Higiene & Manejo
-                  </Text>
-                  <Text className="font-heading-bold text-sm text-ink">
-                    {formatCurrencyBRL(budgetPrediction.byCategory.hygiene)}
-                  </Text>
-                </View>
-              </View>
-            ) : null}
           </View>
         ) : null}
 

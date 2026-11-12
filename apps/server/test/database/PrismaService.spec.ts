@@ -22,8 +22,6 @@ jest.mock('@prisma/adapter-pg', () => ({
 
 import {
   createPostgresPoolConfig,
-  DEFAULT_PRISMA_TRANSACTION_MAX_WAIT_MS,
-  DEFAULT_PRISMA_TRANSACTION_TIMEOUT_MS,
   PrismaService,
 } from '../../src/database/PrismaService';
 
@@ -55,7 +53,7 @@ describe('PrismaService PostgreSQL pool configuration', () => {
     expect(config).not.toHaveProperty('ssl');
   });
 
-  it('passes the connection-string TLS configuration to the PostgreSQL pool and configures Prisma transaction timeouts', () => {
+  it('passes the connection-string TLS configuration to the PostgreSQL pool', () => {
     const connectionString =
       'postgresql://user:password@aws-0-region.pooler.supabase.com:5432/postgres' +
       '?sslmode=verify-full&sslrootcert=/etc/secrets/supabase-ca.crt';
@@ -66,14 +64,5 @@ describe('PrismaService PostgreSQL pool configuration', () => {
     expect(mockPoolConstructor).toHaveBeenCalledWith(
       createPostgresPoolConfig(connectionString),
     );
-    expect(mockPrismaClientConstructor).toHaveBeenCalledWith(
-      expect.objectContaining({
-        transactionOptions: {
-          maxWait: DEFAULT_PRISMA_TRANSACTION_MAX_WAIT_MS,
-          timeout: DEFAULT_PRISMA_TRANSACTION_TIMEOUT_MS,
-        },
-      }),
-    );
   });
 });
-

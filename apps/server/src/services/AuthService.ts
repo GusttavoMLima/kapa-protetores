@@ -1,27 +1,20 @@
-import {
-  DEFAULT_USER_ADOPTER_RULES,
-  SystemEventTypes,
-  type AuthResponse,
-  type UserRole,
-} from '@kapa/shared';
+import { DEFAULT_USER_ADOPTER_RULES, type AuthResponse } from '@kapa/shared';
+import type { UserRole } from '@kapa/shared';
 import { ConflictError, ForbiddenError, UnauthorizedError } from '../errors';
 import { logger } from '../config/logger';
-import { ACCOUNT_DEACTIVATED_MESSAGE, type UserService } from './UserService';
+import { ACCOUNT_DEACTIVATED_MESSAGE } from './UserService';
 import { Email } from '../domains/Email';
 import { User } from '../models';
 import { UserRepository } from '../repositories/UserRepository';
 import { PasswordHasher } from '../security/PasswordHasher';
 import { JwtService } from '../security/JwtService';
 import type { EmailService } from './EmailService';
-import type { EventsService } from './EventsService';
 
 export class AuthService {
   constructor(
     private readonly repository: UserRepository,
     private readonly passwordHasher: PasswordHasher,
     private readonly jwtService: JwtService,
-    private readonly eventsService?: EventsService,
-    private readonly userService?: UserService,
     private readonly emailService?: EmailService,
   ) {}
 
@@ -31,10 +24,7 @@ export class AuthService {
     username: string;
     email: string;
     password: string;
-    role?: Extract<UserRole, 'adopter'>;
-    avatar?: string | null;
-    latitude?: number | null;
-    longitude?: number | null;
+    role: Extract<UserRole, 'adopter'>;
   }): Promise<AuthResponse> {
     const email = Email.create(input.email);
     if (await this.repository.findByEmail(email)) {
@@ -49,25 +39,7 @@ export class AuthService {
     user.setPhone(input.phone);
     user.setRules(Array.from(DEFAULT_USER_ADOPTER_RULES));
     user.setPassword(await this.passwordHasher.hash(input.password));
-    if (input.avatar) user.setAvatar(input.avatar);
-    if (input.latitude !== undefined && input.latitude !== null) {
-      user.setLatitude(input.latitude);
-    }
-    if (input.longitude !== undefined && input.longitude !== null) {
-      user.setLongitude(input.longitude);
-    }
-
     const created = await this.repository.create(user);
-    if (this.eventsService) {
-      await this.eventsService.createEvent({
-        type: SystemEventTypes.USER_REGISTERED,
-        userId: created.getId().toString(),
-        payload: {
-          role: created.getRole(),
-          provider: 'local',
-        },
-      });
-    }
 
     if (this.emailService) {
       const dto = created.toDTO();
@@ -85,14 +57,6 @@ export class AuthService {
     }
 
     return this.createResponse(created);
-  }
-
-  public async loginWithGoogle(idToken: string): Promise<AuthResponse> {
-    if (!this.userService) {
-      throw new UnauthorizedError('Login Google indisponível.');
-    }
-    const user = await this.userService.authenticateWithGoogle(idToken);
-    return this.createResponse(user);
   }
 
   public async createUserByAdmin(input: {

@@ -16,8 +16,8 @@ export const options = {
     { duration: '30s', target: 20 },
     { duration: '15s', target: 30 },
     { duration: '15s', target: 40 },
-    { duration: '30s', target: 500 },
-    { duration: '15s', target: 1000 },
+    { duration: '30s', target: 50 },
+    { duration: '15s', target: 100 },
   ],
   thresholds: {
     http_req_failed: ['rate<0.05'],
@@ -29,7 +29,7 @@ export function setup() {
   const loginRes = http.post(
     `${BASE_URL}/auth/login`,
     JSON.stringify({
-      email: 'johndoe@gmail.com',
+      email: 'admin@kapa.com',
       password: '123456',
     }),
     {

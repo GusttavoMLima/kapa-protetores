@@ -163,19 +163,6 @@ export type RecommendedAnimals = FavoritedAnimal & {
   isFavorited?: boolean;
 };
 
-export interface AnimalCostBreakdown {
-  /** Alimentação e dieta mensal (R$) */
-  nutrition: number;
-  /** Tratamento clínico e reabilitação veterinária (R$) */
-  veterinary: number;
-  /** Vacinas (V10/Raiva), vermífugo e castração pendentes (R$) */
-  preventives: number;
-  /** Higiene, limpeza, antiparasitários e insumos básicos (R$) */
-  hygiene: number;
-}
-
-export type ShelterBudgetSizeKey = 'small' | 'medium' | 'large';
-
 export interface AnimalBudgetPredictionItem {
   id: string;
   name: string;
@@ -184,23 +171,18 @@ export interface AnimalBudgetPredictionItem {
   status: AnimalStatus;
   healthCondition: Conditions;
   predictedCost: number;
-  breakdown: AnimalCostBreakdown;
 }
 
 export interface ShelterBudgetCategorySummary {
   count: number;
   totalCost: number;
-  averageCost: number;
-  breakdown: AnimalCostBreakdown;
 }
 
 export interface ShelterBudgetPrediction {
   totalPredictedBudget: number;
   activeAnimalsCount: number;
   averageCostPerAnimal: number;
-  byCategory: AnimalCostBreakdown;
   bySpecies: Record<Species, ShelterBudgetCategorySummary>;
-  bySize: Record<ShelterBudgetSizeKey, ShelterBudgetCategorySummary>;
   byStatus: Record<
     Exclude<AnimalStatus, 'adopted'>,
     ShelterBudgetCategorySummary

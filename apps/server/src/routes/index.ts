@@ -50,9 +50,6 @@ import { FosterApplicationRouter } from './FosterApplicationRouter';
 import { FosterApplicationController } from '../controllers/FosterApplicationController';
 import { FosterApplicationService } from '../services/FosterApplicationService';
 import { EmailService } from '../services/EmailService';
-import { DashboardService } from '../services/DashboardService';
-import { DashboardController } from '../controllers/DashboardController';
-import { DashboardRouter } from './DashboardRouter';
 
 const jwtService = new JwtService(
   process.env.JWT_SECRET ?? '',
@@ -110,16 +107,7 @@ const userController = new UserController(
 );
 const userRouter = new UserRouter(userController, authMiddleware);
 
-const authService = new AuthService(
-  userRepository,
-  new PasswordHasher(),
-  jwtService,
-  eventsService,
-  userService,
-  emailService,
-);
-
-const authController = new AuthController(userService, authService);
+const authController = new AuthController(userService);
 const authRouter = new AuthRouter(authController);
 
 const animalRepository = new PostgresAnimalRepository(prisma);
@@ -147,6 +135,13 @@ const animalsRouter = new AnimalsRouter(
   authMiddleware,
   animalManagementAccess(userRepository),
   animalManagementAccess(userRepository, true),
+);
+
+const authService = new AuthService(
+  userRepository,
+  new PasswordHasher(),
+  jwtService,
+  emailService,
 );
 
 const credentialsRouter = new CredentialsRouter(
@@ -217,14 +212,6 @@ const volunteerApplicationRouter = new VolunteerApplicationRouter(
   authMiddleware,
 );
 
-const dashboardRouter = new DashboardRouter(
-  new DashboardController(
-    new DashboardService(prisma, predictionService, redisService),
-  ),
-  authMiddleware,
-  animalManagementAccess(userRepository),
-);
-
 const apiRouterInstance = new ApiRouter(
   healthRouter,
   animalsRouter,
@@ -242,7 +229,6 @@ const apiRouterInstance = new ApiRouter(
     userRepository,
     animalManagementAccess(userRepository),
   ),
-  dashboardRouter,
 );
 
 export const apiRouter = apiRouterInstance;
