@@ -2,6 +2,8 @@ import { apiRequest } from './api';
 import type { User } from '@kapa/shared';
 
 export interface UpdateUserProfileInput {
+  birthDate?: string;
+  phone?: string;
   username?: string;
   email?: string;
   avatar?: string | null;

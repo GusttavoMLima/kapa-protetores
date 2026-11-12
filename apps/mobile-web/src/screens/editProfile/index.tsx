@@ -24,6 +24,8 @@ import {
   uploadUserAvatar,
 } from '@/services/userService';
 import { useQueryClient } from '@tanstack/react-query';
+import { ageFromBirthDate, isValidPhone } from '@kapa/shared';
+import { DateTimeField } from '@/components/inputDateTime';
 
 export function EditProfileScreen() {
   const { user, updateUserData } = useAuth();
@@ -31,6 +33,9 @@ export function EditProfileScreen() {
 
   const [username, setUsername] = useState<string>(user?.username ?? '');
   const [email, setEmail] = useState<string>(user?.email ?? '');
+  const [birthDate, setBirthDate] = useState(user?.birthDate ?? '');
+  const [phone, setPhone] = useState(user?.phone ?? '');
+  const [personalDataError, setPersonalDataError] = useState<string>();
   const [avatarUri, setAvatarUri] = useState<string | undefined>(
     user?.avatar ?? undefined,
   );
@@ -54,6 +59,11 @@ export function EditProfileScreen() {
     setNameError(undefined);
     setEmailError(undefined);
     setErrorMessage(null);
+    setPersonalDataError(undefined);
+    if (ageFromBirthDate(birthDate) === null || !isValidPhone(phone)) {
+      setPersonalDataError('Informe uma data de nascimento válida e um celular com DDD.');
+      isValid = false;
+    }
 
     const trimmedName = username.trim();
     if (!trimmedName || trimmedName.length < 3) {
@@ -93,6 +103,8 @@ export function EditProfileScreen() {
       }
 
       const updatedUser = await updateUserProfile({
+        birthDate,
+        phone: phone.replace(/\D/g, ''),
         username: username.trim(),
         email: email.trim().toLowerCase(),
         avatar: finalAvatarUrl ?? null,
@@ -199,6 +211,9 @@ export function EditProfileScreen() {
           autoCapitalize="words"
         />
 
+        <DateTimeField label="Data de nascimento" value={birthDate} onChange={setBirthDate} mode="date" />
+        <PrimaryInputText label="Celular com DDD" value={phone} onChangeText={setPhone} keyboardType="phone-pad" maxLength={20} />
+        {personalDataError && <Text accessibilityRole="alert" className="font-body text-sm text-danger">{personalDataError}</Text>}
         <PrimaryInputText
           label="E-mail"
           value={email}

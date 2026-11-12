@@ -58,6 +58,7 @@ describe('PetCard', () => {
     const photo = screen.getByLabelText('Foto de Bolinha');
     await fireEvent(photo, 'error');
 
-    expect(screen.getByLabelText('Foto de Bolinha')).toBeTruthy();
+    expect(screen.getByText('Sem foto')).toBeTruthy();
+    expect(screen.queryByLabelText('Foto de Bolinha')).toBeNull();
   });
 });

@@ -12,6 +12,8 @@ model User {
   rules           String[]
   username        String
   email           String                     @unique
+  birth_date      DateTime?                  @db.Date
+  phone           String?                    @db.VarChar(20)
   latitude        Decimal?
   longitude       Decimal?
   avatar          String?
@@ -23,6 +25,7 @@ model User {
   events                 Events[]
   volunteers             CommunityEventVolunteers[]
   volunteer_applications VolunteerApplications[]
+  foster_application     FosterApplication?
   adopter_profile        AdopterProfile?
 
   @@index([username])
@@ -77,6 +80,7 @@ model Animal {
   place              String
   mood               String
   observations       String?
+  medication_notes  String?
   status             AnimalStatus
   created_at         DateTime       @default(now()) @map("createdAt")
   photos             AnimalPhotos[]
@@ -227,6 +231,30 @@ model VolunteerApplications {
 }
 
 enum VolunteerApplicationStatus {
+  pending
+  approved
+  rejected
+}
+
+model FosterApplication {
+  id           String                  @id @default(cuid())
+  user_id      String                  @unique
+  availability String                  @db.VarChar(240)
+  home_notes   String                  @db.VarChar(2000)
+  home_address String?                 @db.VarChar(500)
+  has_other_animals Boolean?
+  has_perimeter_barrier Boolean?
+  has_secure_gate Boolean?
+  status       FosterApplicationStatus @default(pending)
+  submitted_at DateTime               @default(now())
+  updated_at   DateTime                @updatedAt
+  user         User                    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([submitted_at, id])
+  @@map("tb_foster_applications")
+}
+
+enum FosterApplicationStatus {
   pending
   approved
   rejected

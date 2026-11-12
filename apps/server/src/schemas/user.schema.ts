@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { birthDateSchema, phoneSchema } from './personalData.schema';
 
 export const signInSchema = z.object({
   email: z
@@ -14,6 +15,8 @@ export const signInSchema = z.object({
 export type SignInInput = z.infer<typeof signInSchema>;
 
 export const registerSchema = z.object({
+  birthDate: birthDateSchema,
+  phone: phoneSchema,
   username: z
     .string({ required_error: 'Nome de usuário é obrigatório' })
     .trim()
@@ -67,6 +70,8 @@ export const updatePasswordSchema = updateUserPasswordSchema;
 export type UpdatePasswordInput = UpdateUserPassword;
 
 export const updateProfileSchema = z.object({
+  birthDate: birthDateSchema.optional(),
+  phone: phoneSchema.optional(),
   username: z
     .string()
     .trim()

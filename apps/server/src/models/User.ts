@@ -1,4 +1,4 @@
-import { UserRole, User as SharedUser } from '@kapa/shared';
+import { UserRole, User as SharedUser, ageFromBirthDate, isValidPhone } from '@kapa/shared';
 import { Email } from '../domains/Email';
 import { Url } from '../domains/Url';
 import { UUID } from '../domains/UUID';
@@ -6,6 +6,19 @@ import { IUser } from '../interfaces/IUser';
 import { ValidationError } from '../errors';
 
 export class User implements IUser {
+  private birthDate: string | null = null;
+  private phone: string | null = null;
+
+  public getBirthDate(): string | null { return this.birthDate; }
+  public getPhone(): string | null { return this.phone; }
+  public setBirthDate(value: string | null | undefined): void {
+    if (value != null && ageFromBirthDate(value) === null) throw new ValidationError('Data de nascimento inválida.');
+    this.birthDate = value ?? null;
+  }
+  public setPhone(value: string | null | undefined): void {
+    if (value != null && !isValidPhone(value)) throw new ValidationError('Celular inválido.');
+    this.phone = value?.replace(/\D/g, '') ?? null;
+  }
   private id!: UUID;
   private username!: string;
   private email!: Email;
@@ -141,6 +154,8 @@ export class User implements IUser {
 
   public toDTO(): SharedUser {
     return {
+      birthDate: this.birthDate,
+      phone: this.phone,
       id: this.id ? this.id.getValue() : '',
       username: this.username,
       email: this.email ? this.email.getValue() : '',

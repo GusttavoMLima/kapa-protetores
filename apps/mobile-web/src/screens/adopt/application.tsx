@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Controller, useForm, useWatch } from 'react-hook-form';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -14,8 +14,10 @@ import { z } from 'zod';
 import { isAxiosError } from 'axios';
 import { ArrowLeftIcon, HeartIcon, PawPrintIcon } from 'phosphor-react-native';
 import { PrimaryButton } from '@/components/buttons/primary';
-import { DateTimeField } from '@/components/inputDateTime';
+import { EligibilityNotice } from '@/components/feedback/EligibilityNotice';
+import { isAdult, isValidPhone } from '@kapa/shared';
 import { PrimaryInputText } from '@/components/inputText/primary';
+import { ResidentialAddressFields, residentialAddressSchema } from '@/components/forms/ResidentialAddressFields';
 import { useAdoptAnimals } from '@/hooks/useAdoptAnimals';
 import { useCreateAdoption } from '@/hooks/useAdoptions';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,11 +28,7 @@ const adoptionApplicationSchema = z.object({
   fullName: z.string().trim().min(3, 'Informe seu nome completo.').max(120),
   birthDate: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, 'Informe sua data de nascimento.'),
   phone: z.string().trim().min(10, 'Informe um telefone com DDD.').max(20),
-  street: z.string().trim().min(3, 'Informe a rua.').max(120),
-  number: z.string().trim().min(1, 'Informe o número.').max(20),
-  neighborhood: z.string().trim().min(2, 'Informe o bairro.').max(120),
-  city: z.string().trim().min(2, 'Informe a cidade.').max(120),
-  postalCode: z.string().trim().regex(/^\d{5}-?\d{3}$/, 'Informe um CEP válido.'),
+  ...residentialAddressSchema.shape,
   housingType: z.enum(['house', 'apartment', 'farm', 'rural'], {
     required_error: 'Selecione onde você mora.',
   }),
@@ -73,18 +71,6 @@ type Choice = {
   value: string;
   label: string;
 };
-
-type ViaCepAddress = {
-  erro?: boolean;
-  logradouro?: string;
-  bairro?: string;
-  localidade?: string;
-};
-
-function formatPostalCode(value: string): string {
-  const digits = value.replace(/\D/g, '').slice(0, 8);
-  return digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits;
-}
 
 const housingOptions: Choice[] = [
   { value: 'house', label: 'Casa' },
@@ -177,7 +163,6 @@ export function AdoptionApplicationScreen() {
   const { data: animals = [], isLoading, error } = useAdoptAnimals();
   const { user } = useAuth();
   const [showCompletionModal, setShowCompletionModal] = useState(false);
-  const [postalCodeFeedback, setPostalCodeFeedback] = useState('');
   const [submissionError, setSubmissionError] = useState('');
   const { mutateAsync: createAdoption, isPending: isSubmitting } = useCreateAdoption();
   const animal = useMemo(
@@ -188,8 +173,8 @@ export function AdoptionApplicationScreen() {
     resolver: zodResolver(adoptionApplicationSchema),
     defaultValues: {
       fullName: user?.username ?? '',
-      birthDate: '',
-      phone: '',
+      birthDate: user?.birthDate ?? '',
+      phone: user?.phone ?? '',
       street: '',
       number: '',
       neighborhood: '',
@@ -208,37 +193,15 @@ export function AdoptionApplicationScreen() {
     },
   });
   const hasChildren = useWatch({ control, name: 'hasChildren' });
+  useEffect(() => {
+    setValue('birthDate', user?.birthDate ?? '');
+    setValue('phone', user?.phone ?? '');
+  }, [setValue, user?.birthDate, user?.phone]);
   const hasOtherPets = useWatch({ control, name: 'hasOtherPets' });
 
-  async function handlePostalCodeChange(value: string, onChange: (nextValue: string) => void) {
-    const formattedPostalCode = formatPostalCode(value);
-    onChange(formattedPostalCode);
-    const digits = formattedPostalCode.replace(/\D/g, '');
-
-    if (digits.length !== 8) {
-      setPostalCodeFeedback('');
-      return;
-    }
-
-    setPostalCodeFeedback('Buscando endereço...');
-
-    try {
-      const response = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
-      const address = await response.json() as ViaCepAddress;
-
-      if (!response.ok || address.erro) {
-        setPostalCodeFeedback('CEP não encontrado. Confira os números e tente novamente.');
-        return;
-      }
-
-      setValue('street', address.logradouro ?? '', { shouldDirty: true });
-      setValue('neighborhood', address.bairro ?? '', { shouldDirty: true });
-      setValue('city', address.localidade ?? '', { shouldDirty: true });
-      setPostalCodeFeedback('Endereço preenchido. Confira o número da residência.');
-    } catch {
-      setPostalCodeFeedback('Não foi possível buscar o CEP agora. Preencha o endereço manualmente.');
-    }
-  }
+  const [postalCode, street, number, neighborhood, city] = useWatch({
+    control, name: ['postalCode', 'street', 'number', 'neighborhood', 'city'],
+  });
 
   async function submitApplication(data: AdoptionApplicationFormData) {
     if (!animal) return;
@@ -269,6 +232,7 @@ export function AdoptionApplicationScreen() {
   }
 
   if (error || !animal) return <MissingPet />;
+  if (!isAdult(user?.birthDate) || !isValidPhone(user?.phone)) return <EligibilityNotice user={user} />;
 
   return (
     <View className="flex-1 bg-cream">
@@ -307,35 +271,31 @@ export function AdoptionApplicationScreen() {
               <PrimaryInputText label="Nome completo" value={value} onChangeText={onChange} placeholder="Como você gostaria de ser chamado" autoCapitalize="words" erro={errors.fullName?.message} />
             )} />
             <Controller control={control} name="birthDate" render={({ field: { onChange, value } }) => (
-              <DateTimeField label="Data de nascimento" value={value} onChange={onChange} mode="date" error={errors.birthDate?.message} />
+              <PrimaryInputText label="Data de nascimento" value={value.split('-').reverse().join('/')} onChangeText={onChange} editable={false} />
             )} />
             <Controller control={control} name="phone" render={({ field: { onChange, value } }) => (
-              <PrimaryInputText label="Telefone / WhatsApp com DDD" value={value} onChangeText={onChange} placeholder="(00) 00000-0000" keyboardType="phone-pad" erro={errors.phone?.message} />
+              <PrimaryInputText label="Telefone / WhatsApp com DDD" value={value} onChangeText={onChange} editable={false} placeholder="(00) 00000-0000" keyboardType="phone-pad" erro={errors.phone?.message} />
             )} />
           </View>
 
-          <View className="bg-white rounded-2xl border border-line p-5 gap-5">
-            <Text className="font-heading-bold text-lg text-ink">Endereço</Text>
-            <Text className="font-body text-sm text-ink-muted">Essas informações ajudam o abrigo a conhecer melhor o local onde o animal vai morar.</Text>
-            <Controller control={control} name="postalCode" render={({ field: { onChange, value } }) => (
-              <View className="gap-1">
-                <PrimaryInputText label="CEP" value={value} onChangeText={(nextValue) => void handlePostalCodeChange(nextValue, onChange)} placeholder="00000-000" keyboardType="number-pad" erro={errors.postalCode?.message} />
-                {postalCodeFeedback ? <Text className="font-body text-xs text-ink-muted">{postalCodeFeedback}</Text> : null}
-              </View>
-            )} />
-            <Controller control={control} name="street" render={({ field: { onChange, value } }) => (
-              <PrimaryInputText label="Rua" value={value} onChangeText={onChange} placeholder="Nome da rua ou avenida" autoCapitalize="words" erro={errors.street?.message} />
-            )} />
-            <Controller control={control} name="number" render={({ field: { onChange, value } }) => (
-              <PrimaryInputText label="Número" value={value} onChangeText={onChange} placeholder="Ex.: 123" keyboardType="default" erro={errors.number?.message} />
-            )} />
-            <Controller control={control} name="neighborhood" render={({ field: { onChange, value } }) => (
-              <PrimaryInputText label="Bairro" value={value} onChangeText={onChange} placeholder="Seu bairro" autoCapitalize="words" erro={errors.neighborhood?.message} />
-            )} />
-            <Controller control={control} name="city" render={({ field: { onChange, value } }) => (
-              <PrimaryInputText label="Cidade" value={value} onChangeText={onChange} placeholder="Sua cidade" autoCapitalize="words" erro={errors.city?.message} />
-            )} />
-          </View>
+          <Pressable accessibilityRole="button" onPress={() => router.push('/(protected)/(adopter)/edit-profile')}><Text className="font-body-medium text-sm text-denim">Atualizar nascimento ou celular no perfil</Text></Pressable>
+          <ResidentialAddressFields
+            description="Essas informações ajudam o abrigo a conhecer melhor o local onde o animal vai morar."
+            address={{ postalCode, street, number, neighborhood, city }}
+            onChange={(fields) => {
+              for (const field of residentialAddressSchema.keyof().options) {
+                const value = fields[field];
+                if (value !== undefined) setValue(field, value, { shouldDirty: true, shouldValidate: Boolean(errors[field]) });
+              }
+            }}
+            errors={{
+              postalCode: errors.postalCode?.message,
+              street: errors.street?.message,
+              number: errors.number?.message,
+              neighborhood: errors.neighborhood?.message,
+              city: errors.city?.message,
+            }}
+          />
 
           <View className="bg-white rounded-2xl border border-line p-5 gap-5">
             <Text className="font-heading-bold text-lg text-ink">Sua rotina e moradia</Text>

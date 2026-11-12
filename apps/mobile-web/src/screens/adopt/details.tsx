@@ -36,6 +36,7 @@ import { useAdoptAnimals } from '@/hooks/useAdoptAnimals';
 import { useAdopterProfileMe } from '@/hooks/useAdopterProfile';
 import { useAnimalPosts, useCreateAnimalPost } from '@/hooks/useAnimalPosts';
 import { useAuth } from '@/hooks/useAuth';
+import { AnimalMedication } from '@/screens/animalCare/AnimalMedication';
 import { palette } from '@/theme';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useToggleFavorite } from '@/hooks/useFavorites';
@@ -43,9 +44,6 @@ import {
   calculatePetCompatibility,
   getCompatibilityTone,
 } from '@/utils/petCompatibility';
-
-const DEFAULT_PET_PHOTO =
-  'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80';
 
 const SCALE_SEGMENTS = [1, 2, 3, 4, 5] as const;
 
@@ -154,11 +152,18 @@ function PetPhotos({ animal }: { animal: Animal }) {
           id: photo.id,
           photoUrl: photo.photoUrl,
         }))
-      : [{ id: 'default', photoUrl: DEFAULT_PET_PHOTO }];
+      : [];
 
   return (
     <View className="overflow-hidden rounded-2xl border border-line bg-peach">
-      <PhotoCarousel photos={photos} height={carouselHeight} dots />
+      {photos.length ? (
+        <PhotoCarousel photos={photos} height={carouselHeight} dots />
+      ) : (
+        <View style={{ height: carouselHeight }} className="items-center justify-center gap-2">
+          <PawPrintIcon size={44} color={palette.denim} weight="duotone" />
+          <Text className="font-body text-sm text-ink-muted">Sem foto</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -606,6 +611,7 @@ export function AdoptPetDetailsScreen() {
               label="Vermifugado"
               value={triageLabel(animal.dewormed)}
             />
+            {user?.role === 'volunteer' ? <AnimalMedication animalId={animal.id} /> : null}
           </View>
 
           <PetTimelineCard

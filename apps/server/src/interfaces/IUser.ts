@@ -5,6 +5,10 @@ import { Url } from '../domains/Url';
 import { UUID } from '../domains/UUID';
 
 export interface IUser {
+  getBirthDate(): string | null;
+  getPhone(): string | null;
+  setBirthDate(value: string | null | undefined): void;
+  setPhone(value: string | null | undefined): void;
   getId(): UUID;
   getUsername(): string;
   getEmail(): Email;

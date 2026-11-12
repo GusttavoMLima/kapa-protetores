@@ -140,6 +140,8 @@ describe('User Schema Validation', () => {
 
     // Empty string avatar should transform to null
     const emptyAvatar = registerSchema.safeParse({
+      birthDate: '1990-01-01',
+      phone: '19999998888',
       username: 'validuser',
       email: 'test@example.com',
       password: 'password123',
@@ -162,6 +164,8 @@ describe('User Schema Validation', () => {
 
     // Valid complete registration
     const valid = registerSchema.safeParse({
+      birthDate: '1990-01-01',
+      phone: '19999998888',
       username: '  validuser  ',
       email: '  USER@example.com  ',
       password: 'securepassword123',
@@ -180,7 +184,7 @@ describe('User Schema Validation', () => {
   });
 
   it('public registration never grants a management role', () => {
-    const account = { username: 'Teste', email: 'test@example.com', password: 'test-only-password' };
+    const account = { username: 'Teste', email: 'test@example.com', password: 'test-only-password', birthDate: '1990-01-01', phone: '19999998888' };
     expect(publicRegisterSchema.parse(account).role).toBe('adopter');
     for (const role of ['admin', 'protector', 'volunteer']) {
       expect(publicRegisterSchema.safeParse({ ...account, role }).success).toBe(false);

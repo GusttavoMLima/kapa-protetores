@@ -23,6 +23,7 @@ export class AnimalsRouter {
     private readonly photosController: Pick<AnimalPhotosController, 'upload'>,
     private readonly auth: AuthMiddleware,
     private readonly managementAccess: RequestHandler,
+    private readonly careAccess: RequestHandler,
   ) {
     this.initRoutes();
   }
@@ -55,6 +56,8 @@ export class AnimalsRouter {
       validateBody(updateAnimalSchema),
       this.controller.update,
     );
+    this.router.get('/care', this.auth.authenticate, this.careAccess, this.controller.getCarePage);
+    this.router.get('/care/:id', this.auth.authenticate, this.careAccess, this.controller.getCareProfile);
     this.router.get('/', this.controller.getAll);
     this.router.get('/:id/posts', this.controller.getPosts);
     this.router.post(

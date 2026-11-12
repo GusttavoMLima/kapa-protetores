@@ -12,7 +12,10 @@ function loadAllowlist() {
 }
 
 function runNpmAudit() {
-  const result = spawnSync('npm', ['audit', '--json'], {
+  const [command, args] = process.platform === 'win32'
+    ? ['cmd.exe', ['/d', '/s', '/c', 'npm audit --json']]
+    : ['npm', ['audit', '--json']];
+  const result = spawnSync(command, args, {
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
   });
@@ -23,7 +26,11 @@ function runNpmAudit() {
     throw new Error(`Falha ao executar "npm audit --json": ${detail}`);
   }
 
-  return JSON.parse(stdout);
+  const report = JSON.parse(stdout);
+  if (report.error || !report.vulnerabilities) {
+    throw new Error('O npm não retornou um relatório de auditoria válido.');
+  }
+  return report;
 }
 
 function collectBlockingAdvisories(report, allowedIds) {

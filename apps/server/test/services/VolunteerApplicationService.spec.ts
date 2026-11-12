@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@prisma/client';
+import { Prisma, type PrismaClient } from '@prisma/client';
 import {
   SystemEventTypes,
   type VolunteerApplication,
@@ -78,6 +78,31 @@ function createMocks() {
 }
 
 describe('VolunteerApplicationService', () => {
+  it.each([
+    [null, NotFoundError],
+    [{ id: VALID_APP_ID }, ConflictError],
+  ])('rejects edits when the pending record cannot be updated (%j)', async (owned, expectedError) => {
+    const update = jest.fn().mockRejectedValue(new Prisma.PrismaClientKnownRequestError(
+      'Record not found', { code: 'P2025', clientVersion: 'test' },
+    ));
+    const findFirst = jest.fn().mockResolvedValue(owned);
+    const prisma = {
+      user: { findUnique: jest.fn().mockResolvedValue({ birth_date: new Date('1990-01-01'), phone: '19999998888' }) },
+      volunteerApplications: { update, findFirst },
+    } as unknown as PrismaClient;
+    const service = new VolunteerApplicationService(new VolunteerApplicationRepository(prisma));
+
+    await expect(service.updatePending(VALID_APP_ID, VALID_USER_ID, sampleApplicationData)).rejects.toBeInstanceOf(expectedError);
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: VALID_APP_ID, user_id: VALID_USER_ID, status: 'pending' },
+      data: expect.objectContaining({ phone: '19999998888', motivation: sampleApplicationData.motivation }),
+    }));
+    expect(findFirst).toHaveBeenCalledWith({
+      where: { id: VALID_APP_ID, user_id: VALID_USER_ID },
+      select: { id: true },
+    });
+  });
+
   it('submits a volunteer application, emits VOLUNTEER_APPLICATION_SUBMITTED, and invalidates caches', async () => {
     const { service, create, eventsCreate, deleteCache } = createMocks();
 

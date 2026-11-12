@@ -282,6 +282,8 @@ export class UserService {
 
     const user = new User();
     user.setUsername(input.username);
+    user.setBirthDate(input.birthDate);
+    user.setPhone(input.phone);
     user.setEmail(input.email);
     user.setAvatar(input.avatar);
     user.setPassword(hasedPassword);
@@ -368,6 +370,8 @@ export class UserService {
   public async updateProfile(
     id: string,
     input: {
+      birthDate?: string;
+      phone?: string;
       username?: string;
       email?: string;
       avatar?: string | null;
@@ -394,6 +398,9 @@ export class UserService {
     if (input.username !== undefined) {
       user.setUsername(input.username);
     }
+
+    if (input.birthDate !== undefined) user.setBirthDate(input.birthDate);
+    if (input.phone !== undefined) user.setPhone(input.phone);
 
     if (input.avatar !== undefined) {
       user.setAvatar(input.avatar);

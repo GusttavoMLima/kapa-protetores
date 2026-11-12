@@ -1,4 +1,5 @@
 import { Prisma, PrismaClient } from '@prisma/client';
+import { requireAdultProfile } from '../domains/adultEligibility';
 import type {
   Adoption,
   AdoptionApplication,
@@ -48,6 +49,9 @@ export class AdoptionRepository {
     try {
       const record = await this.prisma.$transaction(
         async (transaction) => {
+          const applicant = await transaction.user.findUnique({ where: { id: adopterId }, select: { birth_date: true, phone: true } });
+          const personalData = requireAdultProfile(applicant?.birth_date, applicant?.phone);
+          const savedApplication = { ...application, ...personalData };
           const animal = await transaction.animal.findUnique({
             where: { id: animalId },
             select: { id: true, status: true },
@@ -68,7 +72,7 @@ export class AdoptionRepository {
           if (existing) throw new Error('ADOPTION_ALREADY_REQUESTED');
 
           return transaction.adoptions.create({
-            data: { adopter_id: adopterId, animal_id: animalId, application_data: application as unknown as Prisma.InputJsonValue },
+            data: { adopter_id: adopterId, animal_id: animalId, application_data: savedApplication as unknown as Prisma.InputJsonValue },
             select: {
               id: true,
               adopter_id: true,
@@ -178,12 +182,14 @@ export class AdoptionRepository {
     const record = await this.prisma.$transaction(async (transaction) => {
       const existing = await transaction.adoptions.findUnique({
         where: { id },
-        select: { id: true, animal_id: true },
+        select: { id: true, animal_id: true, adopter_id: true },
       });
 
       if (!existing) throw new Error('ADOPTION_NOT_FOUND');
 
       if (input.status === 'approved') {
+        const applicant = await transaction.user.findUnique({ where: { id: existing.adopter_id }, select: { birth_date: true, phone: true } });
+        requireAdultProfile(applicant?.birth_date, applicant?.phone);
         const animalUpdate = await transaction.animal.updateMany({
           where: { id: existing.animal_id, status: 'available' },
           data: { status: 'adopted' },

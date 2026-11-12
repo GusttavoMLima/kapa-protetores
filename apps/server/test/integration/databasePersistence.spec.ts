@@ -16,14 +16,14 @@ jest.setTimeout(60000);
 
 const isDockerRunning = (): boolean => {
   try {
-    execSync('docker info', { stdio: 'ignore', timeout: 3000 });
+    execSync('docker version --format "{{.Server.Version}}"', { stdio: 'ignore', timeout: 15000 });
     return true;
   } catch {
     return false;
   }
 };
 
-const describeDocker = isDockerRunning() ? describe : describe.skip;
+const describeDocker = process.env.CI === 'true' || isDockerRunning() ? describe : describe.skip;
 
 describeDocker('Database Persistence - Testcontainers (PostgreSQL) + Prisma + Scripts SQL', () => {
   let ctx: TestDatabaseContext;
@@ -35,7 +35,7 @@ describeDocker('Database Persistence - Testcontainers (PostgreSQL) + Prisma + Sc
     ctx = await setupTestDatabase();
     userRepo = new UserRepository(ctx.prisma);
     profileRepo = new AdopterProfileRepository(ctx.prisma);
-  });
+  }, 180000);
 
   afterAll(async () => {
     // Limpeza de recursos e desligamento do contêiner

@@ -69,6 +69,7 @@ export class InMemoryAnimalRepository implements IAnimalRepository {
     if (input.place !== undefined) animal.setPlace(input.place);
     if (input.mood !== undefined) animal.setMood(input.mood);
     if (input.observations !== undefined) animal.setObservations(input.observations);
+    if (input.medicationNotes !== undefined) animal.setMedicationNotes(input.medicationNotes);
     if (input.status !== undefined) animal.setStatus(input.status);
     return animal;
   }

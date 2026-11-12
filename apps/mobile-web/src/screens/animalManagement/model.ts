@@ -26,6 +26,7 @@ export const managedAnimalSchema = z.object({
   apartmentFriendly: z.boolean(), otherPetFriendly: z.boolean(),
   healthCondition: z.enum(['healthy', 'injured', 'debilitated']),
   castrated: z.enum(['yes', 'no', 'unknown']), vaccinated: z.boolean(), dewormed: z.enum(['yes', 'no', 'unknown']),
+  medicationNotes: z.string().nullable().optional(),
   rescuedAt: z.string().datetime(), place: z.string(), mood: z.string(), observations: z.string().nullable().optional(),
   status: z.enum(['rescued', 'treating', 'available', 'adopted']), createdAt: z.string().datetime(),
   photos: z.array(z.object({ id: z.string(), photoUrl: z.string().url().refine((url) => /^https?:\/\//.test(url)), uploadedAt: z.string().datetime() })).optional(),
@@ -50,12 +51,14 @@ export const animalEditorSchema = z.object({
   castrated: z.enum(['yes', 'no', 'unknown']), dewormed: z.enum(['yes', 'no', 'unknown']), vaccinated: z.boolean(),
   mood: z.string().trim().min(1, 'Informe o temperamento.').max(120),
   place: z.string().trim().max(240), observations: z.string().trim().max(4000),
+  medicationNotes: z.string().trim().max(2000),
 });
 export type AnimalEditorValues = z.input<typeof animalEditorSchema>;
 export function editorValues(animal: Animal): AnimalEditorValues {
   return { name: animal.name, breed: animal.breed, species: animal.species, gender: animal.gender,
     age: String(animal.age), weightKg: String(animal.weightKg), size: animal.size, status: animal.status,
     healthCondition: animal.healthCondition, castrated: animal.castrated, dewormed: animal.dewormed,
+    medicationNotes: animal.medicationNotes ?? '',
     vaccinated: animal.vaccinated, mood: animal.mood, place: animal.place, observations: animal.observations ?? '' };
 }
 

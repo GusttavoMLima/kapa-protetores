@@ -12,6 +12,7 @@ export class VolunteerApplicationRouter {
   ) {
     this.router.post('/', auth.authenticate, controller.submit);
     this.router.get('/mine', auth.authenticate, controller.getMine);
+    this.router.patch('/:id', auth.authenticate, controller.updatePending);
     this.router.get(
       '/',
       auth.authenticate,

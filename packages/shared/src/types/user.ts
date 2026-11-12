@@ -4,6 +4,8 @@ import type { SystemEvent } from './event';
 export type UserRole = 'adopter' | 'protector' | 'admin' | 'volunteer';
 
 export interface User {
+  birthDate?: string | null;
+  phone?: string | null;
   id: string;
   role: UserRole;
   rules: string[] | Set<string>;
@@ -17,6 +19,8 @@ export interface User {
 }
 
 export type CreateUserInput = {
+  birthDate?: string | null;
+  phone?: string | null;
   username: string;
   email: string;
   password?: string;

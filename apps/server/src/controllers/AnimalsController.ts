@@ -1,9 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import { AnimalService } from '../services/AnimalService';
 import { BadRequestError } from '../errors';
-import type { ApiResponse } from '@kapa/shared';
+import type { Animal, AnimalCareProfile, ApiResponse } from '@kapa/shared';
 import { animalIdSchema, animalManagementQuerySchema } from '../validation/schemas';
 import type { PredictionService } from '../services/PredictionService';
+
+function careProfile({ id, name, status, medicationNotes }: Animal): AnimalCareProfile {
+  return { id, name, status, medicationNotes: medicationNotes ?? null };
+}
 
 export class AnimalsController {
   constructor(
@@ -32,6 +36,26 @@ export class AnimalsController {
       const parsed = animalManagementQuerySchema.safeParse(req.query);
       if (!parsed.success) throw new BadRequestError('Filtros inválidos.');
       res.json({ success: true, data: await this.animalService.getManagementPage(parsed.data) });
+    } catch (error) { next(error); }
+  };
+
+  public getCarePage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const parsed = animalManagementQuerySchema.safeParse(req.query);
+      if (!parsed.success) throw new BadRequestError('Filtros inválidos.');
+      const { items, page, pageSize, total } = await this.animalService.getManagementPage(parsed.data);
+      res.set('Cache-Control', 'no-store');
+      res.json({ success: true, data: { items: items.map(careProfile), page, pageSize, total } });
+    } catch (error) { next(error); }
+  };
+
+  public getCareProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const parsed = animalIdSchema.safeParse(req.params.id);
+      if (!parsed.success) throw new BadRequestError('ID inválido.');
+      const animal = await this.animalService.getManagedById(parsed.data);
+      res.set('Cache-Control', 'no-store');
+      res.json({ success: true, data: careProfile(animal.toDTO()) });
     } catch (error) { next(error); }
   };
 

@@ -17,6 +17,7 @@ describe('Animal Management Model', () => {
     mood: 'Tranquila',
     place: '',
     observations: 'Anotações internas',
+    medicationNotes: '',
   };
 
   it('editor accepts Brazilian decimal weights and does not send hidden fields', () => {

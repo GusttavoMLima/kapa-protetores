@@ -5,14 +5,17 @@ import {
   UserIcon,
   HeartIcon,
   CalendarBlankIcon,
+  HandHeartIcon,
 } from 'phosphor-react-native';
 import { palette } from '@/theme/colors';
 import { DefaultHeader } from '@/components/header/default';
 import { ActivityIndicator, Platform, View } from 'react-native';
 import { useAuth } from '@/hooks/useAuth';
+import { canUseAdoption, isShelterStaff } from '@/navigation/access';
 
 export default function TabLayout() {
   const { user, hasAdopterProfile, isCheckingProfile } = useAuth();
+  const community = canUseAdoption(user?.role);
 
   if (user?.role === 'adopter') {
     if (hasAdopterProfile === false) {
@@ -43,8 +46,8 @@ export default function TabLayout() {
           borderTopWidth: 0,
           borderTopColor: 'transparent',
 
-          height: 60,
-          paddingBottom: 8,
+          height: 76,
+          paddingBottom: 12,
           paddingTop: 8,
 
           ...Platform.select({
@@ -69,13 +72,14 @@ export default function TabLayout() {
           fontFamily: 'PlusJakartaSans-Medium',
         },
 
-        tabBarShowLabel: Platform.OS === 'web' ? true : false,
+        tabBarShowLabel: true,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Início',
+          title: isShelterStaff(user?.role) ? 'Gestão' : 'Início',
+          href: user?.role === 'adopter' ? null : '/',
           tabBarIcon: ({ color, size, focused }) => (
             <HouseIcon
               size={size}
@@ -90,6 +94,7 @@ export default function TabLayout() {
         name="adopet"
         options={{
           title: 'Adotar',
+          href: community ? '/adopet' : null,
           tabBarIcon: ({ color, size, focused }) => (
             <PawPrintIcon
               size={size}
@@ -104,6 +109,7 @@ export default function TabLayout() {
         name="support"
         options={{
           title: 'Apoiar',
+          href: community ? '/support' : null,
           tabBarIcon: ({ color, size, focused }) => (
             <HeartIcon
               size={size}
@@ -126,6 +132,15 @@ export default function TabLayout() {
               weight={focused ? 'fill' : 'regular'}
             />
           ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="volunteer"
+        options={{
+          title: 'Voluntariado',
+          href: user?.role === 'adopter' ? '/(protected)/(tabs)/volunteer' : null,
+          tabBarIcon: ({ color, size, focused }) => <HandHeartIcon size={size} color={color.toString()} weight={focused ? 'fill' : 'regular'} />,
         }}
       />
 

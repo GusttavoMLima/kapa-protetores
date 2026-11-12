@@ -33,16 +33,18 @@ export async function setupTestDatabase(): Promise<TestDatabaseContext> {
 
   const uri = container.getConnectionUri();
 
-  process.env.DIRECT_URL = uri;
-  process.env.DATABASE_URL = uri;
-
   // 2. Aplica as migrações Prisma ao banco de dados no contêiner
   const serverRoot = path.resolve(__dirname, '../..');
-  execSync('npx --no-install prisma migrate deploy', {
-    env: { ...process.env, DIRECT_URL: uri, DATABASE_URL: uri },
-    cwd: serverRoot,
-    stdio: 'ignore',
-  });
+  try {
+    execSync('npx --no-install prisma migrate deploy', {
+      env: { ...process.env, DIRECT_URL: uri, DATABASE_URL: uri },
+      cwd: serverRoot,
+      timeout: 60000,
+    });
+  } catch (error) {
+    await container.stop();
+    throw error;
+  }
 
   // 3. Inicializa o pool pg e o PrismaClient configurado com PrismaPg adapter
   const pool = new Pool({ connectionString: uri });

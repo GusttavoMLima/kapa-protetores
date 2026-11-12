@@ -5,6 +5,7 @@ import { useAdoptAnimals } from '@/hooks/useAdoptAnimals';
 import { useAuth } from '@/hooks/useAuth';
 
 const mockRouter = {
+  push: jest.fn(),
   back: jest.fn(),
   replace: jest.fn(),
 };
@@ -67,7 +68,7 @@ describe('AdoptionApplicationScreen', () => {
       error: null,
     } as ReturnType<typeof useAdoptAnimals>);
     mockedUseAuth.mockReturnValue({
-      user: { username: 'Ana Souza', email: 'ana@example.com' },
+      user: { username: 'Ana Souza', email: 'ana@example.com', birthDate: '1990-01-01', phone: '19999998888' },
     } as ReturnType<typeof useAuth>);
   });
 
@@ -78,8 +79,18 @@ describe('AdoptionApplicationScreen', () => {
     expect(getByText('Você está se candidatando para')).toBeTruthy();
     expect(getByText('Luna')).toBeTruthy();
     expect(getByDisplayValue('Ana Souza')).toBeTruthy();
+    expect(getByDisplayValue('01/01/1990')).toBeTruthy();
+    expect(getByDisplayValue('19999998888')).toBeTruthy();
     expect(getByText('Telefone / WhatsApp com DDD')).toBeTruthy();
     expect(getByText('Endereço')).toBeTruthy();
+  });
+
+  it.each(['2015-01-01', undefined])('não mostra envio para menor ou perfil incompleto (%s)', async (birthDate) => {
+    mockedUseAuth.mockReturnValue({ user: { birthDate, phone: '19999998888' } } as ReturnType<typeof useAuth>);
+    const screen = await render(<AdoptionApplicationScreen />);
+    expect(screen.queryByText('Enviar ficha')).toBeNull();
+    expect(screen.getByText('Editar meu perfil')).toBeTruthy();
+    if (birthDate) expect(screen.getByText(/É necessário ter 18 anos completos/)).toBeTruthy();
   });
 
   it('mostra mensagens quando a ficha está incompleta', async () => {
@@ -88,7 +99,6 @@ describe('AdoptionApplicationScreen', () => {
     fireEvent.press(getByText('Enviar ficha'));
 
     await waitFor(() => {
-      expect(getByText('Informe um telefone com DDD.')).toBeTruthy();
       expect(getByText('Informe a cidade.')).toBeTruthy();
       expect(getByText('Selecione onde você mora.')).toBeTruthy();
     });

@@ -18,6 +18,7 @@ import {
   VOLUNTEER_AVAILABILITY_LABELS,
 } from '@/screens/volunteer';
 import { palette } from '@/theme';
+import { PageHeading } from '@/components/layout/PageHeading';
 
 export function VolunteerRequestsScreen() {
   const { user } = useAuth();
@@ -36,7 +37,7 @@ export function VolunteerRequestsScreen() {
   return (
     <ScrollView
       className="flex-1 bg-cream"
-      contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 20 }}
+      contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 24, width: '100%', maxWidth: 1140, alignSelf: 'center' }}
     >
       <Pressable
         accessibilityRole="button"
@@ -52,18 +53,7 @@ export function VolunteerRequestsScreen() {
         <Text className="font-body-medium text-sm text-denim">Voltar</Text>
       </Pressable>
 
-      <View className="items-center bg-white rounded-2xl border border-line px-5 py-6 gap-2">
-        <View className="w-12 h-12 rounded-full bg-peach items-center justify-center">
-          <HandHeartIcon size={26} color={palette.orange} weight="fill" />
-        </View>
-        <Text className="font-heading-bold text-3xl text-ink text-center">
-          Candidaturas de voluntários
-        </Text>
-        <Text className="font-body text-base text-ink-muted text-center">
-          Analise as fichas enviadas e aprove novos voluntários para as
-          atividades semanais.
-        </Text>
-      </View>
+      <PageHeading eyebrow="GESTÃO DO ABRIGO • NOSSA REDE DE APOIO" icon={HandHeartIcon} title="Candidaturas de voluntários" description="Há sempre espaço para mais carinho. Conheça quem quer somar com a Kapa e encontre novas mãos para os cuidados da semana." />
 
       {isLoading ? (
         <View className="py-16 items-center gap-3">

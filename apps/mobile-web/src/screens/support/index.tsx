@@ -29,18 +29,18 @@ export function SupportScreen() {
     <ScrollView
       className="flex-1"
       style={{ backgroundColor: palette.cream }}
-      contentContainerStyle={{ padding: 16, paddingBottom: 48, gap: 20 }}
+      contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 24, width: '100%', maxWidth: 1140, alignSelf: 'center' }}
     >
-      <View className="-mx-4 relative">
+      <View className="relative overflow-hidden rounded-2xl bg-denim">
         <Image
-          source={{
-            uri: 'https://images.unsplash.com/photo-1763718170991-baa67106743b?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fGRvZ3xlbnwwfHwwfHx8MA%3D%3D',
-          }}
-          className="w-full h-[12rem] md:h-[20rem] object-cover"
+          source={require('../../../assets/figma/kapa-team.png')}
+          resizeMode="cover"
+          style={{ width: '100%', height: 320 }}
         />
 
-        <View className="z-20 absolute bottom-4 left-4">
-          <Text className="font-heading font-bold text-orange text-xl md:text-3xl">
+        <View className="z-20 absolute bottom-6 left-6 right-6 gap-2">
+          <Text className="font-body-medium text-sm text-peach">CADA GESTO TRANSFORMA UMA HISTÓRIA</Text>
+          <Text accessibilityRole="header" className="font-heading-bold text-white text-3xl md:text-4xl">
             Apoie a Kapa
           </Text>
           <Text className="font-body text-base md:text-lg text-peach">
@@ -48,7 +48,7 @@ export function SupportScreen() {
           </Text>
         </View>
 
-        <View className="absolute left-0 bottom-0 w-full h-full bg-[#12121260]" />
+        <View className="absolute left-0 bottom-0 w-full h-full bg-denim/60" />
       </View>
 
       <View className="flex-row flex-wrap items-stretch gap-4">
@@ -79,7 +79,7 @@ export function SupportScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Abrir tela de voluntariado"
-          onPress={() => router.push('/(protected)/volunteer')}
+          onPress={() => router.push('/(protected)/(tabs)/volunteer')}
           className="flex-1 min-w-[140px]"
         >
           <PrimaryCard className="p-4 gap-3 flex-1 justify-between active:opacity-90">
@@ -101,24 +101,30 @@ export function SupportScreen() {
             </View>
           </PrimaryCard>
         </Pressable>
-        <PrimaryCard className="p-4 gap-3 flex-1 min-w-[140px] justify-between">
-          <View className="bg-zinc-200 size-10 md:size-12 rounded-full flex items-center justify-center">
-            <BedIcon
-              size={Platform.OS === 'web' ? 25 : 20}
-              color={'#71717B'}
-              weight="bold"
-            />
-          </View>
-          <View className="gap-1">
-            <Text className="font-heading font-bold text-zinc-500 text-lg md:text-xl">
-              Lar Temporário
-            </Text>
-
-            <Text className="font-body text-ink-muted font-medium text-sm md:text-base">
-              Acolha com amor
-            </Text>
-          </View>
-        </PrimaryCard>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Abrir tela de Lar Temporário"
+          onPress={() => router.push('/lar-temporario')}
+          className="flex-1 min-w-[140px]"
+        >
+          <PrimaryCard className="p-4 gap-3 flex-1 justify-between active:opacity-90">
+            <View className="bg-peach size-10 md:size-12 rounded-full flex items-center justify-center">
+              <BedIcon
+                size={Platform.OS === 'web' ? 25 : 20}
+                color={palette.orangeDark}
+                weight="bold"
+              />
+            </View>
+            <View className="gap-1">
+              <Text className="font-heading font-bold text-orange-dark text-lg md:text-xl">
+                Lar Temporário
+              </Text>
+              <Text className="font-body text-ink-muted font-medium text-sm md:text-base">
+                Acolha com amor
+              </Text>
+            </View>
+          </PrimaryCard>
+        </Pressable>
       </View>
 
       <View className="bg-denim p-4 rounded-md max-w-lg mx-auto my-4">

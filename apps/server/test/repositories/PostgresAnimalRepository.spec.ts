@@ -31,6 +31,7 @@ describe('PostgresAnimalRepository unit tests', () => {
     place: 'Rua A',
     mood: 'Dócil',
     observations: 'Nenhuma',
+    medication_notes: 'Orientação veterinária registrada',
     status: 'available' as const,
     created_at: new Date('2026-01-01T12:00:00Z'),
     photos: [
@@ -56,6 +57,7 @@ describe('PostgresAnimalRepository unit tests', () => {
     expect(animal).not.toBeNull();
     const dto = animal!.toDTO();
     expect(dto.name).toBe('Rex');
+    expect(dto.medicationNotes).toBe(dummyPrismaAnimal.medication_notes);
     expect(dto.v10Doses).toEqual([{ status: 'sim', data: '01/01/2026' }]);
     expect(dto.vacinaRaivaDoses).toEqual([{ status: 'sim', data: '02/01/2026' }]);
     expect(dto.vermifugoDoses).toEqual([{ status: 'nao' }]);
@@ -108,6 +110,7 @@ describe('PostgresAnimalRepository unit tests', () => {
     domainAnimal.setPlace('Rua A');
     domainAnimal.setMood('Dócil');
     domainAnimal.setObservations('Nenhuma');
+    domainAnimal.setMedicationNotes(dummyPrismaAnimal.medication_notes);
     domainAnimal.setStatus('available');
 
     const repository = new PostgresAnimalRepository(mockPrisma);
@@ -115,6 +118,7 @@ describe('PostgresAnimalRepository unit tests', () => {
 
     expect(mockCreate).toHaveBeenCalledTimes(1);
     const createData = mockCreate.mock.calls[0][0].data;
+    expect(createData.medication_notes).toBe(dummyPrismaAnimal.medication_notes);
     expect(createData.v10_doses).toEqual(sampleDoses);
     expect(createData.rabies_doses).toEqual(sampleDoses);
     expect(createData.deworming_doses).toEqual([{ status: 'nao' }]);
@@ -132,11 +136,13 @@ describe('PostgresAnimalRepository unit tests', () => {
     const repository = new PostgresAnimalRepository(mockPrisma);
     const updated = await repository.update('c000000000000000000000001', {
       v10Doses: [],
+      medicationNotes: null,
       vacinaRaivaDoses: [{ status: 'sim', data: '02/01/2026' }],
     });
 
     expect(mockUpdate).toHaveBeenCalledTimes(1);
     const updateData = mockUpdate.mock.calls[0][0].data;
+    expect(updateData.medication_notes).toBeNull();
     expect(updateData.v10_doses).toEqual([]);
     expect(updateData.rabies_doses).toEqual([{ status: 'sim', data: '02/01/2026' }]);
     expect(updateData.deworming_doses).toBeUndefined();

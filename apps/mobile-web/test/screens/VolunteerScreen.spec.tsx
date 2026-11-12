@@ -4,6 +4,7 @@ import { VolunteerScreen } from '@/screens/volunteer';
 import { useAuth } from '@/hooks/useAuth';
 import {
   useCreateVolunteerApplication,
+  useEditVolunteerApplication,
   useMyVolunteerApplication,
 } from '@/hooks/useVolunteerApplications';
 import { router } from 'expo-router';
@@ -15,6 +16,7 @@ jest.mock('@/hooks/useAuth', () => ({
 jest.mock('@/hooks/useVolunteerApplications', () => ({
   useMyVolunteerApplication: jest.fn(),
   useCreateVolunteerApplication: jest.fn(),
+  useEditVolunteerApplication: jest.fn(),
 }));
 
 jest.mock('expo-router', () => ({
@@ -39,9 +41,15 @@ const mockedUseCreateVolunteerApplication =
 describe('VolunteerScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.mocked(useEditVolunteerApplication).mockReturnValue({
+      mutateAsync: jest.fn().mockResolvedValue({}),
+      isPending: false,
+    } as unknown as ReturnType<typeof useEditVolunteerApplication>);
     mockedUseAuth.mockReturnValue({
       user: {
         id: 'user-1',
+        birthDate: '1990-01-01',
+        phone: '19999998888',
         username: 'João Silva',
         email: 'joao@example.com',
         role: 'adopter',
@@ -82,6 +90,15 @@ describe('VolunteerScreen', () => {
     expect(getByText('Enviar inscrição de voluntariado')).toBeTruthy();
   });
 
+  it.each(['2015-01-01', undefined])('oculta candidatura para menor ou perfil incompleto (%s)', async (birthDate) => {
+    const auth = mockedUseAuth();
+    mockedUseAuth.mockReturnValue({ ...auth, user: { ...auth.user!, birthDate } });
+    mockedUseMyVolunteerApplication.mockReturnValue({ data: null, isLoading: false } as ReturnType<typeof useMyVolunteerApplication>);
+    const screen = await render(<VolunteerScreen />);
+    expect(screen.queryByText('Enviar inscrição de voluntariado')).toBeNull();
+    expect(screen.getByText('Editar meu perfil')).toBeTruthy();
+  });
+
   it('renders pending status card when user has a pending application', async () => {
     mockedUseMyVolunteerApplication.mockReturnValue({
       data: {
@@ -102,11 +119,24 @@ describe('VolunteerScreen', () => {
       refetch: jest.fn(),
     } as unknown as ReturnType<typeof useMyVolunteerApplication>);
 
-    const { getByText } = await render(<VolunteerScreen />);
+    const screen = await render(<VolunteerScreen />);
+    const { getByText, queryByRole } = screen;
 
     expect(getByText('Solicitação em análise')).toBeTruthy();
+    expect(queryByRole('button', { name: 'Atualizar status' })).toBeNull();
     expect(getByText('Pendente')).toBeTruthy();
     expect(getByText('Finais de semana')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Editar inscrição' }));
+    expect(screen.getByDisplayValue('João Silva')).toBeTruthy();
+    await fireEvent.changeText(screen.getByPlaceholderText(
+      'Conte se já teve contato com animais ou como pretende apoiar o abrigo',
+    ), 'Tenho disponibilidade para ajudar com os animais aos sábados.');
+    await fireEvent.press(screen.getByRole('button', { name: 'Salvar alterações' }));
+    await waitFor(() => expect(jest.mocked(useEditVolunteerApplication)().mutateAsync).toHaveBeenCalledWith({
+      id: 'app-1',
+      application: expect.objectContaining({ motivation: 'Tenho disponibilidade para ajudar com os animais aos sábados.' }),
+    }));
+    expect(mockedUseCreateVolunteerApplication().mutateAsync).not.toHaveBeenCalled();
   });
 
   it('renders approved volunteer card and navigates to activities when user is a volunteer', async () => {
@@ -116,6 +146,8 @@ describe('VolunteerScreen', () => {
         username: 'João Silva',
         email: 'joao@example.com',
         role: 'volunteer',
+        birthDate: '1990-01-01',
+        phone: '19999998888',
         rules: [],
         createdAt: '2026-10-26T00:00:00.000Z',
       },
@@ -143,10 +175,12 @@ describe('VolunteerScreen', () => {
       getByText('Você faz parte do time de voluntários!'),
     ).toBeTruthy();
 
-    fireEvent.press(
+    await fireEvent.press(
       getByLabelText('Ver atividades disponíveis para voluntários'),
     );
     expect(router.push).toHaveBeenCalledWith('/(protected)/(tabs)/activities');
+    await fireEvent.press(getByLabelText('Consultar medicação dos animais'));
+    expect(router.push).toHaveBeenCalledWith('/cuidados-animais');
   });
 
   it('submits the volunteer form when valid data is provided', async () => {
@@ -165,29 +199,25 @@ describe('VolunteerScreen', () => {
       <VolunteerScreen />,
     );
 
-    fireEvent.changeText(
-      getByPlaceholderText('(19) 99999-9999'),
-      '(19) 98888-7777',
-    );
-    fireEvent.press(getByLabelText('Cuidados com os pets'));
-    fireEvent.press(getByLabelText('Finais de semana'));
-    fireEvent.changeText(
+    await fireEvent.press(getByLabelText('Cuidados com os pets'));
+    await fireEvent.press(getByLabelText('Finais de semana'));
+    await fireEvent.changeText(
       getByPlaceholderText(
         'Conte se já teve contato com animais ou como pretende apoiar o abrigo',
       ),
       'Tenho experiência cuidando de cães e quero apoiar aos sábados.',
     );
-    fireEvent.press(
+    await fireEvent.press(
       getByText(
         'Comprometo-me a respeitar as orientações de segurança e bem-estar animal da ONG Kapa Protetores.',
       ),
     );
-    fireEvent.press(getByText('Enviar inscrição de voluntariado'));
+    await fireEvent.press(getByText('Enviar inscrição de voluntariado'));
 
     await waitFor(() => {
       expect(mutateAsync).toHaveBeenCalledWith({
         fullName: 'João Silva',
-        phone: '(19) 98888-7777',
+        phone: '19999998888',
         areasOfInterest: ['care'],
         availability: 'weekends',
         motivation:

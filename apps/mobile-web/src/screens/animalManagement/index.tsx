@@ -8,6 +8,7 @@ import { PrimaryButton } from '@/components/buttons/primary';
 import { fetchManagedAnimals, fetchShelterBudgetPrediction } from '@/services/animalManagement';
 import { ApiError } from '@/services/api';
 import { palette } from '@/theme';
+import { PageHeading } from '@/components/layout/PageHeading';
 import { AnimalThumbnail, BackLink, ChoiceGroup, Notice, StatusBadge, TextButton } from './components';
 import { sizeLabel, speciesLabels, statusLabels } from './model';
 
@@ -76,11 +77,7 @@ export function AnimalManagementScreen() {
       <View className="w-full max-w-content self-center px-5 md:px-10 pb-10 pt-3 gap-6">
         <BackLink />
         <View className="flex-col md:flex-row md:items-center justify-between gap-6">
-          <View className="flex-1 gap-2">
-            <Text className="font-body-medium text-xs tracking-widest text-denim">GESTÃO DO ABRIGO</Text>
-            <Text accessibilityRole="header" className="font-heading-bold text-2xl md:text-4xl text-ink">Cada cuidado conta.</Text>
-            <Text className="font-body text-base text-ink-muted leading-6">Acompanhe os animais do abrigo, do resgate ao novo lar.</Text>
-          </View>
+          <View className="flex-1"><PageHeading eyebrow="GESTÃO DO ABRIGO" title="Cada cuidado conta." description="Acompanhe os animais do abrigo, do resgate ao novo lar." /></View>
           <PrimaryButton title="Cadastrar animal" fullWidth={false} textColor={palette.ink}
             icon={<PlusIcon size={20} color={palette.ink} />} onPress={() => router.push('/cadastro-animal')} />
         </View>
