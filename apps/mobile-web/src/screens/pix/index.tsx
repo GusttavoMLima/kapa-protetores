@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import {
-  ArrowLeftIcon,
   BankIcon,
   CheckIcon,
   CopyIcon,
@@ -15,6 +14,7 @@ import {
 import { PrimaryCard } from '@/components/cards/primary';
 import { PrimaryButton } from '@/components/buttons/primary';
 import { PrimaryChip } from '@/components/chips/primaryChip';
+import { Page } from '@/components/layout/Page';
 import { palette } from '@/theme';
 import { createPixBrCode } from './brCode';
 import { PixQrCode } from './PixQrCode';
@@ -62,45 +62,24 @@ export function PixScreen() {
   };
 
   return (
-    <ScrollView
-      className="flex-1"
-      style={{ backgroundColor: palette.cream }}
-      contentContainerStyle={{
-        padding: 16,
-        paddingBottom: 48,
-        gap: 16,
+    <Page
+      width="form"
+      backLabel="Apoiar"
+      onBack={() => {
+        if (router.canGoBack?.()) {
+          router.back();
+        } else {
+          router.replace('/support');
+        }
       }}
-      showsVerticalScrollIndicator={false}
     >
-      <View className="flex-row items-center justify-between pt-2">
-        <Pressable
-          onPress={() => {
-            if (router.canGoBack?.()) {
-              router.back();
-            } else {
-              router.replace('/support');
-            }
-          }}
-          accessibilityRole="button"
-          accessibilityLabel="Voltar para a tela anterior"
-          hitSlop={12}
-          className="flex-row items-center gap-2 p-2 -ml-2 rounded-full active:bg-orange-100"
-        >
-          <ArrowLeftIcon size={24} color={palette.ink} weight="bold" />
-          <Text className="font-heading font-bold text-ink text-base">
-            Voltar
-          </Text>
-        </Pressable>
-
-        <View className="flex-row items-center gap-1.5 bg-peach px-3 py-1.5 rounded-full">
+      <View className="gap-2">
+        <View className="flex-row items-center gap-1.5 bg-peach self-start px-3 py-1.5 rounded-full">
           <HeartIcon size={16} color={palette.orange} weight="fill" />
           <Text className="font-body text-xs font-semibold text-orange-dark">
             Apoio Direto
           </Text>
         </View>
-      </View>
-
-      <View className="gap-2">
         <Text className="font-heading font-bold text-2xl md:text-3xl text-ink">
           Doar via PIX
         </Text>
@@ -254,6 +233,6 @@ export function PixScreen() {
           4. Cole a chave, confirme o nome da KAPA e finalize a doação.
         </Text>
       </PrimaryCard>
-    </ScrollView>
+    </Page>
   );
 }

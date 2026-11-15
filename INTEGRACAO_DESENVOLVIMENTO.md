@@ -1226,6 +1226,15 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 * **Painel "Gerenciar usuário"**: em vez de botões repetidos em cada linha, cada pessoa tem um botão "Gerenciar" que abre um painel com avatar, e-mail, data de cadastro, troca de papel ("Salvar papel", habilitado só quando o papel muda) e acesso (desativar com confirmação em duas etapas; reativar direto). Erros da API aparecem dentro do painel; o sucesso aparece como aviso na tela. As salvaguardas continuam no servidor (a própria conta fica bloqueada na interface e a API responde `403`).
 * **Limites conhecidos**: `GET /api/users/all` devolve todos os usuários, então busca, filtro, ordenação e paginação são feitos no cliente (suficiente para o volume de uma ONG; acima de alguns milhares de contas, mover para o servidor). Não há "último acesso" nem histórico de quem desativou, pois esses dados não existem no banco.
 * **Testes**: [`userManagementModel.spec.ts`](apps/mobile-web/test/screens/userManagementModel.spec.ts) e [`UserManagementScreen.spec.tsx`](apps/mobile-web/test/screens/UserManagementScreen.spec.tsx).
+
+### 47. Layout de página compartilhado (issue #84)
+
+* **Problema**: cada tela montava seu próprio esqueleto. Margens laterais variavam (`px-3`, `px-4`, `px-5`), parte das telas não limitava a largura no desktop e o botão voltar existia em três formas (`BackLink`, `DefaultHeader` e botões próprios), faltando em algumas telas.
+* **Componentes** (`apps/mobile-web/src/components/layout/`):
+  * [`Page.tsx`](apps/mobile-web/src/components/layout/Page.tsx): `SafeAreaView` + `ScrollView` + coluna central com o padrão `w-full max-w-content self-center px-5 md:px-10 pt-3 pb-10 gap-6`. `width="form"` usa `max-w-form` em telas de formulário. Mostra o `BackLink` por padrão (`backLabel` muda o rótulo, `onBack` a ação, `backLabel={null}` oculta o botão nas telas raiz das abas).
+  * [`BackLink.tsx`](apps/mobile-web/src/components/layout/BackLink.tsx): botão voltar (alvo mínimo de 48px, rótulo acessível "Voltar para …"). `animalManagement/components` reexporta o `BackLink`, então as importações antigas continuam válidas.
+* **Telas migradas**: gestão de usuários, minhas solicitações de adoção, meus eventos, favoritos e Pix. `Page` aceita `refreshControl` para manter o puxar-para-atualizar de eventos e favoritos. Na tela Pix, o selo "Apoio Direto" passou para acima do título e a tela usa `width="form"`. O botão voltar agora usa o rótulo do destino ("Voltar para Perfil" / "Voltar para Apoiar"). As demais telas serão migradas em seguida, no mesmo issue.
+* **Testes**: [`Page.spec.tsx`](apps/mobile-web/test/components/Page.spec.tsx); o teste do Pix passou a procurar o novo rótulo do botão voltar. O restante da suíte de telas continua passando.
 ---
 
 ### 44. Navegação por perfil e identidade visual Kapa (10/11/2026)
