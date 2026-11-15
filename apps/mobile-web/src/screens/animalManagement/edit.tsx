@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Animal } from '@kapa/shared';
 import { PrimaryButton } from '@/components/buttons/primary';
+import { FormSubmissionLoader } from '@/components/feedback/FormSubmissionLoader';
 import { PrimaryInputText } from '@/components/inputText/primary';
 import { MultiFotoPicker } from '@/components/photoPicker/animal';
 import { fetchManagedAnimal, updateManagedAnimal } from '@/services/animalManagement';
@@ -168,6 +169,7 @@ function AnimalEditor({ id }: { id: string }) {
           </>}
       </View>
     </ScrollView>
+    <FormSubmissionLoader visible={saving} message="Salvando alterações do animal…" />
     <Modal visible={confirmLeave} transparent animationType="fade" onRequestClose={() => setConfirmLeave(false)}>
       <View className="flex-1 items-center justify-center bg-denim/50 p-5"><View accessibilityViewIsModal className="w-full max-w-form bg-white rounded-xl p-6 gap-5">
         <Text accessibilityRole="header" className="font-heading-bold text-xl text-ink">Sair sem salvar?</Text><Text className="font-body text-base text-ink-muted">As alterações feitas neste cadastro serão descartadas.</Text>

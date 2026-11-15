@@ -29,6 +29,7 @@ export class FosterApplicationRouter {
     });
     this.router.get('/mine', applicantAccess, controller.getMine);
     this.router.post('/', applicantAccess, controller.submit);
+    this.router.patch('/:id', applicantAccess, controller.edit);
     this.router.get('/', managementAccess, controller.list);
     this.router.patch('/:id/status', managementAccess, controller.review);
   }

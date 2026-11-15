@@ -5,6 +5,7 @@ import { Text, View } from 'react-native';
 import { SecondaryInputText } from '@/components/inputText/secondary';
 import { EnvelopeSimpleIcon, LockIcon, UserIcon } from 'phosphor-react-native';
 import { PrimaryButton } from '@/components/buttons/primary';
+import { FormSubmissionLoader } from '@/components/feedback/FormSubmissionLoader';
 import { GoogleAuthButton } from '@/components/buttons/google';
 import { ErrorBanner } from '@/components/feedback/ErrorBanner';
 import { useAuth } from '@/hooks/useAuth';
@@ -46,6 +47,7 @@ type RegisterFormData = z.infer<typeof registerFormSchema>;
 export function RegisterForm() {
   const { signUp } = useAuth();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isRegistering, setIsRegistering] = useState(false);
   const {
     isGoogleReady,
     signInWithGoogle,
@@ -66,6 +68,7 @@ export function RegisterForm() {
   });
 
   const onSubmit = async (data: RegisterFormData) => {
+    setIsRegistering(true);
     try {
       setErrorMessage(null);
       clearGoogleError();
@@ -90,6 +93,8 @@ export function RegisterForm() {
           axiosError?.response?.data?.error ||
           'Não foi possível realizar o cadastro. Tente novamente.',
       );
+    } finally {
+      setIsRegistering(false);
     }
   };
 
@@ -177,6 +182,7 @@ export function RegisterForm() {
           )}
         />
 
+        <FormSubmissionLoader visible={isRegistering} message="Criando sua conta…" />
         <PrimaryButton
           title="Cadastrar"
           className="mt-2"

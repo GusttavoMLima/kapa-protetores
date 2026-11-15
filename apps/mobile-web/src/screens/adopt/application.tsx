@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { isAxiosError } from 'axios';
 import { ArrowLeftIcon, HeartIcon, PawPrintIcon } from 'phosphor-react-native';
 import { PrimaryButton } from '@/components/buttons/primary';
+import { FormSubmissionStatus } from '@/components/feedback/FormSubmissionLoader';
 import { EligibilityNotice } from '@/components/feedback/EligibilityNotice';
 import { isAdult, isValidPhone } from '@kapa/shared';
 import { PrimaryInputText } from '@/components/inputText/primary';
@@ -344,23 +345,32 @@ export function AdoptionApplicationScreen() {
         </View>
       </ScrollView>
 
-      <Modal visible={showCompletionModal} transparent animationType="fade" onRequestClose={() => setShowCompletionModal(false)}>
-        <View className="flex-1 items-center justify-center bg-denim/50 p-5">
-          <View accessibilityViewIsModal className="w-full max-w-form bg-white rounded-2xl p-6 gap-4">
-            <HeartIcon size={32} color={palette.orange} weight="fill" />
-            <Text accessibilityRole="header" className="font-heading-bold text-xl text-ink">Ficha preenchida!</Text>
-            <Text className="font-body text-base text-ink-muted leading-6">
-              Obrigado por contar um pouco sobre você e sobre seu interesse em {animal.name}. O abrigo analisará sua solicitação e entrará em contato pelo telefone informado.
-            </Text>
-            <PrimaryButton
-              title="Ir para o início"
-              onPress={() => {
-                setShowCompletionModal(false);
-                router.replace('/(protected)/(tabs)');
-              }}
-            />
+      <Modal
+        visible={isSubmitting || showCompletionModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => { if (!isSubmitting) setShowCompletionModal(false); }}
+      >
+        {isSubmitting ? (
+          <FormSubmissionStatus message="Enviando sua ficha de adoção…" />
+        ) : showCompletionModal ? (
+          <View className="flex-1 items-center justify-center bg-denim/50 p-5">
+            <View accessibilityViewIsModal className="w-full max-w-form bg-white rounded-2xl p-6 gap-4">
+              <HeartIcon size={32} color={palette.orange} weight="fill" />
+              <Text accessibilityRole="header" className="font-heading-bold text-xl text-ink">Ficha preenchida!</Text>
+              <Text className="font-body text-base text-ink-muted leading-6">
+                Obrigado por contar um pouco sobre você e sobre seu interesse em {animal.name}. O abrigo analisará sua solicitação e entrará em contato pelo telefone informado.
+              </Text>
+              <PrimaryButton
+                title="Ir para o início"
+                onPress={() => {
+                  setShowCompletionModal(false);
+                  router.replace('/(protected)/(tabs)');
+                }}
+              />
+            </View>
           </View>
-        </View>
+        ) : null}
       </Modal>
     </View>
   );

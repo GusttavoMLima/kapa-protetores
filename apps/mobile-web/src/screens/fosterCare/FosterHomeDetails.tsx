@@ -12,8 +12,12 @@ export const fosterHomeQuestionKeys = [
 ] as const satisfies readonly (keyof typeof fosterHomeQuestions)[];
 
 type HomeDetails = Pick<FosterApplication,
-  'availability' | 'homeAddress' | 'homeNotes' | (typeof fosterHomeQuestionKeys)[number]
+  'availability' | 'availableFrom' | 'availableUntil' | 'homeAddress' | 'homeNotes' | (typeof fosterHomeQuestionKeys)[number]
 >;
+
+function formatDate(date: string) {
+  return date.split('-').reverse().join('/');
+}
 
 export function FosterHomeDetails({ application }: { application: HomeDetails }) {
   return (
@@ -21,7 +25,16 @@ export function FosterHomeDetails({ application }: { application: HomeDetails })
       <View className="gap-4 rounded-xl bg-cream p-4 md:flex-row">
         <View className="gap-1 md:flex-1">
           <Text className="font-body-bold text-xs uppercase text-denim">Disponibilidade</Text>
-          <Text className="font-body leading-6 text-ink">{application.availability}</Text>
+          {application.availableFrom ? (
+            <View>
+              <Text className="font-body leading-6 text-ink">A partir de {formatDate(application.availableFrom)}</Text>
+              <Text className="font-body leading-6 text-ink">
+                {application.availableUntil ? `Até ${formatDate(application.availableUntil)}` : 'Prazo indeterminado'}
+              </Text>
+            </View>
+          ) : (
+            <Text className="font-body leading-6 text-ink">{application.availability ?? 'Não informado'}</Text>
+          )}
         </View>
         <View className="gap-1 md:flex-[2]">
           <Text className="font-body-bold text-xs uppercase text-denim">Endereço da casa</Text>

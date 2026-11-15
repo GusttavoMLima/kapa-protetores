@@ -4,11 +4,12 @@ let accessToken: string | undefined;
 type ApiEnvelope<T> = {
   success: boolean;
   data?: T;
+  message?: string;
   error?: string;
 };
 
 export class ApiError extends Error {
-  constructor(message: string, public readonly status: number) {
+  constructor(message: string, public readonly status: number, public readonly responseMessage?: string) {
     super(message);
     this.name = 'ApiError';
   }
@@ -30,7 +31,8 @@ export async function apiRequest<T>(
   const response = await fetch(`${apiBaseUrl}${path}`, { ...options, headers });
   const body = await response.json() as ApiEnvelope<T>;
   if (!response.ok || !body.success || body.data === undefined) {
-    throw new ApiError(body.error ?? 'Não foi possível concluir a solicitação.', response.status);
+    const responseMessage = typeof body.message === 'string' ? body.message : undefined;
+    throw new ApiError(body.error ?? 'Não foi possível concluir a solicitação.', response.status, responseMessage);
   }
   return body.data;
 }

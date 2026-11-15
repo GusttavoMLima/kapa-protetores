@@ -5,6 +5,7 @@ export type DateTimeFieldProps = {
   value: string;
   onChange: (value: string) => void;
   mode: 'date' | 'time';
+  disabled?: boolean;
   error?: string;
   containerStyle?: StyleProp<ViewStyle>;
 };

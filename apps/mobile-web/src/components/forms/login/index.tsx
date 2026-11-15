@@ -5,6 +5,7 @@ import { Text, View } from 'react-native';
 import { SecondaryInputText } from '@/components/inputText/secondary';
 import { EnvelopeSimpleIcon, LockIcon } from 'phosphor-react-native';
 import { PrimaryButton } from '@/components/buttons/primary';
+import { FormSubmissionLoader } from '@/components/feedback/FormSubmissionLoader';
 import { GoogleAuthButton } from '@/components/buttons/google';
 import { ErrorBanner } from '@/components/feedback/ErrorBanner';
 import { useAuth } from '@/hooks/useAuth';
@@ -23,6 +24,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export function LoginForm() {
   const { signIn } = useAuth();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSigningIn, setIsSigningIn] = useState(false);
   const {
     isGoogleReady,
     signInWithGoogle,
@@ -39,6 +41,7 @@ export function LoginForm() {
   });
 
   const onSubmit = async (data: LoginFormData) => {
+    setIsSigningIn(true);
     try {
       setErrorMessage(null);
       clearGoogleError();
@@ -57,6 +60,8 @@ export function LoginForm() {
               axiosError.response.data?.error ||
               'E-mail ou senha incorretos. Verifique suas credenciais.',
       );
+    } finally {
+      setIsSigningIn(false);
     }
   };
 
@@ -109,6 +114,7 @@ export function LoginForm() {
           Esqueceu a senha?
         </Text>
 
+        <FormSubmissionLoader visible={isSigningIn} message="Entrando na sua conta…" />
         <PrimaryButton
           title="Entrar"
           className="mt-1"

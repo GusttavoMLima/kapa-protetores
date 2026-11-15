@@ -955,6 +955,8 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
     * Integração com a biblioteca oficial `expo-clipboard` com fallback para `navigator.clipboard` na Web.
     * Feedback visual e de acessibilidade com transição temporária de 3 segundos para o estado "Chave Copiada com Sucesso!" e limpeza preventiva de timeouts no ciclo de vida do componente (`useRef`/`useEffect`).
   * **Sugestões de Valor e Conversão Rápida**:
+    * O botão "Gerar QR Code" exibe um BR Code Pix estático a partir da mesma chave oficial usada na cópia. O app gera o código localmente com CRC16 e renderiza a imagem em SVG no mobile e na web.
+    * O código acompanha o valor selecionado. Ao desmarcar a sugestão, o valor fica livre para preenchimento no app bancário.
     * Chips com valores pré-definidos (R$ 10, R$ 25, R$ 50, R$ 100) utilizando `PrimaryChip`, destacando o impacto direto estimado em refeições para animais resgatados.
   * **Transparência e Prevenção de Desistência**:
     * Apresentação clara da Razão Social (Associação Kapa Protetores de Animais), CNPJ oficial e instituição financeira para conferência no app bancário antes de autorizar a transferência.
@@ -1290,6 +1292,9 @@ Implementação em `src/screens/adoptionRequests/` (`model`, componentes, cartã
 - A migração `20261111230000_add_foster_home_details` adiciona `home_address`, `has_other_animals`, `has_perimeter_barrier` e `has_secure_gate`. O envio exige o endereço da casa e respostas explícitas de Sim ou Não. As candidaturas anteriores preservam valores nulos, exibidos como **Não informado**. O endereço e as respostas são retornados apenas ao titular e à equipe autorizada.
 - Lar Temporário e ficha de adoção usam os mesmos campos de endereço (CEP, rua, número, bairro e cidade) e a mesma consulta ViaCEP. Lar Temporário combina os campos preenchidos no endereço salvo da candidatura.
 - Administradores e protetores analisam candidaturas em **Gestão do abrigo → Lar Temporário**. `GET /api/foster-applications` lista resultados paginados e `PATCH /api/foster-applications/:id/status` registra uma decisão sobre a candidatura pendente. As permissões são verificadas no banco e o status é atualizado de forma atômica.
+- A migração `20261114235000_add_foster_availability_dates` troca a restrição de uma candidatura por usuário por um índice para consultar o histórico. As colunas `available_from` e `available_until` são datas de calendário. O texto das candidaturas anteriores é preservado sem inferir datas.
+- `POST /api/foster-applications` exige data inicial e data final igual ou posterior à inicial, ou fim nulo para prazo indeterminado. Permite nova candidatura no dia seguinte à data final da mais recente, no fuso `America/Sao_Paulo`. Um período indefinido ou sem datas legíveis no cadastro antigo não libera reenvio automático.
+- `GET /api/foster-applications/mine` retorna a última candidatura com as permissões de edição e reenvio. `PATCH /api/foster-applications/:id` permite ao titular editar sua candidatura mais recente enquanto não estiver aprovada. Uma candidatura recusada volta para análise ao salvar. Criação e edição usam transações serializáveis para evitar submissões duplicadas ou alterações concorrentes na candidatura mais recente.
 
 ### Notificações por E-mail (`EmailService`)
 
@@ -1302,3 +1307,9 @@ Implementação em `src/screens/adoptionRequests/` (`model`, componentes, cartã
   1. **Boas-vindas a novos usuários (`sendWelcomeEmail`)**: disparado automaticamente em [`UserService.create`](apps/server/src/services/UserService.ts) e [`AuthService.register`](apps/server/src/services/AuthService.ts) utilizando o template `welcome` (`username` com o primeiro nome do usuário).
   2. **Mudança de status de adoção (`sendAdoptionStatusNotification`)**: disparado em [`AdoptionService.updateWorkflow`](apps/server/src/services/AdoptionService.ts) para os status `interviewing` (`adoption-interviewing`), `approved` (`adoption-approved`) e `rejected` (`adoption-rejected`), incluindo nome do adotante, nome do animal e URL da foto principal (`animalImage`), carregados em [`AdoptionRepository.updateWorkflow`](apps/server/src/repositories/AdoptionRepository.ts).
   3. **Mudança de status de candidatura de voluntariado (`sendVolunteerStatusNotification`)**: disparado em [`VolunteerApplicationService.updateStatus`](apps/server/src/services/VolunteerApplicationService.ts) para os status `approved` e `rejected` utilizando o template `volunteer-status`.
+
+### Carregamento no envio de formulários
+
+O componente `FormSubmissionLoader` cobre a tela com um ossinho animado e uma mensagem específica enquanto o formulário aguarda a API. Formulários com um modal próprio usam `FormSubmissionStatus` dentro do mesmo modal. A animação usa o Reanimated já instalado e respeita o movimento reduzido do sistema.
+
+O loader acompanha o envio validado no login por e-mail, cadastro de conta ou usuário, ficha e perfil de adoção, edição de perfil, cadastro e edição de animal, publicação no diário do pet, cadastro de atividade, candidaturas de voluntariado e lar temporário, análise de solicitações e gestão de usuários. Ao receber a resposta, a tela mostra o resultado do fluxo. Em caso de erro, o formulário continua preenchido para uma nova tentativa. Buscas e navegação comum mantêm o carregamento da própria tela.

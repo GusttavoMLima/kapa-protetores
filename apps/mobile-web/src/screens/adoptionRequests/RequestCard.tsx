@@ -3,6 +3,7 @@ import { Linking, Modal, Pressable, Text, TextInput, View } from 'react-native';
 import { CalendarBlankIcon, CaretDownIcon, CaretUpIcon, CheckIcon, ClipboardTextIcon, HouseIcon, MapPinIcon, ShieldCheckIcon, UserIcon, WhatsappLogoIcon, XIcon } from 'phosphor-react-native';
 import type { Adoption, UpdateAdoptionStatusInput } from '@kapa/shared';
 import { PrimaryButton } from '@/components/buttons/primary';
+import { FormSubmissionStatus } from '@/components/feedback/FormSubmissionLoader';
 import { useUpdateAdoptionStatus } from '@/hooks/useAdoptions';
 import { palette } from '@/theme';
 import { AnimalThumbnail } from '../animalManagement/components';
@@ -107,13 +108,17 @@ export function RequestCard({ adoption, expanded, onToggle }: { adoption: Adopti
       {feedback ? <Text accessibilityRole={feedback.kind === 'error' ? 'alert' : undefined} accessibilityLiveRegion="polite" className={`font-body-medium text-sm leading-6 rounded-xl p-4 ${feedback.kind === 'error' ? 'bg-danger-soft text-danger' : 'bg-success-soft text-success'}`}>{feedback.message}</Text> : null}
     </View> : null}
 
-    <Modal visible={confirmation !== null} transparent animationType="fade" onRequestClose={() => { if (!busy) setConfirmation(null); }}>
-      <View className="flex-1 items-center justify-center bg-denim/50 p-5"><View accessibilityViewIsModal className="w-full max-w-form rounded-2xl bg-white p-6 gap-5">
-        <Text accessibilityRole="header" className="font-heading-bold text-xl text-ink">{confirmation === 'rejected' ? 'Recusar esta solicitação?' : 'Confirmar a adoção?'}</Text>
-        <Text className="font-body text-base leading-6 text-ink-muted">{confirmation === 'rejected' ? `A ficha de ${name} para ${animalName} será marcada como recusada. Confira se a família já recebeu as orientações da equipe.` : `A adoção de ${animalName} por ${name} será concluída. Confira o contrato assinado antes de confirmar.`}</Text>
-        <PrimaryButton title={confirmation === 'rejected' ? 'Confirmar recusa' : 'Confirmar adoção'} className={confirmation === 'rejected' ? 'bg-danger' : undefined} loading={busy} onPress={() => { if (confirmation) save({ status: confirmation }, confirmation === 'rejected' ? 'Ficha marcada como recusada.' : 'Adoção concluída. Um novo começo para essa família!'); }} />
-        <RequestAction label="Voltar à análise" disabled={busy} onPress={() => setConfirmation(null)} />
-      </View></View>
+    <Modal visible={busy || confirmation !== null} transparent animationType="fade" onRequestClose={() => { if (!busy) setConfirmation(null); }}>
+      {busy ? (
+        <FormSubmissionStatus message="Salvando alterações da solicitação…" />
+      ) : confirmation !== null ? (
+        <View className="flex-1 items-center justify-center bg-denim/50 p-5"><View accessibilityViewIsModal className="w-full max-w-form rounded-2xl bg-white p-6 gap-5">
+          <Text accessibilityRole="header" className="font-heading-bold text-xl text-ink">{confirmation === 'rejected' ? 'Recusar esta solicitação?' : 'Confirmar a adoção?'}</Text>
+          <Text className="font-body text-base leading-6 text-ink-muted">{confirmation === 'rejected' ? `A ficha de ${name} para ${animalName} será marcada como recusada. Confira se a família já recebeu as orientações da equipe.` : `A adoção de ${animalName} por ${name} será concluída. Confira o contrato assinado antes de confirmar.`}</Text>
+          <PrimaryButton title={confirmation === 'rejected' ? 'Confirmar recusa' : 'Confirmar adoção'} className={confirmation === 'rejected' ? 'bg-danger' : undefined} onPress={() => save({ status: confirmation }, confirmation === 'rejected' ? 'Ficha marcada como recusada.' : 'Adoção concluída. Um novo começo para essa família!')} />
+          <RequestAction label="Voltar à análise" onPress={() => setConfirmation(null)} />
+        </View></View>
+      ) : null}
     </Modal>
   </View>;
 }

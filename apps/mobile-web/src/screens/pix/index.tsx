@@ -16,18 +16,21 @@ import { PrimaryCard } from '@/components/cards/primary';
 import { PrimaryButton } from '@/components/buttons/primary';
 import { PrimaryChip } from '@/components/chips/primaryChip';
 import { palette } from '@/theme';
+import { createPixBrCode } from './brCode';
+import { PixQrCode } from './PixQrCode';
 
 export const PIX_CONFIG = {
   keyType: 'CNPJ',
   keyValue: '05095176000198',
   recipientName: 'KAPA - KAMAEL ASSOCIACAO PROTETORA DOS ANIMAIS',
   bankName: 'BANCO BRADESCO SA',
-  city: 'São Paulo - SP',
+  city: 'SÃO PAULO',
   suggestedAmounts: [10, 25, 50, 100],
 } as const;
 
 export function PixScreen() {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(25);
+  const [showQrCode, setShowQrCode] = useState(false);
   const [copied, setCopied] = useState(false);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -175,6 +178,29 @@ export function PixScreen() {
           onPress={handleCopyPix}
           accessibilityLabel="Copiar chave PIX para a área de transferência"
         />
+
+        <PrimaryButton
+          title={showQrCode ? 'Ocultar QR Code' : 'Gerar QR Code'}
+          icon={<QrCodeIcon size={20} color={palette.denim} weight="bold" />}
+          color={palette.cream}
+          pressedColor={palette.peach}
+          textColor={palette.denim}
+          onPress={() => setShowQrCode((visible) => !visible)}
+        />
+
+        {showQrCode && (
+          <View className="items-center gap-2">
+            <PixQrCode payload={createPixBrCode(PIX_CONFIG, selectedAmount)} />
+            <Text
+              accessibilityLiveRegion="polite"
+              className="font-body text-center text-sm text-ink-muted"
+            >
+              {selectedAmount === null
+                ? 'Leia o QR Code na área Pix do seu banco e informe o valor da doação.'
+                : `Leia o QR Code na área Pix do seu banco para doar R$ ${selectedAmount}.`}
+            </Text>
+          </View>
+        )}
       </PrimaryCard>
 
       <PrimaryCard className="p-4 gap-3 bg-white">
