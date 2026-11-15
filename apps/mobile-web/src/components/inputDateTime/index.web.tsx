@@ -3,12 +3,13 @@ import { Text, View } from 'react-native';
 import { palette } from '@/theme';
 import type { DateTimeFieldProps } from './types';
 
-export function DateTimeField({ label, value, onChange, mode, error, containerStyle }: DateTimeFieldProps) {
+export function DateTimeField({ label, value, onChange, mode, disabled, error, containerStyle }: DateTimeFieldProps) {
   return (
     <View style={containerStyle} className="flex flex-col gap-1.5">
       <Text className="text-xs font-bold text-ink tracking-wide">{label}</Text>
       <input
         type={mode}
+        disabled={disabled}
         value={value}
         onChange={(event: React.ChangeEvent<HTMLInputElement>) => onChange(event.target.value)}
         aria-label={label}

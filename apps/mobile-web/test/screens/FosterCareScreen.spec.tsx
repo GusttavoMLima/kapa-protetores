@@ -7,7 +7,9 @@ import { fosterHomeQuestions } from '@/screens/fosterCare/FosterHomeDetails';
 import { SupportScreen } from '@/screens/support';
 import { useAuth } from '@/hooks/useAuth';
 import { ApiError } from '@/services/api';
+import type { DateTimeFieldProps } from '@/components/inputDateTime/types';
 import {
+  editFosterApplication,
   fetchFosterApplications,
   fetchMyFosterApplication,
   reviewFosterApplication,
@@ -18,10 +20,22 @@ jest.mock('expo-router', () => ({
   router: { back: jest.fn(), canGoBack: jest.fn(), push: jest.fn(), replace: jest.fn() },
 }));
 jest.mock('@/hooks/useAuth');
+jest.mock('@/components/inputDateTime', () => {
+  const { TextInput, Text, View } = jest.requireActual('react-native');
+  return {
+    DateTimeField: ({ label, value, onChange, error, disabled }: DateTimeFieldProps) => (
+      <View>
+        <TextInput accessibilityLabel={label} value={value} onChangeText={onChange} editable={!disabled} />
+        {error && <Text>{error}</Text>}
+      </View>
+    ),
+  };
+});
 jest.mock('@/services/fosterApplications', () => ({
   fosterStatusLabel: { pending: 'Em análise', approved: 'Aprovada' },
   fetchFosterApplications: jest.fn(),
   fetchMyFosterApplication: jest.fn(),
+  editFosterApplication: jest.fn(),
   reviewFosterApplication: jest.fn(),
   submitFosterApplication: jest.fn(),
 }));
@@ -53,7 +67,7 @@ describe('Lar Temporário', () => {
       user: { id: 'applicant', role: 'adopter' },
     } as ReturnType<typeof useAuth>);
     const details = {
-      availability: 'A partir de sábado', homeNotes: 'Quarto separado',
+      availableFrom: '2026-11-20', availableUntil: null, homeNotes: 'Quarto separado',
       homeAddress: 'Rua de Teste, 123 • Centro, Mogi Guaçu • CEP 13840-001',
       hasOtherAnimals: false, hasPerimeterBarrier: true, hasSecureGate: true,
     };
@@ -64,7 +78,8 @@ describe('Lar Temporário', () => {
       json: async () => ({ logradouro: 'Rua de Teste', bairro: 'Centro', localidade: 'Mogi Guaçu' }),
     } as Response);
     jest.mocked(submitFosterApplication).mockResolvedValue({
-      ...details, id: 'c000000000000000000000001', status: 'pending', submittedAt: now, updatedAt: now,
+      ...details, availability: null, canEdit: true, canSubmitNew: false,
+      id: 'c000000000000000000000001', status: 'pending', submittedAt: now, updatedAt: now,
     });
     const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { gcTime: Infinity } } });
     const screen = await render(
@@ -72,7 +87,11 @@ describe('Lar Temporário', () => {
         <FosterCareScreen />
       </QueryClientProvider>,
     );
-    await fireEvent.changeText(await screen.findByLabelText('Disponibilidade'), details.availability);
+    await fireEvent.changeText(await screen.findByLabelText('Quando pode começar'), details.availableFrom);
+    await fireEvent.changeText(screen.getByLabelText('Até quando pode acolher'), '2026-11-19');
+    expect(screen.getByText('A data final deve ser igual ou posterior à inicial.')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'Prazo indeterminado' }));
+    expect(screen.queryByLabelText('Até quando pode acolher')).toBeNull();
     await fireEvent.changeText(screen.getByLabelText('Espaço de acolhimento'), details.homeNotes);
     const submit = screen.getByRole('button', { name: 'Enviar candidatura' });
     await fireEvent.press(within(screen.getByLabelText(fosterHomeQuestions.hasOtherAnimals)).getByRole('radio', { name: 'Não' }));
@@ -87,8 +106,53 @@ describe('Lar Temporário', () => {
     await fireEvent.press(submit);
     expect(await screen.findByText('Em análise')).toBeTruthy();
     expect(screen.getByText(details.homeAddress)).toBeTruthy();
+    expect(screen.getByText('Prazo indeterminado')).toBeTruthy();
     expect(jest.mocked(submitFosterApplication).mock.calls[0]?.[0]).toEqual(details);
     expect(screen.queryByRole('button', { name: 'Enviar candidatura' })).toBeNull();
+  });
+
+  it('edits an unapproved application with prefilled dates and preserves its address', async () => {
+    jest.mocked(useAuth).mockReturnValue({ user: { id: 'applicant', role: 'adopter' } } as ReturnType<typeof useAuth>);
+    const saved = {
+      id: 'c000000000000000000000001', status: 'pending' as const, availability: null,
+      availableFrom: '2026-11-20', availableUntil: '2026-11-30',
+      homeAddress: 'Endereço já registrado', homeNotes: 'Quarto separado',
+      hasOtherAnimals: false, hasPerimeterBarrier: true, hasSecureGate: true,
+      canEdit: true, canSubmitNew: false,
+      submittedAt: '2026-11-14T10:00:00.000Z', updatedAt: '2026-11-14T10:00:00.000Z',
+    };
+    jest.mocked(fetchMyFosterApplication).mockResolvedValue(saved);
+    jest.mocked(editFosterApplication).mockResolvedValue({ ...saved, availableUntil: '2026-12-01' });
+    const client = new QueryClient({ defaultOptions: { queries: { gcTime: Infinity }, mutations: { gcTime: Infinity } } });
+    const screen = await render(<QueryClientProvider client={client}><FosterCareScreen /></QueryClientProvider>);
+    await fireEvent.press(await screen.findByRole('button', { name: 'Editar candidatura' }));
+    expect(screen.getByLabelText('Quando pode começar')).toHaveDisplayValue(saved.availableFrom);
+    expect(screen.getByLabelText('Até quando pode acolher')).toHaveDisplayValue(saved.availableUntil);
+    await fireEvent.changeText(screen.getByLabelText('Até quando pode acolher'), '2026-12-01');
+    await fireEvent.press(screen.getByRole('button', { name: 'Salvar alterações' }));
+    expect(await screen.findByText('Até 01/12/2026')).toBeTruthy();
+    expect(editFosterApplication).toHaveBeenCalledWith(saved.id, expect.objectContaining({
+      availableFrom: saved.availableFrom, availableUntil: '2026-12-01', homeAddress: saved.homeAddress,
+    }));
+  });
+
+  it('offers a fresh candidature after an approved period expires', async () => {
+    jest.mocked(useAuth).mockReturnValue({ user: { id: 'applicant', role: 'adopter' } } as ReturnType<typeof useAuth>);
+    jest.mocked(fetchMyFosterApplication).mockResolvedValue({
+      id: 'c000000000000000000000001', status: 'approved', availability: null,
+      availableFrom: '2026-11-01', availableUntil: '2026-11-03',
+      homeAddress: 'Endereço antigo', homeNotes: 'Quarto separado',
+      hasOtherAnimals: false, hasPerimeterBarrier: true, hasSecureGate: true,
+      canEdit: false, canSubmitNew: true,
+      submittedAt: '2026-11-01T10:00:00.000Z', updatedAt: '2026-11-01T10:00:00.000Z',
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { gcTime: Infinity } } });
+    const screen = await render(<QueryClientProvider client={client}><FosterCareScreen /></QueryClientProvider>);
+    const start = await screen.findByRole('button', { name: 'Nova candidatura' });
+    expect(screen.queryByRole('button', { name: 'Editar candidatura' })).toBeNull();
+    await fireEvent.press(start);
+    expect(screen.getByLabelText('Quando pode começar')).toHaveDisplayValue('');
+    expect(screen.getByRole('button', { name: 'Enviar candidatura' })).toBeDisabled();
   });
 
   it('offers sign-in instead of retrying a rejected session', async () => {
@@ -129,7 +193,7 @@ describe('Lar Temporário', () => {
     } as ReturnType<typeof useAuth>);
     const now = new Date().toISOString();
     const item = {
-      id: 'c000000000000000000000001', availability: 'Fim de semana', homeNotes: 'Quarto separado',
+      id: 'c000000000000000000000001', availability: 'Fim de semana', availableFrom: null, availableUntil: null, homeNotes: 'Quarto separado',
       homeAddress: null, hasOtherAnimals: null, hasPerimeterBarrier: null, hasSecureGate: null,
       submittedAt: now, updatedAt: now, applicant: { username: 'Maria', email: 'maria@example.org' },
     };

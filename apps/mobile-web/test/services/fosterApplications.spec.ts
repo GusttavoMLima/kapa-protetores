@@ -1,17 +1,17 @@
 import { apiRequest } from '@/services/api';
 import {
-  fetchFosterApplications, fetchMyFosterApplication, reviewFosterApplication, submitFosterApplication,
+  editFosterApplication, fetchFosterApplications, fetchMyFosterApplication, reviewFosterApplication, submitFosterApplication,
 } from '@/services/fosterApplications';
 
 jest.mock('@/services/api', () => ({ apiRequest: jest.fn() }));
 
 const request = jest.mocked(apiRequest);
 const input = {
-  availability: 'Fins de semana', homeNotes: 'Quarto separado', homeAddress: 'Rua Teste, 10',
+  availableFrom: '2026-11-11', availableUntil: null, homeNotes: 'Quarto separado', homeAddress: 'Rua Teste, 10',
   hasOtherAnimals: false, hasPerimeterBarrier: true, hasSecureGate: true,
 };
 const saved = {
-  ...input, id: 'c000000000000000000000001', status: 'pending',
+  ...input, availability: null, id: 'c000000000000000000000001', status: 'pending',
   submittedAt: '2026-11-11T12:00:00.000Z', updatedAt: '2026-11-11T12:00:00.000Z',
 };
 
@@ -23,9 +23,12 @@ it('distinguishes no application from invalid server data', async () => {
 });
 
 it('submits the form and parses the saved application', async () => {
-  request.mockResolvedValueOnce(saved);
-  await expect(submitFosterApplication(input)).resolves.toEqual(saved);
+  const applicantView = { ...saved, canEdit: true, canSubmitNew: false };
+  request.mockResolvedValueOnce(applicantView).mockResolvedValueOnce(applicantView);
+  await expect(submitFosterApplication(input)).resolves.toEqual(applicantView);
   expect(request).toHaveBeenCalledWith('/foster-applications', { method: 'POST', body: JSON.stringify(input) });
+  await expect(editFosterApplication(saved.id, input)).resolves.toEqual(applicantView);
+  expect(request).toHaveBeenCalledWith(`/foster-applications/${saved.id}`, { method: 'PATCH', body: JSON.stringify(input) });
 });
 
 it('reads the staff page and sends a review decision to the selected application', async () => {
