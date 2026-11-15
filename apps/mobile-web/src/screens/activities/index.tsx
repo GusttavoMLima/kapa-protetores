@@ -25,6 +25,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { kapaService } from '@/services/kapaService';
 import { DefaultHeader } from '@/components/header/default';
 import { PrimaryButton } from '@/components/buttons/primary';
+import { FormSubmissionLoader } from '@/components/feedback/FormSubmissionLoader';
 import { PrimaryChipGroup } from '@/components/chips/primaryChip';
 import { DateTimeField } from '@/components/inputDateTime';
 import { PrimaryInputText } from '@/components/inputText/primary';
@@ -311,6 +312,7 @@ export function ActivitiesScreen() {
                 <Text style={styles.section}>Vagas</Text>
                 <PrimaryInputText label="Quantidade de voluntários" value={vacancies} onChangeText={setVacancies} placeholder="Ex.: 4" keyboardType="number-pad" erro={vacanciesError} />
               </View>
+              <FormSubmissionLoader visible={saving} message="Cadastrando atividade…" />
               <PrimaryButton title="Cadastrar atividade" loading={saving} onPress={() => void handleSave()} size="lg" />
             </>
           )}

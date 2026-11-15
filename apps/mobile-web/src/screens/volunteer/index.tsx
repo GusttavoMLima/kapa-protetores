@@ -25,6 +25,7 @@ import {
 } from 'phosphor-react-native';
 import type { CommunityEventType, VolunteerAvailability } from '@kapa/shared';
 import { PrimaryButton } from '@/components/buttons/primary';
+import { FormSubmissionStatus } from '@/components/feedback/FormSubmissionLoader';
 import { PrimaryCheckBox } from '@/components/checkboxs/primary';
 import { PrimaryInputText } from '@/components/inputText/primary';
 import { useAuth } from '@/hooks/useAuth';
@@ -611,34 +612,38 @@ export function VolunteerScreen() {
       </ScrollView>
 
       <Modal
-        visible={showSuccessModal}
+        visible={isSubmitting || isSaving || showSuccessModal}
         transparent
         animationType="fade"
-        onRequestClose={() => setShowSuccessModal(false)}
+        onRequestClose={() => { if (!isSubmitting && !isSaving) setShowSuccessModal(false); }}
       >
-        <View className="flex-1 items-center justify-center bg-denim/50 p-5">
-          <View
-            accessibilityViewIsModal
-            className="w-full max-w-form bg-white rounded-2xl p-6 gap-4"
-          >
-            <HandHeartIcon size={32} color={palette.orange} weight="fill" />
-            <Text
-              accessibilityRole="header"
-              className="font-heading-bold text-xl text-ink"
+        {isSubmitting || isSaving ? (
+          <FormSubmissionStatus message={isSaving ? 'Salvando inscrição de voluntariado…' : 'Enviando inscrição de voluntariado…'} />
+        ) : showSuccessModal ? (
+          <View className="flex-1 items-center justify-center bg-denim/50 p-5">
+            <View
+              accessibilityViewIsModal
+              className="w-full max-w-form bg-white rounded-2xl p-6 gap-4"
             >
-              Inscrição enviada!
-            </Text>
-            <Text className="font-body text-base text-ink-muted leading-6">
-              Recebemos seu interesse em atuar como voluntário(a) na Kapa. Nossa
-              equipe analisará sua ficha e liberará seu acesso às atividades da
-              semana em breve.
-            </Text>
-            <PrimaryButton
-              title="Entendi"
-              onPress={() => setShowSuccessModal(false)}
-            />
+              <HandHeartIcon size={32} color={palette.orange} weight="fill" />
+              <Text
+                accessibilityRole="header"
+                className="font-heading-bold text-xl text-ink"
+              >
+                Inscrição enviada!
+              </Text>
+              <Text className="font-body text-base text-ink-muted leading-6">
+                Recebemos seu interesse em atuar como voluntário(a) na Kapa. Nossa
+                equipe analisará sua ficha e liberará seu acesso às atividades da
+                semana em breve.
+              </Text>
+              <PrimaryButton
+                title="Entendi"
+                onPress={() => setShowSuccessModal(false)}
+              />
+            </View>
           </View>
-        </View>
+        ) : null}
       </Modal>
     </View>
   );

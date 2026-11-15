@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { RegisterForm } from '@/components/forms/register';
 
 const mockSignUp = jest.fn().mockResolvedValue(undefined);
@@ -30,5 +30,37 @@ describe('RegisterForm dados pessoais', () => {
     await fireEvent.changeText(screen.getByLabelText('Confirmar senha'), 'senha-teste-123');
     await fireEvent.press(screen.getByText('Cadastrar'));
     await waitFor(() => expect(mockSignUp).toHaveBeenCalledWith({ username: 'Ana Souza', email: 'ana@example.com', password: 'senha-teste-123', birthDate: '2015-01-01', phone: '19999998888' }));
+  });
+
+  it('exibe o loader durante o envio e mantém os dados preenchidos quando a API falha', async () => {
+    let failRequest: () => void = () => { throw new Error('O envio ainda não começou'); };
+    mockSignUp.mockImplementationOnce(() => new Promise<void>((_, reject) => {
+      failRequest = () => reject(new Error('Falha no envio'));
+    }));
+    const screen = await render(<RegisterForm />);
+
+    await fireEvent.changeText(screen.getByLabelText('Nome de usuário'), 'Ana Souza');
+    await fireEvent.changeText(screen.getByLabelText('E-mail'), 'ana@example.com');
+    await fireEvent.changeText(screen.getByLabelText('Data de nascimento'), '2015-01-01');
+    await fireEvent.changeText(screen.getByLabelText('Celular com DDD'), '(19) 99999-8888');
+    await fireEvent.changeText(screen.getByLabelText('Senha'), 'senha-teste-123');
+    await fireEvent.changeText(screen.getByLabelText('Confirmar senha'), 'senha-teste-123');
+    let submission: Promise<void> | undefined;
+    await act(async () => {
+      submission = fireEvent.press(screen.getByRole('button', { name: 'Cadastrar' }));
+    });
+
+    expect(screen.getByRole('status')).toHaveTextContent('Criando sua conta…');
+    expect(mockSignUp).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      failRequest();
+      await submission;
+    });
+
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.getByText('Não foi possível realizar o cadastro. Tente novamente.')).toBeTruthy();
+    expect(screen.getByLabelText('E-mail')).toHaveDisplayValue('ana@example.com');
+    expect(screen.getByRole('button', { name: 'Cadastrar' })).toBeEnabled();
   });
 });

@@ -18,6 +18,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { FotoPicker } from '@/components/photoPicker/profile';
 import { PrimaryInputText } from '@/components/inputText/primary';
 import { PrimaryButton } from '@/components/buttons/primary';
+import { FormSubmissionLoader } from '@/components/feedback/FormSubmissionLoader';
 import { ErrorBanner } from '@/components/feedback/ErrorBanner';
 import {
   updateUserProfile,
@@ -254,6 +255,7 @@ export function EditProfileScreen() {
       ) : null}
 
       <View className="gap-3 pt-2">
+        <FormSubmissionLoader visible={isSaving} message="Salvando seu perfil…" />
         <PrimaryButton
           title="Salvar Alterações"
           onPress={handleSave}

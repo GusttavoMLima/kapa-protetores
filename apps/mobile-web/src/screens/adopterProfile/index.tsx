@@ -1,4 +1,5 @@
 import { AdopterProfileForms } from '@/components/forms/adopterProfile';
+import { FormSubmissionLoader } from '@/components/feedback/FormSubmissionLoader';
 import { AdopterProfileFormDataType } from '@/components/forms/adopterProfile/model';
 import {
   useAdopterProfile,
@@ -115,6 +116,7 @@ export function AdopterProfileScreen() {
         </View>
       ) : null}
 
+      <FormSubmissionLoader visible={mutation.isPending} message="Salvando seu perfil de adoção…" />
       <AdopterProfileForms
         currentField={current}
         onSubmit={submit}

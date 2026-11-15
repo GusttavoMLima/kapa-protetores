@@ -25,6 +25,7 @@
     "expo-web-browser": "~57.0.3",
     "nativewind": "^4.2.7",
     "phosphor-react-native": "^3.0.6",
+    "qrcode-generator": "2.0.4",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-hook-form": "^7.87.0",

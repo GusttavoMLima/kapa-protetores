@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { UserPlus } from 'phosphor-react-native';
 import { PrimaryButton } from '@/components/buttons/primary';
+import { FormSubmissionLoader } from '@/components/feedback/FormSubmissionLoader';
 import { PrimaryInputText } from '@/components/inputText/primary';
 import { PrimaryChipGroup } from '@/components/chips/primaryChip';
 import { BackLink } from '@/screens/animalManagement/components';
@@ -162,6 +163,7 @@ export function CadastroUsuarioScreen() {
           </View>
 
           <Text className="px-3 text-center font-body text-sm leading-5 text-ink-muted">Somente administradores podem criar contas por esta tela.</Text>
+          <FormSubmissionLoader visible={saving} message="Cadastrando usuário…" />
           <PrimaryButton title="Cadastrar usuário" loading={saving} onPress={() => void handleSave()} size="lg" />
         </ScrollView>
       </KeyboardAvoidingView>

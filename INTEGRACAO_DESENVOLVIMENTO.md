@@ -955,6 +955,8 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
     * Integração com a biblioteca oficial `expo-clipboard` com fallback para `navigator.clipboard` na Web.
     * Feedback visual e de acessibilidade com transição temporária de 3 segundos para o estado "Chave Copiada com Sucesso!" e limpeza preventiva de timeouts no ciclo de vida do componente (`useRef`/`useEffect`).
   * **Sugestões de Valor e Conversão Rápida**:
+    * O botão "Gerar QR Code" exibe um BR Code Pix estático a partir da mesma chave oficial usada na cópia. O app gera o código localmente com CRC16 e renderiza a imagem em SVG no mobile e na web.
+    * O código acompanha o valor selecionado. Ao desmarcar a sugestão, o valor fica livre para preenchimento no app bancário.
     * Chips com valores pré-definidos (R$ 10, R$ 25, R$ 50, R$ 100) utilizando `PrimaryChip`, destacando o impacto direto estimado em refeições para animais resgatados.
   * **Transparência e Prevenção de Desistência**:
     * Apresentação clara da Razão Social (Associação Kapa Protetores de Animais), CNPJ oficial e instituição financeira para conferência no app bancário antes de autorizar a transferência.
@@ -1305,3 +1307,9 @@ Implementação em `src/screens/adoptionRequests/` (`model`, componentes, cartã
   1. **Boas-vindas a novos usuários (`sendWelcomeEmail`)**: disparado automaticamente em [`UserService.create`](apps/server/src/services/UserService.ts) e [`AuthService.register`](apps/server/src/services/AuthService.ts) utilizando o template `welcome` (`username` com o primeiro nome do usuário).
   2. **Mudança de status de adoção (`sendAdoptionStatusNotification`)**: disparado em [`AdoptionService.updateWorkflow`](apps/server/src/services/AdoptionService.ts) para os status `interviewing` (`adoption-interviewing`), `approved` (`adoption-approved`) e `rejected` (`adoption-rejected`), incluindo nome do adotante, nome do animal e URL da foto principal (`animalImage`), carregados em [`AdoptionRepository.updateWorkflow`](apps/server/src/repositories/AdoptionRepository.ts).
   3. **Mudança de status de candidatura de voluntariado (`sendVolunteerStatusNotification`)**: disparado em [`VolunteerApplicationService.updateStatus`](apps/server/src/services/VolunteerApplicationService.ts) para os status `approved` e `rejected` utilizando o template `volunteer-status`.
+
+### Carregamento no envio de formulários
+
+O componente `FormSubmissionLoader` cobre a tela com um ossinho animado e uma mensagem específica enquanto o formulário aguarda a API. Formulários com um modal próprio usam `FormSubmissionStatus` dentro do mesmo modal. A animação usa o Reanimated já instalado e respeita o movimento reduzido do sistema.
+
+O loader acompanha o envio validado no login por e-mail, cadastro de conta ou usuário, ficha e perfil de adoção, edição de perfil, cadastro e edição de animal, publicação no diário do pet, cadastro de atividade, candidaturas de voluntariado e lar temporário, análise de solicitações e gestão de usuários. Ao receber a resposta, a tela mostra o resultado do fluxo. Em caso de erro, o formulário continua preenchido para uma nova tentativa. Buscas e navegação comum mantêm o carregamento da própria tela.

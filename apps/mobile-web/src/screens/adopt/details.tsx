@@ -31,6 +31,7 @@ import {
   type TriageStatus,
 } from '@kapa/shared';
 import { PrimaryButton } from '@/components/buttons/primary';
+import { FormSubmissionLoader } from '@/components/feedback/FormSubmissionLoader';
 import { PhotoCarousel } from '@/components/carousels/photo';
 import { useAdoptAnimals } from '@/hooks/useAdoptAnimals';
 import { useAdopterProfileMe } from '@/hooks/useAdopterProfile';
@@ -251,6 +252,7 @@ function PetTimelineCard({
           {postError ? (
             <Text className="font-body text-xs text-danger">{postError}</Text>
           ) : null}
+          <FormSubmissionLoader visible={createPostMutation.isPending} message="Publicando atualização…" />
           <PrimaryButton
             title="Publicar atualização"
             size="sm"

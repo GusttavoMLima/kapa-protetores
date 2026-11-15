@@ -4,6 +4,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BackLink } from '@/screens/animalManagement/components';
 import { PrimaryButton } from '@/components/buttons/primary';
+import { FormSubmissionLoader } from '@/components/feedback/FormSubmissionLoader';
 import { useAuth } from '@/hooks/useAuth';
 import { FosterHomeDetails } from './FosterHomeDetails';
 import {
@@ -35,6 +36,7 @@ export function FosterApplicationsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-cream">
+      <FormSubmissionLoader visible={review.isPending} message="Salvando decisão sobre a candidatura…" />
       <ScrollView>
         <View className="w-full max-w-content self-center gap-4 px-5 pb-10 pt-3 md:px-10">
           <BackLink label="Gestão do abrigo" />

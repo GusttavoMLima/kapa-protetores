@@ -13,6 +13,7 @@ import { PrimaryChipGroup } from '@/components/chips/primaryChip';
 import { MultiFotoPicker } from '@/components/photoPicker/animal';
 import { saveAnimal, uploadAnimalPhotos } from '@/storage/animals';
 import { PrimaryButton } from '@/components/buttons/primary';
+import { FormSubmissionLoader } from '@/components/feedback/FormSubmissionLoader';
 import { palette } from '@/theme';
 import type {
   CondicaoChegada,
@@ -656,6 +657,7 @@ export function CadastroAnimalScreen() {
             />
           </View>
 
+          <FormSubmissionLoader visible={salvando} message="Cadastrando animal…" />
           <PrimaryButton
             title="Salvar cadastro"
             loading={salvando}
