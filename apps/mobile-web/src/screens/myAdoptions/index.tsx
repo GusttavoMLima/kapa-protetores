@@ -18,7 +18,7 @@ export function MyAdoptionsScreen() {
   const { data: adoptions = [], isLoading, error, refetch } = useMyAdoptions();
 
   return (
-    <Page backLabel="Perfil"onBack={() => router.replace('/(protected)/(tabs)/profile')}>
+    <Page backLabel="Perfil" onBack={() => router.replace('/(protected)/(tabs)/profile')}>
       <PageHeading eyebrow="SEU CAMINHO ATÉ UM NOVO AMIGO" title="Minhas solicitações" description="Cada etapa é um passo mais perto de um novo começo. Acompanhe aqui suas fichas e as respostas da equipe Kapa." />
 
       {isLoading ? <View className="py-16 items-center gap-3"><ActivityIndicator size="large" color={palette.orange} /><Text className="font-body text-ink-muted">Carregando solicitações...</Text></View>

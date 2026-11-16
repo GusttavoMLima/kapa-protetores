@@ -75,7 +75,7 @@ export function AnimalManagementScreen() {
   return <SafeAreaView className="flex-1 bg-cream">
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="grow">
       <View className="w-full max-w-content self-center px-5 md:px-10 pb-10 pt-3 gap-6">
-        <BackLink />
+        <BackLink label="Gestão" />
         <View className="flex-col md:flex-row md:items-center justify-between gap-6">
           <View className="flex-1"><PageHeading eyebrow="GESTÃO DO ABRIGO" title="Cada cuidado conta." description="Acompanhe os animais do abrigo, do resgate ao novo lar." /></View>
           <PrimaryButton title="Cadastrar animal" fullWidth={false} textColor={palette.ink}

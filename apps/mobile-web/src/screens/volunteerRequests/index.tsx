@@ -6,7 +6,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { ArrowLeftIcon, HandHeartIcon } from 'phosphor-react-native';
+import { HandHeartIcon } from 'phosphor-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import {
   useAdminVolunteerApplications,
@@ -17,6 +17,7 @@ import {
   VOLUNTEER_AREA_LABELS,
   VOLUNTEER_AVAILABILITY_LABELS,
 } from '@/screens/volunteer';
+import { BackLink } from '@/components/layout/BackLink';
 import { palette } from '@/theme';
 import { PageHeading } from '@/components/layout/PageHeading';
 
@@ -39,19 +40,14 @@ export function VolunteerRequestsScreen() {
       className="flex-1 bg-cream"
       contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 24, width: '100%', maxWidth: 1140, alignSelf: 'center' }}
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Voltar"
-        className="min-h-12 self-start flex-row items-center gap-2 py-2 pr-4"
+      <BackLink
+        label="Gestão"
         onPress={() =>
           router.canGoBack()
             ? router.back()
             : router.replace('/(protected)/(tabs)')
         }
-      >
-        <ArrowLeftIcon size={18} color={palette.denim} />
-        <Text className="font-body-medium text-sm text-denim">Voltar</Text>
-      </Pressable>
+      />
 
       <PageHeading eyebrow="GESTÃO DO ABRIGO • NOSSA REDE DE APOIO" icon={HandHeartIcon} title="Candidaturas de voluntários" description="Há sempre espaço para mais carinho. Conheça quem quer somar com a Kapa e encontre novas mãos para os cuidados da semana." />
 

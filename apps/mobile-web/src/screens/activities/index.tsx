@@ -20,7 +20,6 @@ import {
   PlusIcon,
   UsersThreeIcon,
 } from 'phosphor-react-native';
-import { router } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { kapaService } from '@/services/kapaService';
 import { PrimaryButton } from '@/components/buttons/primary';
@@ -33,6 +32,7 @@ import type {
   CommunityEventType,
   CreateCommunityEventInput,
 } from '@kapa/shared';
+import { BackLink } from '@/components/layout/BackLink';
 import { palette } from '@/theme';
 import { styles } from './styles';
 import { PageHeading } from '@/components/layout/PageHeading';
@@ -230,15 +230,7 @@ export function ActivitiesScreen() {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           {mode === 'list' ? (
             <>
-              <Pressable
-                style={styles.backButton}
-                onPress={() => router.replace('/')}
-                accessibilityRole="button"
-                accessibilityLabel="Voltar ao início"
-              >
-                <ArrowLeftIcon size={20} color={palette.denim} weight="bold" />
-                <Text style={styles.backButtonText}>Voltar ao início</Text>
-              </Pressable>
+              <BackLink label="Gestão" />
               <PageHeading eyebrow="GESTÃO DO ABRIGO • TEMPO QUE TRANSFORMA" icon={CalendarIcon} title="Atividades da semana" description="Organize os encontros, prepare as vagas e reúna nossa rede de voluntários. Cada hora dedicada faz diferença." />
 
               {feedback ? (

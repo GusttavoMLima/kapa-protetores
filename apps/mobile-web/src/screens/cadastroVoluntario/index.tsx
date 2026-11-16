@@ -112,7 +112,7 @@ export function CadastroUsuarioScreen() {
           showsVerticalScrollIndicator={false}
         >
           <BackLink
-            label="Gestão do abrigo"
+            label="Gestão"
             onPress={() => {
               if (savingRef.current) return;
               if (router.canGoBack()) router.back();

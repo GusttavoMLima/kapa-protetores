@@ -153,7 +153,7 @@ export function UserManagementScreen() {
 
   return (
     <>
-      <Page>
+      <Page backLabel="Gestão">
         <View className="gap-2">
           <Text className="font-body-medium text-xs tracking-widest text-denim">
             ADMINISTRAÇÃO

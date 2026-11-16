@@ -81,7 +81,7 @@ describe('EditProfileScreen', () => {
     mockCanGoBack.mockReturnValue(true);
     await render(<EditProfileScreen />);
 
-    const backButton = screen.getByLabelText('Voltar para a tela anterior');
+    const backButton = screen.getByLabelText('Voltar para Perfil');
     await fireEvent.press(backButton);
 
     expect(mockBack).toHaveBeenCalledTimes(1);

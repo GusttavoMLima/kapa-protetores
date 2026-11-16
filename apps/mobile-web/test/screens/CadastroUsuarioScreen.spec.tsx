@@ -13,7 +13,7 @@ describe('CadastroUsuarioScreen', () => {
   it.each([true, false])('offers a way back when navigation history is %s', async (hasHistory) => {
     jest.mocked(router.canGoBack).mockReturnValue(hasHistory);
     const screen = await render(<CadastroUsuarioScreen />);
-    await fireEvent.press(screen.getByRole('button', { name: 'Voltar para Gestão do abrigo' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Voltar para Gestão' }));
 
     if (hasHistory) {
       expect(router.back).toHaveBeenCalledTimes(1);
