@@ -107,7 +107,7 @@ export function CadastroUsuarioScreen() {
       <KeyboardAvoidingView className="flex-1 bg-cream" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           ref={scrollRef}
-          contentContainerClassName="w-full max-w-form self-center gap-5 px-5 pb-10 pt-6"
+          contentContainerClassName="w-full max-w-form self-center gap-6 px-5 md:px-10 pb-10 pt-3"
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >

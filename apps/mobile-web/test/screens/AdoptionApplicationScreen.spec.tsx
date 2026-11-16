@@ -73,11 +73,13 @@ describe('AdoptionApplicationScreen', () => {
   });
 
   it('mostra a ficha para o pet selecionado', async () => {
-    const { getByText, getByDisplayValue } = await render(<AdoptionApplicationScreen />);
+    const { getByText, getAllByText, getByLabelText, getByDisplayValue } = await render(<AdoptionApplicationScreen />);
 
     expect(getByText('Ficha de adoção')).toBeTruthy();
     expect(getByText('Você está se candidatando para')).toBeTruthy();
-    expect(getByText('Luna')).toBeTruthy();
+    // O nome aparece no botão voltar e no resumo da candidatura.
+    expect(getAllByText('Luna')).toHaveLength(2);
+    expect(getByLabelText('Voltar para Luna')).toBeTruthy();
     expect(getByDisplayValue('Ana Souza')).toBeTruthy();
     expect(getByDisplayValue('01/01/1990')).toBeTruthy();
     expect(getByDisplayValue('19999998888')).toBeTruthy();
