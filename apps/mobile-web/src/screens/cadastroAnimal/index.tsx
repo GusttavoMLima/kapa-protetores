@@ -14,6 +14,7 @@ import { MultiFotoPicker } from '@/components/photoPicker/animal';
 import { saveAnimal, uploadAnimalPhotos } from '@/storage/animals';
 import { PrimaryButton } from '@/components/buttons/primary';
 import { FormSubmissionLoader } from '@/components/feedback/FormSubmissionLoader';
+import { useHeaderOffset } from '@/hooks/useHeaderOffset';
 import { palette } from '@/theme';
 import type {
   CondicaoChegada,
@@ -89,6 +90,7 @@ function DoseField({ label, dose, erro, onChange, onRemove }: DoseFieldProps) {
 }
 
 export function CadastroAnimalScreen() {
+  const headerOffset = useHeaderOffset();
   const [fotosUris, setFotosUris] = useState<string[]>([]);
   const [nome, setNome] = useState('');
   const [raca, setRaca] = useState('');
@@ -291,10 +293,11 @@ export function CadastroAnimalScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-cream" edges={['left', 'right', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-cream" edges={['left', 'right']}>
       <KeyboardAvoidingView
         className="flex-1 bg-cream"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={headerOffset}
       >
         <ScrollView
           ref={scrollRef}

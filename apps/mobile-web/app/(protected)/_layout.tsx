@@ -26,19 +26,10 @@ export default function ProtectedLayout() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
+      {/* Telas internas ficam em (tabs) para manter cabeçalho e barra de abas. */}
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="adopet/[id]" />
-      <Stack.Screen name="adopet/[id]/application" />
-      <Stack.Screen name="my-adoptions" />
-      <Stack.Screen name="my-events" />
-      <Stack.Screen name="my-favorites" />
-      <Stack.Screen name="gestao/solicitacoes" />
-      <Stack.Screen name="gestao/voluntarios" />
-      <Stack.Screen name="gestao/usuarios" />
-      <Stack.Screen name="manage-activities" />
+      {/* Cadastro inicial do adotante fica fora das abas: o layout das abas redireciona para cá. */}
       <Stack.Screen name="adopter-profile" />
-      <Stack.Screen name="(adopter)/pix" />
-      <Stack.Screen name="(adopter)/edit-profile" />
     </Stack>
   );
 }

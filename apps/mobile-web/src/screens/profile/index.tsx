@@ -204,13 +204,13 @@ export function ProfileScreen() {
         </View>}
       </View>
 
-      <View className="w-full gap-2 p-4 sm:p-6 md:w-1/2 md:mx-auto">
+      <View className="w-full max-w-form self-center gap-2 px-5 md:px-10 py-4">
         {isShelterStaff(user.role) && <PrimaryMenuItem label="Gestão do abrigo" description="Voltar para os cuidados e a rotina da equipe" icon={PawPrintIcon} iconColor={palette.denim} onPress={() => router.push('/')} />}
         <PrimaryMenuItem
           label="Editar Perfil"
           icon={UserIcon}
           iconColor={palette.orangeDark}
-          onPress={() => router.push('/(protected)/(adopter)/edit-profile')}
+          onPress={() => router.push('/edit-profile')}
         />
         {canUseAdoption(user.role) && (
           <>
@@ -227,7 +227,7 @@ export function ProfileScreen() {
               icon={ClipboardTextIcon}
               iconColor={palette.denim}
               iconBgColor="#E4EEFA"
-              onPress={() => router.push('/(protected)/my-adoptions')}
+              onPress={() => router.push('/my-adoptions')}
             />
           </>
         )}
@@ -241,7 +241,7 @@ export function ProfileScreen() {
         />
       </View>
 
-      {canUseAdoption(user.role) && <View className="w-full md:w-1/2 md:mx-auto p-4">
+      {canUseAdoption(user.role) && <View className="w-full max-w-form self-center px-5 md:px-10 py-4">
         <View className="flex-row items-center justify-between mb-4">
           <Text className="font-heading font-bold text-denim text-xl">
             Meus Favoritos
@@ -249,7 +249,7 @@ export function ProfileScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Ver todos os favoritos"
-            onPress={() => router.push('/(protected)/my-favorites')}
+            onPress={() => router.push('/my-favorites')}
           >
             <Text className="font-heading font-medium text-orange text-base hover:underline cursor-pointer">
               Ver todos
@@ -298,7 +298,7 @@ export function ProfileScreen() {
         </View>
       </View>}
 
-      <View className="w-full md:w-1/2 md:mx-auto p-4 pb-10">
+      <View className="w-full max-w-form self-center px-5 md:px-10 pt-4 pb-10">
         <View className="flex-row items-center justify-between mb-4">
           <Text className="font-heading font-bold text-denim text-xl">
             Atividade Recente
@@ -306,7 +306,7 @@ export function ProfileScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Ver todas as atividades"
-            onPress={() => router.push('/(protected)/my-events')}
+            onPress={() => router.push('/my-events')}
           >
             <Text className="font-heading font-medium text-orange text-base hover:underline cursor-pointer">
               Ver todos

@@ -350,7 +350,7 @@ describe('cartão de gestão de usuários na home', () => {
     const adminCards = buildStaffHomeCards('admin');
     const userCard = adminCards.find((card) => card.title === 'Usuários');
 
-    expect(userCard?.link?.href).toBe('/(protected)/gestao/usuarios');
+    expect(userCard?.link?.href).toBe('/gestao/usuarios');
     expect(
       buildStaffHomeCards('protector').some((card) => card.title === 'Usuários'),
     ).toBe(false);

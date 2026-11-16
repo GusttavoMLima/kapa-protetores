@@ -82,7 +82,7 @@ describe('PixScreen', () => {
   it('navigates back when back button is pressed', async () => {
     await render(<PixScreen />);
 
-    const backButton = screen.getByLabelText('Voltar para a tela anterior');
+    const backButton = screen.getByLabelText('Voltar para Apoiar');
     await fireEvent.press(backButton);
 
     expect(router.back).toHaveBeenCalledTimes(1);

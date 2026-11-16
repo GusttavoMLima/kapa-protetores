@@ -6,14 +6,12 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
-  ScrollView,
   Text,
   View,
 } from 'react-native';
 import { z } from 'zod';
 import { isAxiosError } from 'axios';
 import {
-  ArrowLeftIcon,
   BroomIcon,
   CalendarBlankIcon,
   CarIcon,
@@ -36,6 +34,7 @@ import {
 } from '@/hooks/useVolunteerApplications';
 import { palette } from '@/theme';
 import { cn } from '@/utils/cn';
+import { Page } from '@/components/layout/Page';
 import { PageHeading } from '@/components/layout/PageHeading';
 import { EligibilityNotice } from '@/components/feedback/EligibilityNotice';
 import { isAdult, isValidPhone } from '@kapa/shared';
@@ -235,381 +234,369 @@ export function VolunteerScreen() {
   }
 
   return (
-    <View className="flex-1 bg-cream">
-      <ScrollView contentContainerStyle={{ paddingBottom: 48 }}>
-        <View className="w-full max-w-form self-center px-5 md:px-10 pt-3 gap-6">
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Voltar"
-            className="min-h-12 self-start flex-row items-center gap-2 py-3 pr-4"
-            onPress={handleNavigateBack}
-          >
-            <ArrowLeftIcon size={18} color={palette.denim} />
-            <Text className="font-body-medium text-sm text-denim">Voltar</Text>
-          </Pressable>
+    <>
+      <Page width="form" backLabel="Apoiar" onBack={handleNavigateBack}>
+        <PageHeading icon={HandHeartIcon} eyebrow="SEU TEMPO FAZ A DIFERENÇA" title="Seja Voluntário na Kapa" description="Doe seu tempo e carinho para transformar a rotina dos animais resgatados." />
 
-          <PageHeading icon={HandHeartIcon} eyebrow="SEU TEMPO FAZ A DIFERENÇA" title="Seja Voluntário na Kapa" description="Doe seu tempo e carinho para transformar a rotina dos animais resgatados." />
+        {/* State 1: Approved Volunteer or Staff */}
+        {isApproved ? (
+          <View className="bg-white rounded-2xl border border-line p-6 gap-5">
+            <View className="flex-row items-center gap-3">
+              <View className="size-11 rounded-full bg-[#E8F3EE] items-center justify-center">
+                <CheckCircleIcon
+                  size={24}
+                  color={palette.success}
+                  weight="fill"
+                />
+              </View>
+              <View className="flex-1">
+                <Text className="font-heading-bold text-lg text-ink">
+                  Você faz parte do time de voluntários!
+                </Text>
+                <Text className="font-body text-sm text-ink-muted">
+                  Seu perfil está habilitado para participar das ações da ONG.
+                </Text>
+              </View>
+            </View>
 
-          {/* State 1: Approved Volunteer or Staff */}
-          {isApproved ? (
-            <View className="bg-white rounded-2xl border border-line p-6 gap-5">
-              <View className="flex-row items-center gap-3">
-                <View className="size-11 rounded-full bg-[#E8F3EE] items-center justify-center">
-                  <CheckCircleIcon
+            <View className="rounded-xl bg-cream p-4 gap-2">
+              <View className="flex-row items-center gap-2">
+                <CalendarBlankIcon
+                  size={20}
+                  color={palette.denim}
+                  weight="bold"
+                />
+                <Text className="font-body-bold text-sm text-denim">
+                  Atividades semanais do abrigo
+                </Text>
+              </View>
+              <Text className="font-body text-sm text-ink-muted leading-5">
+                Confira o calendário de mutirões, feiras de adoção e cuidados
+                com os pets e inscreva-se nos horários disponíveis.
+              </Text>
+            </View>
+
+            {user?.role === 'volunteer' ? (
+              <>
+                <PrimaryButton
+                  title="Ver atividades disponíveis"
+                  accessibilityLabel="Ver atividades disponíveis para voluntários"
+                  onPress={() => router.push('/(protected)/(tabs)/activities')}
+                />
+                <PrimaryButton
+                  title="Consultar medicação dos animais"
+                  onPress={() => router.push('/cuidados-animais')}
+                />
+              </>
+            ) : (
+              <PrimaryButton
+                title="Gerenciar atividades da semana"
+                accessibilityLabel="Gerenciar atividades da semana"
+                onPress={() => router.push('/manage-activities')}
+              />
+            )}
+          </View>
+        ) : myApplication?.status === 'pending' && !isEditing ? (
+          /* State 2: Pending Volunteer Application */
+          <View className="bg-white rounded-2xl border border-line p-6 gap-5">
+            <View className="flex-row items-start justify-between gap-3">
+              <View className="flex-row items-center gap-3 flex-1">
+                <View className="size-11 rounded-full bg-peach items-center justify-center">
+                  <ClockIcon
                     size={24}
-                    color={palette.success}
+                    color={palette.orangeDark}
                     weight="fill"
                   />
                 </View>
                 <View className="flex-1">
                   <Text className="font-heading-bold text-lg text-ink">
-                    Você faz parte do time de voluntários!
+                    Solicitação em análise
                   </Text>
                   <Text className="font-body text-sm text-ink-muted">
-                    Seu perfil está habilitado para participar das ações da ONG.
+                    A equipe da Kapa está avaliando sua ficha de voluntariado.
                   </Text>
                 </View>
               </View>
+              <View className="rounded-full bg-peach px-3 py-1.5">
+                <Text className="font-body-bold text-xs text-orange-dark">
+                  Pendente
+                </Text>
+              </View>
+            </View>
 
-              <View className="rounded-xl bg-cream p-4 gap-2">
-                <View className="flex-row items-center gap-2">
-                  <CalendarBlankIcon
-                    size={20}
-                    color={palette.denim}
-                    weight="bold"
-                  />
-                  <Text className="font-body-bold text-sm text-denim">
-                    Atividades semanais do abrigo
-                  </Text>
-                </View>
-                <Text className="font-body text-sm text-ink-muted leading-5">
-                  Confira o calendário de mutirões, feiras de adoção e cuidados
-                  com os pets e inscreva-se nos horários disponíveis.
+            <View className="bg-cream rounded-xl p-4 gap-3">
+              <View className="gap-1">
+                <Text className="font-body-bold text-xs text-denim uppercase">
+                  Candidato(a)
+                </Text>
+                <Text className="font-body text-sm text-ink">
+                  {myApplication.application.fullName} ·{' '}
+                  {myApplication.application.phone}
                 </Text>
               </View>
 
-              {user?.role === 'volunteer' ? (
-                <>
-                  <PrimaryButton
-                    title="Ver atividades disponíveis"
-                    accessibilityLabel="Ver atividades disponíveis para voluntários"
-                    onPress={() => router.push('/(protected)/(tabs)/activities')}
-                  />
-                  <PrimaryButton
-                    title="Consultar medicação dos animais"
-                    onPress={() => router.push('/cuidados-animais')}
-                  />
-                </>
-              ) : (
-                <PrimaryButton
-                  title="Gerenciar atividades da semana"
-                  accessibilityLabel="Gerenciar atividades da semana"
-                  onPress={() => router.push('/(protected)/manage-activities')}
-                />
-              )}
+              <View className="gap-1">
+                <Text className="font-body-bold text-xs text-denim uppercase">
+                  Disponibilidade
+                </Text>
+                <Text className="font-body text-sm text-ink">
+                  {
+                    VOLUNTEER_AVAILABILITY_LABELS[
+                      myApplication.application.availability
+                    ]
+                  }
+                </Text>
+              </View>
+
+              <View className="gap-1.5">
+                <Text className="font-body-bold text-xs text-denim uppercase">
+                  Áreas de interesse
+                </Text>
+                <View className="flex-row flex-wrap gap-2">
+                  {myApplication.application.areasOfInterest.map((area) => (
+                    <View
+                      key={area}
+                      className="rounded-full bg-peach px-3 py-1"
+                    >
+                      <Text className="font-body-medium text-xs text-denim">
+                        {VOLUNTEER_AREA_LABELS[area]}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
             </View>
-          ) : myApplication?.status === 'pending' && !isEditing ? (
-            /* State 2: Pending Volunteer Application */
-            <View className="bg-white rounded-2xl border border-line p-6 gap-5">
-              <View className="flex-row items-start justify-between gap-3">
-                <View className="flex-row items-center gap-3 flex-1">
-                  <View className="size-11 rounded-full bg-peach items-center justify-center">
-                    <ClockIcon
-                      size={24}
-                      color={palette.orangeDark}
-                      weight="fill"
-                    />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="font-heading-bold text-lg text-ink">
-                      Solicitação em análise
-                    </Text>
-                    <Text className="font-body text-sm text-ink-muted">
-                      A equipe da Kapa está avaliando sua ficha de voluntariado.
-                    </Text>
-                  </View>
-                </View>
-                <View className="rounded-full bg-peach px-3 py-1.5">
-                  <Text className="font-body-bold text-xs text-orange-dark">
-                    Pendente
-                  </Text>
-                </View>
+
+            <PrimaryButton
+              title="Editar inscrição"
+              onPress={() => {
+                reset({ ...myApplication.application, phone: user?.phone ?? '' }, { keepDefaultValues: true });
+                setSubmissionError('');
+                setEditingId(myApplication.id);
+              }}
+            />
+          </View>
+        ) : (
+          /* State 3: Volunteer Application Form */
+          <>
+            {myApplication?.status === 'rejected' ? (
+              <View className="rounded-2xl border border-danger bg-danger-soft p-4 gap-1">
+                <Text className="font-body-bold text-sm text-danger">
+                  Sua solicitação anterior não pôde ser aprovada no momento.
+                </Text>
+                <Text className="font-body text-xs text-danger">
+                  Você pode atualizar seus dados e enviar uma nova ficha abaixo.
+                </Text>
               </View>
+            ) : null}
 
-              <View className="bg-cream rounded-xl p-4 gap-3">
-                <View className="gap-1">
-                  <Text className="font-body-bold text-xs text-denim uppercase">
-                    Candidato(a)
-                  </Text>
-                  <Text className="font-body text-sm text-ink">
-                    {myApplication.application.fullName} ·{' '}
-                    {myApplication.application.phone}
-                  </Text>
-                </View>
+            {/* Dados de contato */}
+            <View className="bg-white rounded-2xl border border-line p-5 gap-5">
+              <Text className="font-heading-bold text-lg text-ink">
+                Seus dados de contato
+              </Text>
 
-                <View className="gap-1">
-                  <Text className="font-body-bold text-xs text-denim uppercase">
-                    Disponibilidade
-                  </Text>
-                  <Text className="font-body text-sm text-ink">
-                    {
-                      VOLUNTEER_AVAILABILITY_LABELS[
-                        myApplication.application.availability
-                      ]
-                    }
-                  </Text>
-                </View>
+              <Controller
+                control={control}
+                name="fullName"
+                render={({ field: { onChange, value } }) => (
+                  <PrimaryInputText
+                    label="Nome completo"
+                    value={value}
+                    onChangeText={onChange}
+                    placeholder="Como devemos chamar você"
+                    autoCapitalize="words"
+                    erro={errors.fullName?.message}
+                  />
+                )}
+              />
 
-                <View className="gap-1.5">
-                  <Text className="font-body-bold text-xs text-denim uppercase">
-                    Áreas de interesse
-                  </Text>
-                  <View className="flex-row flex-wrap gap-2">
-                    {myApplication.application.areasOfInterest.map((area) => (
-                      <View
-                        key={area}
-                        className="rounded-full bg-peach px-3 py-1"
-                      >
-                        <Text className="font-body-medium text-xs text-denim">
-                          {VOLUNTEER_AREA_LABELS[area]}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              </View>
-
-              <PrimaryButton
-                title="Editar inscrição"
-                onPress={() => {
-                  reset({ ...myApplication.application, phone: user?.phone ?? '' }, { keepDefaultValues: true });
-                  setSubmissionError('');
-                  setEditingId(myApplication.id);
-                }}
+              <Controller
+                control={control}
+                name="phone"
+                render={({ field: { onChange, value } }) => (
+                  <PrimaryInputText
+                    label="Telefone / WhatsApp com DDD"
+                    editable={false}
+                    value={value}
+                    onChangeText={onChange}
+                    placeholder="(19) 99999-9999"
+                    keyboardType="phone-pad"
+                    erro={errors.phone?.message}
+                  />
+                )}
               />
             </View>
-          ) : (
-            /* State 3: Volunteer Application Form */
-            <>
-              {myApplication?.status === 'rejected' ? (
-                <View className="rounded-2xl border border-danger bg-danger-soft p-4 gap-1">
-                  <Text className="font-body-bold text-sm text-danger">
-                    Sua solicitação anterior não pôde ser aprovada no momento.
-                  </Text>
-                  <Text className="font-body text-xs text-danger">
-                    Você pode atualizar seus dados e enviar uma nova ficha abaixo.
-                  </Text>
-                </View>
-              ) : null}
 
-              {/* Dados de contato */}
-              <View className="bg-white rounded-2xl border border-line p-5 gap-5">
+            {/* Áreas de interesse */}
+            <View className="bg-white rounded-2xl border border-line p-5 gap-4">
+              <View className="gap-1">
                 <Text className="font-heading-bold text-lg text-ink">
-                  Seus dados de contato
+                  Como você gostaria de ajudar?
                 </Text>
-
-                <Controller
-                  control={control}
-                  name="fullName"
-                  render={({ field: { onChange, value } }) => (
-                    <PrimaryInputText
-                      label="Nome completo"
-                      value={value}
-                      onChangeText={onChange}
-                      placeholder="Como devemos chamar você"
-                      autoCapitalize="words"
-                      erro={errors.fullName?.message}
-                    />
-                  )}
-                />
-
-                <Controller
-                  control={control}
-                  name="phone"
-                  render={({ field: { onChange, value } }) => (
-                    <PrimaryInputText
-                      label="Telefone / WhatsApp com DDD"
-                      editable={false}
-                      value={value}
-                      onChangeText={onChange}
-                      placeholder="(19) 99999-9999"
-                      keyboardType="phone-pad"
-                      erro={errors.phone?.message}
-                    />
-                  )}
-                />
+                <Text className="font-body text-sm text-ink-muted">
+                  Selecione uma ou mais áreas em que você tem interesse em
+                  atuar.
+                </Text>
               </View>
 
-              {/* Áreas de interesse */}
-              <View className="bg-white rounded-2xl border border-line p-5 gap-4">
-                <View className="gap-1">
-                  <Text className="font-heading-bold text-lg text-ink">
-                    Como você gostaria de ajudar?
-                  </Text>
-                  <Text className="font-body text-sm text-ink-muted">
-                    Selecione uma ou mais áreas em que você tem interesse em
-                    atuar.
-                  </Text>
-                </View>
+              <Controller
+                control={control}
+                name="areasOfInterest"
+                render={({ field: { onChange, value } }) => (
+                  <View className="gap-3">
+                    {AREA_OPTIONS.map((option) => {
+                      const selected = value.includes(option.value);
+                      const IconComponent = option.icon;
 
-                <Controller
-                  control={control}
-                  name="areasOfInterest"
-                  render={({ field: { onChange, value } }) => (
-                    <View className="gap-3">
-                      {AREA_OPTIONS.map((option) => {
-                        const selected = value.includes(option.value);
-                        const IconComponent = option.icon;
+                      return (
+                        <Pressable
+                          key={option.value}
+                          accessibilityRole="checkbox"
+                          accessibilityLabel={option.label}
+                          accessibilityState={{ checked: selected }}
+                          onPress={() => {
+                            const next = selected
+                              ? value.filter((item) => item !== option.value)
+                              : [...value, option.value];
+                            onChange(next);
+                          }}
+                          className={cn(
+                            'min-h-14 flex-row items-center gap-3.5 rounded-xl border p-4',
+                            selected
+                              ? 'border-orange bg-peach/60'
+                              : 'border-line bg-white',
+                          )}
+                        >
+                          <View
+                            className={cn(
+                              'size-10 rounded-full items-center justify-center',
+                              selected ? 'bg-orange' : 'bg-peach',
+                            )}
+                          >
+                            <IconComponent
+                              size={20}
+                              color={selected ? palette.white : palette.denim}
+                              weight="fill"
+                            />
+                          </View>
+                          <View className="flex-1 gap-0.5">
+                            <Text className="font-heading-bold text-base text-ink">
+                              {option.label}
+                            </Text>
+                            <Text className="font-body text-xs text-ink-muted">
+                              {option.description}
+                            </Text>
+                          </View>
+                        </Pressable>
+                      );
+                    })}
+                    {errors.areasOfInterest?.message ? (
+                      <Text className="font-body-medium text-xs text-danger">
+                        {errors.areasOfInterest.message}
+                      </Text>
+                    ) : null}
+                  </View>
+                )}
+              />
+            </View>
 
+            {/* Disponibilidade e Motivação */}
+            <View className="bg-white rounded-2xl border border-line p-5 gap-5">
+              <Text className="font-heading-bold text-lg text-ink">
+                Disponibilidade e motivação
+              </Text>
+
+              <Controller
+                control={control}
+                name="availability"
+                render={({ field: { onChange, value } }) => (
+                  <View className="gap-2">
+                    <Text className="font-body-bold text-sm text-ink">
+                      Qual é sua principal disponibilidade?
+                    </Text>
+                    <View className="flex-row flex-wrap gap-2">
+                      {AVAILABILITY_OPTIONS.map((option) => {
+                        const selected = value === option.value;
                         return (
                           <Pressable
                             key={option.value}
-                            accessibilityRole="checkbox"
+                            accessibilityRole="radio"
                             accessibilityLabel={option.label}
-                            accessibilityState={{ checked: selected }}
-                            onPress={() => {
-                              const next = selected
-                                ? value.filter((item) => item !== option.value)
-                                : [...value, option.value];
-                              onChange(next);
-                            }}
+                            accessibilityState={{ selected }}
+                            onPress={() => onChange(option.value)}
                             className={cn(
-                              'min-h-14 flex-row items-center gap-3.5 rounded-xl border p-4',
+                              'min-h-11 rounded-full border px-4 items-center justify-center',
                               selected
-                                ? 'border-orange bg-peach/60'
-                                : 'border-line bg-white',
+                                ? 'bg-orange border-orange'
+                                : 'bg-white border-border',
                             )}
                           >
-                            <View
+                            <Text
                               className={cn(
-                                'size-10 rounded-full items-center justify-center',
-                                selected ? 'bg-orange' : 'bg-peach',
+                                'font-body-medium text-sm',
+                                selected ? 'text-white' : 'text-ink',
                               )}
                             >
-                              <IconComponent
-                                size={20}
-                                color={selected ? palette.white : palette.denim}
-                                weight="fill"
-                              />
-                            </View>
-                            <View className="flex-1 gap-0.5">
-                              <Text className="font-heading-bold text-base text-ink">
-                                {option.label}
-                              </Text>
-                              <Text className="font-body text-xs text-ink-muted">
-                                {option.description}
-                              </Text>
-                            </View>
+                              {option.label}
+                            </Text>
                           </Pressable>
                         );
                       })}
-                      {errors.areasOfInterest?.message ? (
-                        <Text className="font-body-medium text-xs text-danger">
-                          {errors.areasOfInterest.message}
-                        </Text>
-                      ) : null}
                     </View>
-                  )}
-                />
-              </View>
-
-              {/* Disponibilidade e Motivação */}
-              <View className="bg-white rounded-2xl border border-line p-5 gap-5">
-                <Text className="font-heading-bold text-lg text-ink">
-                  Disponibilidade e motivação
-                </Text>
-
-                <Controller
-                  control={control}
-                  name="availability"
-                  render={({ field: { onChange, value } }) => (
-                    <View className="gap-2">
-                      <Text className="font-body-bold text-sm text-ink">
-                        Qual é sua principal disponibilidade?
+                    {errors.availability?.message ? (
+                      <Text className="font-body-medium text-xs text-danger">
+                        {errors.availability.message}
                       </Text>
-                      <View className="flex-row flex-wrap gap-2">
-                        {AVAILABILITY_OPTIONS.map((option) => {
-                          const selected = value === option.value;
-                          return (
-                            <Pressable
-                              key={option.value}
-                              accessibilityRole="radio"
-                              accessibilityLabel={option.label}
-                              accessibilityState={{ selected }}
-                              onPress={() => onChange(option.value)}
-                              className={cn(
-                                'min-h-11 rounded-full border px-4 items-center justify-center',
-                                selected
-                                  ? 'bg-orange border-orange'
-                                  : 'bg-white border-border',
-                              )}
-                            >
-                              <Text
-                                className={cn(
-                                  'font-body-medium text-sm',
-                                  selected ? 'text-white' : 'text-ink',
-                                )}
-                              >
-                                {option.label}
-                              </Text>
-                            </Pressable>
-                          );
-                        })}
-                      </View>
-                      {errors.availability?.message ? (
-                        <Text className="font-body-medium text-xs text-danger">
-                          {errors.availability.message}
-                        </Text>
-                      ) : null}
-                    </View>
-                  )}
-                />
-
-                <Controller
-                  control={control}
-                  name="motivation"
-                  render={({ field: { onChange, value } }) => (
-                    <PrimaryInputText
-                      label="Por que você quer ser voluntário(a) na Kapa?"
-                      value={value}
-                      onChangeText={onChange}
-                      placeholder="Conte se já teve contato com animais ou como pretende apoiar o abrigo"
-                      multiline
-                      erro={errors.motivation?.message}
-                    />
-                  )}
-                />
-
-                <Controller
-                  control={control}
-                  name="acceptsTerms"
-                  render={({ field: { onChange, value } }) => (
-                    <PrimaryCheckBox
-                      checked={value}
-                      onChange={onChange}
-                      label="Comprometo-me a respeitar as orientações de segurança e bem-estar animal da ONG Kapa Protetores."
-                      error={errors.acceptsTerms?.message}
-                    />
-                  )}
-                />
-              </View>
-
-              {submissionError && (editingId === null || isEditing) ? (
-                <Text className="font-body-medium text-sm text-danger text-center">
-                  {submissionError}
-                </Text>
-              ) : null}
-
-              <PrimaryButton
-                title={isEditing ? 'Salvar alterações' : 'Enviar inscrição de voluntariado'}
-                loading={isSubmitting || isSaving}
-                onPress={handleSubmit(onSubmit)}
+                    ) : null}
+                  </View>
+                )}
               />
-              {isEditing ? <PrimaryButton title="Cancelar edição" disabled={isSaving} onPress={closeEditor} /> : null}
-            </>
-          )}
-        </View>
-      </ScrollView>
+
+              <Controller
+                control={control}
+                name="motivation"
+                render={({ field: { onChange, value } }) => (
+                  <PrimaryInputText
+                    label="Por que você quer ser voluntário(a) na Kapa?"
+                    value={value}
+                    onChangeText={onChange}
+                    placeholder="Conte se já teve contato com animais ou como pretende apoiar o abrigo"
+                    multiline
+                    erro={errors.motivation?.message}
+                  />
+                )}
+              />
+
+              <Controller
+                control={control}
+                name="acceptsTerms"
+                render={({ field: { onChange, value } }) => (
+                  <PrimaryCheckBox
+                    checked={value}
+                    onChange={onChange}
+                    label="Comprometo-me a respeitar as orientações de segurança e bem-estar animal da ONG Kapa Protetores."
+                    error={errors.acceptsTerms?.message}
+                  />
+                )}
+              />
+            </View>
+
+            {submissionError && (editingId === null || isEditing) ? (
+              <Text className="font-body-medium text-sm text-danger text-center">
+                {submissionError}
+              </Text>
+            ) : null}
+
+            <PrimaryButton
+              title={isEditing ? 'Salvar alterações' : 'Enviar inscrição de voluntariado'}
+              loading={isSubmitting || isSaving}
+              onPress={handleSubmit(onSubmit)}
+            />
+            {isEditing ? <PrimaryButton title="Cancelar edição" disabled={isSaving} onPress={closeEditor} /> : null}
+          </>
+        )}
+      </Page>
 
       <Modal
         visible={isSubmitting || isSaving || showSuccessModal}
@@ -645,6 +632,6 @@ export function VolunteerScreen() {
           </View>
         ) : null}
       </Modal>
-    </View>
+    </>
   );
 }

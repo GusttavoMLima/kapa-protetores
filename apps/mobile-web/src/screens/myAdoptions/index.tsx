@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
-import { ActivityIndicator, Image, Pressable, ScrollView, Text, View } from 'react-native';
-import { ArrowLeftIcon, CheckCircleIcon, ClockIcon, PawPrintIcon, XCircleIcon } from 'phosphor-react-native';
+import { ActivityIndicator, Image, Pressable, Text, View } from 'react-native';
+import { CheckCircleIcon, ClockIcon, PawPrintIcon, XCircleIcon } from 'phosphor-react-native';
 import { useMyAdoptions } from '@/hooks/useAdoptions';
 import { palette } from '@/theme';
+import { Page } from '@/components/layout/Page';
 import { PageHeading } from '@/components/layout/PageHeading';
 
 const statusInfo = {
@@ -17,16 +18,7 @@ export function MyAdoptionsScreen() {
   const { data: adoptions = [], isLoading, error, refetch } = useMyAdoptions();
 
   return (
-    <ScrollView className="flex-1 bg-cream" contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 24, width: '100%', maxWidth: 1140, alignSelf: 'center' }}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Voltar para o perfil"
-        className="min-h-10 self-start flex-row items-center gap-2 py-2 pr-4"
-        onPress={() => router.replace('/(protected)/(tabs)/profile')}
-      >
-        <ArrowLeftIcon size={18} color={palette.denim} />
-        <Text className="font-body-medium text-sm text-denim">Voltar ao perfil</Text>
-      </Pressable>
+    <Page backLabel="Perfil" onBack={() => router.replace('/(protected)/(tabs)/profile')}>
       <PageHeading eyebrow="SEU CAMINHO ATÉ UM NOVO AMIGO" title="Minhas solicitações" description="Cada etapa é um passo mais perto de um novo começo. Acompanhe aqui suas fichas e as respostas da equipe Kapa." />
 
       {isLoading ? <View className="py-16 items-center gap-3"><ActivityIndicator size="large" color={palette.orange} /><Text className="font-body text-ink-muted">Carregando solicitações...</Text></View>
@@ -45,6 +37,6 @@ export function MyAdoptionsScreen() {
                 <View className="rounded-xl p-4 flex-row gap-3 items-center" style={{ backgroundColor: info.background }}><Icon size={25} color={info.color} weight="fill" /><View className="flex-1 gap-1"><Text className="font-body-bold text-base" style={{ color: info.color }}>{info.label}</Text><Text className="font-body text-sm text-ink-muted">{adoption.status === 'interviewing' && adoption.contractSentAt ? 'O abrigo enviou o contrato. Confira o contato combinado.' : info.description}</Text></View></View>
               </Pressable>;
             })}
-    </ScrollView>
+    </Page>
   );
 }
