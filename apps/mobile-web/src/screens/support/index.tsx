@@ -29,7 +29,7 @@ export function SupportScreen() {
     <ScrollView
       className="flex-1"
       style={{ backgroundColor: palette.cream }}
-      contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 24, width: '100%', maxWidth: 1140, alignSelf: 'center' }}
+      contentContainerClassName="w-full max-w-content self-center px-5 md:px-10 pt-3 pb-12 gap-6"
     >
       <View className="relative overflow-hidden rounded-2xl bg-denim">
         <Image
