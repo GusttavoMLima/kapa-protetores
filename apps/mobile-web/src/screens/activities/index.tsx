@@ -23,7 +23,6 @@ import {
 import { router } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { kapaService } from '@/services/kapaService';
-import { DefaultHeader } from '@/components/header/default';
 import { PrimaryButton } from '@/components/buttons/primary';
 import { FormSubmissionLoader } from '@/components/feedback/FormSubmissionLoader';
 import { PrimaryChipGroup } from '@/components/chips/primaryChip';
@@ -212,7 +211,6 @@ export function ActivitiesScreen() {
   if (!canManageActivities) {
     return (
       <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
-        <DefaultHeader />
         <View style={styles.restricted}>
           <View style={styles.restrictedIcon}>
             <ClipboardTextIcon size={30} color={palette.orange} weight="fill" />
@@ -228,7 +226,6 @@ export function ActivitiesScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
-      <DefaultHeader />
       <KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           {mode === 'list' ? (

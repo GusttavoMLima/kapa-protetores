@@ -292,7 +292,7 @@ export function VolunteerScreen() {
               <PrimaryButton
                 title="Gerenciar atividades da semana"
                 accessibilityLabel="Gerenciar atividades da semana"
-                onPress={() => router.push('/(protected)/manage-activities')}
+                onPress={() => router.push('/manage-activities')}
               />
             )}
           </View>

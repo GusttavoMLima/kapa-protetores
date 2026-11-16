@@ -210,7 +210,7 @@ export function ProfileScreen() {
           label="Editar Perfil"
           icon={UserIcon}
           iconColor={palette.orangeDark}
-          onPress={() => router.push('/(protected)/(adopter)/edit-profile')}
+          onPress={() => router.push('/edit-profile')}
         />
         {canUseAdoption(user.role) && (
           <>
@@ -227,7 +227,7 @@ export function ProfileScreen() {
               icon={ClipboardTextIcon}
               iconColor={palette.denim}
               iconBgColor="#E4EEFA"
-              onPress={() => router.push('/(protected)/my-adoptions')}
+              onPress={() => router.push('/my-adoptions')}
             />
           </>
         )}
@@ -249,7 +249,7 @@ export function ProfileScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Ver todos os favoritos"
-            onPress={() => router.push('/(protected)/my-favorites')}
+            onPress={() => router.push('/my-favorites')}
           >
             <Text className="font-heading font-medium text-orange text-base hover:underline cursor-pointer">
               Ver todos
@@ -306,7 +306,7 @@ export function ProfileScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Ver todas as atividades"
-            onPress={() => router.push('/(protected)/my-events')}
+            onPress={() => router.push('/my-events')}
           >
             <Text className="font-heading font-medium text-orange text-base hover:underline cursor-pointer">
               Ver todos

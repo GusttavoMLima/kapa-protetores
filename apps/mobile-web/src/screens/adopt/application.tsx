@@ -268,7 +268,7 @@ export function AdoptionApplicationScreen() {
           )} />
         </View>
 
-        <Pressable accessibilityRole="button" onPress={() => router.push('/(protected)/(adopter)/edit-profile')}><Text className="font-body-medium text-sm text-denim">Atualizar nascimento ou celular no perfil</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => router.push('/edit-profile')}><Text className="font-body-medium text-sm text-denim">Atualizar nascimento ou celular no perfil</Text></Pressable>
         <ResidentialAddressFields
           description="Essas informações ajudam o abrigo a conhecer melhor o local onde o animal vai morar."
           address={{ postalCode, street, number, neighborhood, city }}

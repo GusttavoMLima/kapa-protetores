@@ -27,7 +27,8 @@ export function Page({
   refreshControl,
 }: PageProps) {
   return (
-    <SafeAreaView className="flex-1 bg-cream">
+    // Topo e base ficam com o cabeçalho e a barra de abas, que já tratam a área segura.
+    <SafeAreaView className="flex-1 bg-cream" edges={['left', 'right']}>
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerClassName="grow"

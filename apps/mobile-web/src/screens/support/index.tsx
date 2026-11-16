@@ -55,7 +55,7 @@ export function SupportScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Abrir tela de doação via PIX"
-          onPress={() => router.push('/(protected)/(adopter)/pix')}
+          onPress={() => router.push('/pix')}
           className="w-full md:flex-1 md:w-auto"
         >
           <PrimaryCard className="p-4 gap-2 w-full active:opacity-90">

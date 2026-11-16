@@ -8,7 +8,6 @@ import { openAdoptionContract } from '@/utils/adoptionContract';
 
 jest.mock('expo-router', () => ({ Redirect: () => null, router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() } }));
 jest.mock('@/hooks/useAuth', () => ({ useAuth: jest.fn() }));
-jest.mock('@/components/header/default', () => ({ DefaultHeader: () => null }));
 jest.mock('@/hooks/useAdoptions', () => ({ useAdminAdoptions: jest.fn(), useUpdateAdoptionStatus: jest.fn(), useUploadSignedContract: () => ({ mutate: jest.fn(), isPending: false }) }));
 jest.mock('@/utils/adoptionContract', () => ({ openAdoptionContract: jest.fn(() => true), buildContractWhatsAppUrl: jest.fn(() => 'https://wa.me/5519999998888'), selectSignedContractPdf: jest.fn() }));
 

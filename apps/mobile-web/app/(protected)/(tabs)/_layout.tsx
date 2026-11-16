@@ -33,6 +33,7 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      backBehavior="history"
       screenOptions={{
         header: () => <DefaultHeader />,
 
@@ -157,6 +158,32 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      {HIDDEN_SCREENS.map((name) => (
+        <Tabs.Screen key={name} name={name} options={{ href: null }} />
+      ))}
     </Tabs>
   );
 }
+
+// Telas internas: ficam nas abas para herdar cabeçalho e rodapé, sem botão próprio na barra.
+const HIDDEN_SCREENS = [
+  'adopet/[id]',
+  'adopet/[id]/application',
+  'cadastro-animal',
+  'cadastro-usuario',
+  'cadastro-voluntario',
+  'cuidados-animais',
+  'edit-profile',
+  'gestao/animais',
+  'gestao/lares-temporarios',
+  'gestao/solicitacoes',
+  'gestao/usuarios',
+  'gestao/voluntarios',
+  'lar-temporario',
+  'manage-activities',
+  'my-adoptions',
+  'my-events',
+  'my-favorites',
+  'pix',
+] as const;
