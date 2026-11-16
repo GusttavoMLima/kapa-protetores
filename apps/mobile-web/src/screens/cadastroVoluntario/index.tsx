@@ -14,6 +14,7 @@ import { FormSubmissionLoader } from '@/components/feedback/FormSubmissionLoader
 import { PrimaryInputText } from '@/components/inputText/primary';
 import { PrimaryChipGroup } from '@/components/chips/primaryChip';
 import { BackLink } from '@/screens/animalManagement/components';
+import { useHeaderOffset } from '@/hooks/useHeaderOffset';
 import { palette } from '@/theme';
 import { ApiError, apiRequest } from '@/services/api';
 import type { User, UserRole } from '@kapa/shared';
@@ -21,6 +22,7 @@ import type { User, UserRole } from '@kapa/shared';
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function CadastroUsuarioScreen() {
+  const headerOffset = useHeaderOffset();
   const scrollRef = useRef<ScrollView>(null);
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -103,8 +105,8 @@ export function CadastroUsuarioScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-cream" edges={['left', 'right', 'bottom']}>
-      <KeyboardAvoidingView className="flex-1 bg-cream" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <SafeAreaView className="flex-1 bg-cream" edges={['left', 'right']}>
+      <KeyboardAvoidingView className="flex-1 bg-cream" behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={headerOffset}>
         <ScrollView
           ref={scrollRef}
           contentContainerClassName="w-full max-w-form self-center gap-6 px-5 md:px-10 pb-10 pt-3"

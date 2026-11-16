@@ -72,7 +72,7 @@ export function AnimalManagementScreen() {
   const clearFilters = () => { setSearch(''); setDebouncedSearch(''); setStatus(undefined); setSpecies(''); setPage(1); };
   const pages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
 
-  return <SafeAreaView className="flex-1 bg-cream">
+  return <SafeAreaView className="flex-1 bg-cream" edges={['left', 'right']}>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="grow">
       <View className="w-full max-w-content self-center px-5 md:px-10 pb-10 pt-3 gap-6">
         <BackLink label="Gestão" />

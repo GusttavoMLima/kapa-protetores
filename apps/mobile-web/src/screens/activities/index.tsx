@@ -33,6 +33,7 @@ import type {
   CreateCommunityEventInput,
 } from '@kapa/shared';
 import { BackLink } from '@/components/layout/BackLink';
+import { useHeaderOffset } from '@/hooks/useHeaderOffset';
 import { palette } from '@/theme';
 import { styles } from './styles';
 import { PageHeading } from '@/components/layout/PageHeading';
@@ -95,6 +96,7 @@ function formatCep(value: number): string {
 }
 
 export function ActivitiesScreen() {
+  const headerOffset = useHeaderOffset();
   const { user } = useAuth();
   const [mode, setMode] = useState<'list' | 'form'>('list');
   const [activities, setActivities] = useState<CommunityEventListItem[]>([]);
@@ -210,7 +212,7 @@ export function ActivitiesScreen() {
 
   if (!canManageActivities) {
     return (
-      <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
+      <SafeAreaView style={styles.safe} edges={['left', 'right']}>
         <View style={styles.restricted}>
           <View style={styles.restrictedIcon}>
             <ClipboardTextIcon size={30} color={palette.orange} weight="fill" />
@@ -225,8 +227,8 @@ export function ActivitiesScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
-      <KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <SafeAreaView style={styles.safe} edges={['left', 'right']}>
+      <KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={headerOffset}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           {mode === 'list' ? (
             <>

@@ -34,7 +34,7 @@ const statusPresentation = {
 export function FosterCareScreen() {
   const { user } = useAuth();
   return (
-    <SafeAreaView className="flex-1 bg-cream">
+    <SafeAreaView className="flex-1 bg-cream" edges={['left', 'right']}>
       <ScrollView keyboardShouldPersistTaps="handled">
         <View className="w-full max-w-content self-center gap-4 px-5 pb-10 pt-3 md:px-10">
           <BackLink
