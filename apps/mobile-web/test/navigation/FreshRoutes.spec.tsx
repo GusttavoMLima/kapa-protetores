@@ -56,6 +56,17 @@ describe('rotas que recomeçam a cada visita', () => {
     expect(screen.queryByText(label)).toBeNull();
   });
 
+  it('cadastro de usuário espera a sessão e manda quem não entrou para o login', async () => {
+    mockedUseAuth.mockReturnValue({ isLogged: false, isReady: false, user: null } as unknown as ReturnType<typeof useAuth>);
+    const { rerender } = await render(<CadastroUsuarioRoute />);
+    expect(screen.queryByText('tela cadastro usuario')).toBeNull();
+    expect(screen.queryByText(/^redirect:/)).toBeNull();
+
+    mockedUseAuth.mockReturnValue({ isLogged: false, isReady: true, user: null } as unknown as ReturnType<typeof useAuth>);
+    await rerender(<CadastroUsuarioRoute />);
+    expect(screen.getByText('redirect:/signIn')).toBeTruthy();
+  });
+
   it('cadastro de usuário continua exclusivo do administrador', async () => {
     mockedUseAuth.mockReturnValue({ isLogged: true, isReady: true, user: { role: 'protector' } } as unknown as ReturnType<typeof useAuth>);
     await render(<CadastroUsuarioRoute />);

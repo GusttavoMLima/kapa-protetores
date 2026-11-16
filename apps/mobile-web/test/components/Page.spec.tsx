@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
 import { router } from 'expo-router';
 import { Page } from '../../src/components/layout/Page';
+import { BackLink } from '../../src/components/layout/BackLink';
 
 jest.mock('expo-router', () => ({ router: { replace: jest.fn() } }));
 jest.mock('react-native-safe-area-context', () => {
@@ -47,6 +48,13 @@ describe('Page', () => {
 
     expect(onBack).toHaveBeenCalledTimes(1);
     expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it('BackLink usa "Início" quando nenhum rótulo é informado', async () => {
+    await render(<BackLink />);
+
+    expect(screen.getByLabelText('Voltar para Início')).toBeTruthy();
+    expect(screen.getByText('Início')).toBeTruthy();
   });
 
   it('oculta o botão voltar quando backLabel é null', async () => {
