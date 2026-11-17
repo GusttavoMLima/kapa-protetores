@@ -2,6 +2,28 @@
 
 Este documento consolida a arquitetura de autenticação (**Google OAuth** e **E-mail/Senha**), persistência de sessão, integração entre React Native/Expo e a API Express, infraestrutura local com Docker e procedimentos para resolução de problemas e garantia de qualidade.
 
+## Correção de segurança do picomatch
+
+O postinstall raiz executa `scripts/patch-picomatch.mjs` nas cópias transitivas
+2.3.2 e 4.0.7. O lockfile atualiza a antiga cópia 4.0.5 para 4.0.7. O patch
+MIT adapta a proposta upstream #246 (commit f03bec2c02e46f063fbfdc161aae1d0f854b2565)
+para CVE-2026-112366. Ainda não há release oficial corrigida.
+Ramos simples com estrela são simplificados; ramos complexos com estrela livre
+(por exemplo `+(**a)`, `+(a?*)`, `+(*[ab])`) usam o fallback literal já existente
+na biblioteca, pois também apresentaram backtracking nos testes. Isso restringe
+esses padrões raros; estrelas escapadas, entre aspas ou em classes são preservadas.
+O script confere SHA-256 do parser original e do resultado antes de gravar;
+é idempotente e rejeita versões ou conteúdos não revisados. Instalações com
+`--ignore-scripts` precisam executar o script explicitamente, como no Docker.
+Em produção, `--production` verifica apenas cópias presentes após `--omit=dev`.
+A auditoria valida todas as cópias por SHA-256 antes de reconhecer essa advisory
+como corrigida localmente. Sem o patch, a auditoria falha; a allowlist permanece
+inalterada. `npm audit` isolado ainda reporta a versão publicada vulnerável.
+O CI executa `node --test scripts/picomatch-security.test.mjs`, com testes de
+compatibilidade e ataques em subprocessos com timeout. Remover o patch e o
+tratamento específico da auditoria quando uma versão oficial corrigida estiver
+disponível, após atualizar o lockfile e manter as regressões de segurança.
+
 ## Gestão dos animais do abrigo
 
 ### Interface e permissões
@@ -35,7 +57,7 @@ As rotas de gestão, criação e upload validam o JWT e consultam o **papel atua
 
 Não houve mudança no schema, migrations ou índices. São usadas `tb_animals`, `tb_animal_photos` e a coluna `role` de `tb_users`. O modelo atual representa um único abrigo; não possui vínculo por ONG ou responsável para limitar registros por instituição.
 
-O editor envia PATCH apenas dos campos exibidos, preservando `ageStage`, escores de comportamento, compatibilidades, data de resgate e fotos. A foto existente é apresentada; troca de foto e histórico veterinário não fazem parte deste editor. Os campos extras do cadastro legado (pelagem e histórico individual de doses, por exemplo) não têm colunas próprias: esta entrega não cria persistência para eles nem altera silenciosamente o schema.
+O editor usa o PATCH de gestão já existente. Cadastro e edição compartilham os controles de doses de V10, antirrábica e vermífugo e validam as datas de aplicação. Na edição, as doses existentes são carregadas e somente as listas alteradas são enviadas. Animais antigos com apenas indicadores gerais mantêm esses indicadores até receberem um histórico. A edição também permite ajustar a data de resgate, a energia e as compatibilidades registradas. Cor/pelagem e referências de publicações são campos do formulário legado sem persistência no contrato da API.
 
 ### Verificações da funcionalidade
 
@@ -1222,6 +1244,7 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
   * [`index.tsx`](apps/mobile-web/src/screens/userManagement/index.tsx): tela. Cabeçalho (`ADMINISTRAÇÃO` + título + descrição), resumo clicável por papel (Todos, Administradores, Protetores, Voluntários, Adotantes), cartão com busca e filtros, tabela no desktop e cartões empilhados no mobile, paginação, estados de carregamento, erro (com "Tentar novamente") e vazio. Mesmos tokens do `DESIGN.md` e componentes de `animalManagement/components` (`BackLink`, `ChoiceGroup`, `Notice`, `TextButton`).
   * [`components.tsx`](apps/mobile-web/src/screens/userManagement/components.tsx): `UserAvatar` (foto com iniciais como alternativa), `RoleBadge`, `UserStatusBadge` e o painel `ManageUserModal`.
   * [`model.ts`](apps/mobile-web/src/screens/userManagement/model.ts): lógica pura e testável (filtro, ordenação, contagem, paginação, iniciais, data e mensagem de erro da API).
+* **Cadastro pela gestão**: o card "Usuários" do painel abre "Gerenciar usuários". Abaixo do cabeçalho, o card "Mais mãos para cuidar" leva administradores ao formulário em `/cadastro-usuario`.
 * **Filtros**: busca por nome ou e-mail (ignora maiúsculas e acentos), papel (cartões de resumo), situação (todas/ativas/desativadas) e ordenação (mais recentes / nome A–Z), com "Limpar filtros". Paginação de 10 em 10, feita no cliente.
 * **Painel "Gerenciar usuário"**: em vez de botões repetidos em cada linha, cada pessoa tem um botão "Gerenciar" que abre um painel com avatar, e-mail, data de cadastro, troca de papel ("Salvar papel", habilitado só quando o papel muda) e acesso (desativar com confirmação em duas etapas; reativar direto). Erros da API aparecem dentro do painel; o sucesso aparece como aviso na tela. As salvaguardas continuam no servidor (a própria conta fica bloqueada na interface e a API responde `403`).
 * **Limites conhecidos**: `GET /api/users/all` devolve todos os usuários, então busca, filtro, ordenação e paginação são feitos no cliente (suficiente para o volume de uma ONG; acima de alguns milhares de contas, mover para o servidor). Não há "último acesso" nem histórico de quem desativou, pois esses dados não existem no banco.
@@ -1331,9 +1354,24 @@ Implementação em `src/screens/adoptionRequests/` (`model`, componentes, cartã
   1. **Boas-vindas a novos usuários (`sendWelcomeEmail`)**: disparado automaticamente em [`UserService.create`](apps/server/src/services/UserService.ts) e [`AuthService.register`](apps/server/src/services/AuthService.ts) utilizando o template `welcome` (`username` com o primeiro nome do usuário).
   2. **Mudança de status de adoção (`sendAdoptionStatusNotification`)**: disparado em [`AdoptionService.updateWorkflow`](apps/server/src/services/AdoptionService.ts) para os status `interviewing` (`adoption-interviewing`), `approved` (`adoption-approved`) e `rejected` (`adoption-rejected`), incluindo nome do adotante, nome do animal e URL da foto principal (`animalImage`), carregados em [`AdoptionRepository.updateWorkflow`](apps/server/src/repositories/AdoptionRepository.ts).
   3. **Mudança de status de candidatura de voluntariado (`sendVolunteerStatusNotification`)**: disparado em [`VolunteerApplicationService.updateStatus`](apps/server/src/services/VolunteerApplicationService.ts) para os status `approved` e `rejected` utilizando o template `volunteer-status`.
+### Expo Go no emulador Android
+
+Para o Expo Go 57.0.9 com o SDK 57, instale localmente `react-native-reanimated@4.5.1` e `react-native-worklets@0.10.1` em `apps/mobile-web/node_modules`. Inicie um Metro dedicado com `KAPA_EXPO_GO_ANDROID=1` para usar essas versões e o plugin Babel correspondente. Essa configuração é opcional e específica para a execução no Expo Go.
+
+Para acessar a API de desenvolvimento no computador pelo emulador, execute `adb reverse tcp:4000 tcp:4000` e inicie o Metro com `EXPO_PUBLIC_API_URL=http://127.0.0.1:4000/api`. Encaminhe também a porta do Metro com `adb reverse` (por exemplo, `adb reverse tcp:8083 tcp:8083`).
+
+### Aviso de privacidade no cadastro
+
+A integração com os ajustes de design da `development` mantém o layout `Page`, as margens e a navegação das abas. O cadastro de usuários da equipe fica acessível em Gerenciar usuários, e o aviso de privacidade continua obrigatório no cadastro público por e-mail ou Google.
+
+O formulário público de cadastro apresenta um resumo do uso de dados pelo Kapa e exige uma confirmação de leitura antes de liberar o cadastro por e-mail ou a opção Google nessa tela. Toda a linha da caixa de seleção responde ao toque. Enquanto estiver desmarcada, uma instrução explica como liberar os botões. A confirmação começa desmarcada a cada montagem do formulário e fica apenas no estado da tela. Ela registra ciência na interface, sem coletar consentimento como base legal nem produzir comprovante de aceite.
 
 ### Carregamento no envio de formulários
 
 O componente `FormSubmissionLoader` cobre a tela com um ossinho animado e uma mensagem específica enquanto o formulário aguarda a API. Formulários com um modal próprio usam `FormSubmissionStatus` dentro do mesmo modal. A animação usa o Reanimated já instalado e respeita o movimento reduzido do sistema.
 
 O loader acompanha o envio validado no login por e-mail, cadastro de conta ou usuário, ficha e perfil de adoção, edição de perfil, cadastro e edição de animal, publicação no diário do pet, cadastro de atividade, candidaturas de voluntariado e lar temporário, análise de solicitações e gestão de usuários. Ao receber a resposta, a tela mostra o resultado do fluxo. Em caso de erro, o formulário continua preenchido para uma nova tentativa. Buscas e navegação comum mantêm o carregamento da própria tela.
+
+### Envio de fotos de animais
+
+O upload web redimensiona fotos de 5 MB ou mais para até 1600 px no lado maior e gera um JPEG antes do envio. O endpoint mantém a validação de JPEG, PNG ou WebP e o limite de 5 MB. A edição preserva somente as fotos rejeitadas para uma nova tentativa. Se o cadastro do animal já tiver sido salvo, a tela mostra a mensagem da rejeição e oferece acesso ao cadastro existente para adicionar as fotos.

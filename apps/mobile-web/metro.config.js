@@ -17,5 +17,20 @@ config.resolver = {
   sourceExts: [...resolver.sourceExts, 'svg'],
 };
 
+if (process.env.KAPA_EXPO_GO_ANDROID === '1') {
+  const path = require('node:path');
+  const localNativePackages = new Set(['react-native-reanimated', 'react-native-worklets']);
+  config.resolver.resolveRequest = (context, moduleName, platform) => {
+    if (platform === 'android' && localNativePackages.has(moduleName)) {
+      return context.resolveRequest({
+        ...context,
+        disableHierarchicalLookup: true,
+        nodeModulesPaths: [path.join(projectRoot, 'node_modules')],
+      }, moduleName, platform);
+    }
+    return context.resolveRequest(context, moduleName, platform);
+  };
+}
+
 module.exports = withNativeWind(config, { input: './global.css' });
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { router } from 'expo-router';
 import type { User } from '@kapa/shared';
 import { UserManagementScreen } from '@/screens/userManagement';
 import { buildStaffHomeCards } from '@/screens/home';
@@ -13,7 +14,7 @@ import {
 jest.mock('expo-router', () => {
   const { Text } = jest.requireActual('react-native');
   return {
-    router: { replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) },
+    router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) },
     Redirect: ({ href }: { href: string }) => <Text>{`redirect:${href}`}</Text>,
   };
 });
@@ -106,6 +107,15 @@ describe('UserManagementScreen', () => {
 
       expect(screen.getByText('redirect:/(protected)/(tabs)')).toBeTruthy();
       expect(screen.queryByText('Gerenciar usuários')).toBeNull();
+      expect(screen.queryByLabelText('Cadastrar usuário da equipe')).toBeNull();
+    });
+
+    it('abre o cadastro de usuário pelo card Mais mãos para cuidar', async () => {
+      await render(<UserManagementScreen />);
+
+      expect(screen.getByText('Mais mãos para cuidar')).toBeTruthy();
+      await fireEvent.press(screen.getByRole('button', { name: 'Cadastrar usuário da equipe' }));
+      expect(router.push).toHaveBeenCalledWith('/cadastro-usuario');
     });
 
     it('mostra o resumo por papel e os usuários com papel, situação e cadastro', async () => {

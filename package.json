@@ -37,7 +37,8 @@
     "test:maestro:e2e": "npm run test:maestro:e2e --workspace=@kapa/mobile-web",
     "test:maestro:web": "npm run test:maestro:web --workspace=@kapa/mobile-web",
     "test:maestro:web:e2e": "npm run test:maestro:web:e2e --workspace=@kapa/mobile-web",
-    "test:maestro:web:all": "npm run test:maestro:web:all --workspace=@kapa/mobile-web"
+    "test:maestro:web:all": "npm run test:maestro:web:all --workspace=@kapa/mobile-web",
+    "postinstall": "node scripts/patch-picomatch.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

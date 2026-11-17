@@ -3,12 +3,13 @@ FROM node:22-bookworm-slim AS dependencies
 WORKDIR /app
 
 COPY package.json package-lock.json ./
+COPY scripts/patch-picomatch.mjs scripts/patch-picomatch.mjs
 COPY apps/server/package.json apps/server/package.json
 COPY apps/mobile-web/package.json apps/mobile-web/package.json
 COPY packages/eslint-config/package.json packages/eslint-config/package.json
 COPY packages/shared/package.json packages/shared/package.json
 
-RUN npm ci --ignore-scripts
+RUN npm ci --ignore-scripts && node scripts/patch-picomatch.mjs
 
 FROM dependencies AS build
 
@@ -29,12 +30,13 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY package.json package-lock.json ./
+COPY scripts/patch-picomatch.mjs scripts/patch-picomatch.mjs
 COPY apps/server/package.json apps/server/package.json
 COPY apps/mobile-web/package.json apps/mobile-web/package.json
 COPY packages/eslint-config/package.json packages/eslint-config/package.json
 COPY packages/shared/package.json packages/shared/package.json
 
-RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+RUN npm ci --omit=dev --ignore-scripts && node scripts/patch-picomatch.mjs --production && npm cache clean --force
 
 COPY --from=build /app/apps/server/dist apps/server/dist
 COPY --from=build /app/apps/server/src/ml apps/server/src/ml
