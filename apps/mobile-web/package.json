@@ -62,6 +62,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web --max-workers 1",
     "build:web": "expo export -p web",
+    "build:apk": "npx --yes eas-cli build --platform android --profile preview --no-wait --non-interactive",
     "lint": "expo lint",
     "test": "jest",
     "test:watch": "jest --watch",
