@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { PICOMATCH_ADVISORY, verifyPicomatchPatches } from './patch-picomatch.mjs';
 
 const ALLOWLIST_URL = new URL('./audit-allowlist.json', import.meta.url);
 const BLOCKING_SEVERITIES = new Set(['high', 'critical']);
@@ -33,7 +34,7 @@ function runNpmAudit() {
   return report;
 }
 
-function collectBlockingAdvisories(report, allowedIds) {
+function collectBlockingAdvisories(report, allowedIds, patchedIds) {
   const blocking = new Map();
 
   for (const vulnerability of Object.values(report.vulnerabilities ?? {})) {
@@ -43,6 +44,7 @@ function collectBlockingAdvisories(report, allowedIds) {
 
       const match = (via.url ?? '').match(/GHSA-[a-z0-9-]+/i);
       const id = match ? match[0] : via.title;
+      if (patchedIds.has(id)) continue;
       if (allowedIds.has(id)) continue;
 
       blocking.set(id, {
@@ -58,9 +60,11 @@ function collectBlockingAdvisories(report, allowedIds) {
 }
 
 function main() {
+  const patchedInstallations = verifyPicomatchPatches();
+  console.log(`${PICOMATCH_ADVISORY}: patch SHA-256 verificado em ${patchedInstallations.length} instalação(ões).`);
   const allowedIds = loadAllowlist();
   const report = runNpmAudit();
-  const blocking = collectBlockingAdvisories(report, allowedIds);
+  const blocking = collectBlockingAdvisories(report, allowedIds, new Set([PICOMATCH_ADVISORY]));
 
   if (blocking.length > 0) {
     console.error('Advisories high/critical fora da allowlist:');
