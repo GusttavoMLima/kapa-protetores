@@ -125,6 +125,11 @@ export function MultiFotoPicker({
           <Text className="font-body text-xs text-ink-muted">
             Adicione até {maxPhotos} fotos ({uris.length}/{maxPhotos} selecionadas)
           </Text>
+          <Text className="font-body text-xs text-ink-muted">
+            {Platform.OS === 'web'
+              ? 'JPEG, PNG ou WebP. Fotos acima do limite são reduzidas antes do envio.'
+              : 'JPEG, PNG ou WebP. Até 5 MB por foto.'}
+          </Text>
         </View>
       </View>
 
