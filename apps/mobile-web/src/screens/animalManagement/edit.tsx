@@ -92,7 +92,7 @@ function AnimalEditor({ id }: { id: string }) {
     }
   };
 
-  return <SafeAreaView className="flex-1 bg-cream">
+  return <SafeAreaView className="flex-1 bg-cream" edges={['left', 'right']}>
     <ScrollView ref={scroll} keyboardShouldPersistTaps="handled">
       <View className="w-full max-w-content self-center px-5 md:px-10 pt-3 pb-10 gap-6">
         <BackLink label="Animais do abrigo" onPress={() => { if (!saving) requestLeave(); }} />

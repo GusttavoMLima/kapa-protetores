@@ -43,9 +43,10 @@ function ManagementCard({ card }: { card: SecondaryCardProps }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`${card.title} - ${card.link.label}`} onPress={() => router.push(card.link.href)}
       className={`rounded-2xl border border-line bg-white p-6 gap-5 shadow-card hover:bg-peach active:opacity-80 ${Platform.OS === 'web' ? 'w-full md:w-[48%] grow' : 'w-72'}`}>
-      <View className="size-14 rounded-2xl bg-peach items-center justify-center">{card.icon.component}</View>
+      <View className="size-14 rounded-2xl bg-peach border-2 border-white items-center justify-center">{card.icon.component}</View>
       <View className="gap-2"><Text className="font-heading-bold text-xl text-ink">{card.title}</Text><Text className="font-body text-base leading-6 text-ink-muted">{card.description}</Text></View>
-      <View className="flex-row items-center justify-between border-t border-line pt-4"><Text className="font-body-medium text-sm text-denim">{card.link.label}</Text><ArrowRightIcon size={20} color={palette.denim} /></View>
+      {/* mt-auto prende o rodapé na base: cartões da mesma linha alinham mesmo com descrições de tamanhos diferentes. */}
+      <View className="mt-auto flex-row items-center justify-between border-t border-line pt-4"><Text className="font-body-medium text-sm text-denim">{card.link.label}</Text><ArrowRightIcon size={20} color={palette.denim} /></View>
     </Pressable>
   );
 }

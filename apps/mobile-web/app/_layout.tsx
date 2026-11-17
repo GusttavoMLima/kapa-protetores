@@ -100,26 +100,6 @@ export default function RootLayout() {
                 }}
               />
 
-              <Stack.Screen
-                name="cadastro-animal"
-                options={{
-                  headerShown: false,
-                }}
-              />
-
-              <Stack.Screen
-                name="cadastro-voluntario"
-                options={{
-                  headerShown: false,
-                }}
-              />
-
-              <Stack.Screen
-                name="cadastro-usuario"
-                options={{
-                  headerShown: false,
-                }}
-              />
             </Stack>
 
             {!isSplashAnimationComplete && (

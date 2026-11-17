@@ -10,11 +10,14 @@ import {
 import { palette } from '@/theme/colors';
 import { DefaultHeader } from '@/components/header/default';
 import { ActivityIndicator, Platform, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/hooks/useAuth';
 import { canUseAdoption, isShelterStaff } from '@/navigation/access';
 
 export default function TabLayout() {
   const { user, hasAdopterProfile, isCheckingProfile } = useAuth();
+  // Altura fixa na barra anula a área segura automática: somamos a do indicador de gestos do iPhone.
+  const { bottom: bottomInset } = useSafeAreaInsets();
   const community = canUseAdoption(user?.role);
 
   if (user?.role === 'adopter') {
@@ -33,6 +36,7 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      backBehavior="history"
       screenOptions={{
         header: () => <DefaultHeader />,
 
@@ -46,8 +50,8 @@ export default function TabLayout() {
           borderTopWidth: 0,
           borderTopColor: 'transparent',
 
-          height: 76,
-          paddingBottom: 12,
+          height: 76 + bottomInset,
+          paddingBottom: 12 + bottomInset,
           paddingTop: 8,
 
           ...Platform.select({
@@ -157,6 +161,32 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      {HIDDEN_SCREENS.map((name) => (
+        <Tabs.Screen key={name} name={name} options={{ href: null }} />
+      ))}
     </Tabs>
   );
 }
+
+// Telas internas: ficam nas abas para herdar cabeçalho e rodapé, sem botão próprio na barra.
+const HIDDEN_SCREENS = [
+  'adopet/[id]',
+  'adopet/[id]/application',
+  'cadastro-animal',
+  'cadastro-usuario',
+  'cadastro-voluntario',
+  'cuidados-animais',
+  'edit-profile',
+  'gestao/animais',
+  'gestao/lares-temporarios',
+  'gestao/solicitacoes',
+  'gestao/usuarios',
+  'gestao/voluntarios',
+  'lar-temporario',
+  'manage-activities',
+  'my-adoptions',
+  'my-events',
+  'my-favorites',
+  'pix',
+] as const;

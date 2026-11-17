@@ -6,13 +6,13 @@ import {
   View,
 } from 'react-native';
 import {
-  ArrowLeftIcon,
   CaretRightIcon,
   CheckCircleIcon,
   PawPrintIcon,
   UserIcon,
 } from 'phosphor-react-native';
 import { router } from 'expo-router';
+import { BackLink } from '@/components/layout/BackLink';
 import { palette } from '@/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { FotoPicker } from '@/components/photoPicker/profile';
@@ -136,18 +136,7 @@ export function EditProfileScreen() {
       }}
     >
       <View className="flex-row items-center justify-between pt-2">
-        <Pressable
-          onPress={handleReturnToProfile}
-          accessibilityRole="button"
-          accessibilityLabel="Voltar para a tela anterior"
-          hitSlop={12}
-          className="flex-row items-center gap-2 p-2 -ml-2 rounded-full active:bg-orange-100"
-        >
-          <ArrowLeftIcon size={24} color={palette.ink} weight="bold" />
-          <Text className="font-heading font-bold text-ink text-base">
-            Voltar
-          </Text>
-        </Pressable>
+        <BackLink label="Perfil" onPress={handleReturnToProfile} />
 
         <View className="flex-row items-center gap-1.5 bg-peach px-3 py-1.5 rounded-full">
           <UserIcon size={16} color={palette.orange} weight="bold" />

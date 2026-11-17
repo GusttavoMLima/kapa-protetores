@@ -3,7 +3,6 @@ import { Redirect } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { ArrowClockwiseIcon, ChatCircleDotsIcon, CheckCircleIcon, ClipboardTextIcon, HeartIcon, MagnifyingGlassIcon, PawPrintIcon, XIcon } from 'phosphor-react-native';
 import type { AdoptionStatus } from '@kapa/shared';
-import { DefaultHeader } from '@/components/header/default';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminAdoptions } from '@/hooks/useAdoptions';
 import { palette } from '@/theme';
@@ -35,9 +34,8 @@ function RequestsDashboard() {
   function clearFilters() { setFilter('all'); setSearch(''); }
 
   return <View className="flex-1 bg-cream">
-    <DefaultHeader />
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ width: '100%', maxWidth: 1140, alignSelf: 'center', padding: 20, paddingBottom: 48, gap: 24 }}>
-      <BackLink label="Gestão do abrigo" />
+      <BackLink label="Gestão" />
       <View className="rounded-2xl bg-peach border border-line p-5 md:p-8 gap-3">
         <View className="flex-row items-center gap-2"><HeartIcon size={18} color={palette.denim} weight="fill" /><Text className="font-body-medium text-xs tracking-widest text-denim">CUIDADO EM CADA NOVO COMEÇO</Text></View>
         <Text accessibilityRole="header" className="font-heading-bold text-2xl md:text-3xl text-ink">Solicitações de adoção</Text>

@@ -78,7 +78,7 @@ describe('HomeScreen', () => {
     }
     await fireEvent.press(screen.getByLabelText('Usuários - Gerenciar usuários'));
     expect(router.push).toHaveBeenCalledTimes(5);
-    expect(router.push).toHaveBeenLastCalledWith('/(protected)/gestao/usuarios');
+    expect(router.push).toHaveBeenLastCalledWith('/gestao/usuarios');
     expect(screen.queryByLabelText('Cadastrar usuário da equipe')).toBeNull();
   });
 

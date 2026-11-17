@@ -199,7 +199,7 @@ export function VolunteerActivitiesScreen() {
 
   if (user?.role !== 'volunteer') {
     return (
-      <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
+      <SafeAreaView style={styles.safe} edges={['left', 'right']}>
         <View style={styles.messageState}>
           <Text style={styles.title}>Área de voluntariado</Text>
           <Text style={styles.subtitle}>
@@ -211,7 +211,7 @@ export function VolunteerActivitiesScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView style={styles.safe} edges={['left', 'right']}>
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={

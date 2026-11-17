@@ -2,6 +2,7 @@ import { CadastroUsuarioScreen } from '@/screens/cadastroVoluntario';
 import { Redirect } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '@/hooks/useAuth';
+import { FreshOnFocus } from '@/components/layout/FreshOnFocus';
 
 export default function CadastroUsuarioRoute() {
   const { isLogged, isReady, user } = useAuth();
@@ -17,5 +18,5 @@ export default function CadastroUsuarioRoute() {
   if (!isLogged) return <Redirect href="/signIn" />;
   if (user?.role !== 'admin') return <Redirect href="/unauthorized" />;
 
-  return <CadastroUsuarioScreen />;
+  return <FreshOnFocus><CadastroUsuarioScreen /></FreshOnFocus>;
 }

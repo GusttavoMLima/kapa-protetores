@@ -58,7 +58,7 @@ describe('Lar Temporário', () => {
     const screen = await render(<FosterCareScreen />);
     expect(screen.getByRole('header', { name: 'Lar Temporário' })).toBeTruthy();
     expect(screen.getByText(/Você acolhe um animal em recuperação/)).toBeTruthy();
-    await fireEvent.press(screen.getByRole('button', { name: 'Voltar para Apoie a Kapa' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Voltar para Apoiar' }));
     expect(router.replace).toHaveBeenCalledWith('/support');
   });
 

@@ -106,7 +106,7 @@ const USER_MANAGEMENT_CARD: SecondaryCardProps = {
   description: 'Consulte as contas, altere papéis e desative acessos.',
   link: {
     label: 'Gerenciar usuários',
-    href: '/(protected)/gestao/usuarios',
+    href: '/gestao/usuarios',
     color: palette.denim,
   },
 };
@@ -152,7 +152,7 @@ const ACTIVITY_MANAGEMENT_CARDS: readonly SecondaryCardProps[] = [
     description: 'Cadastre as ações da semana para os voluntários.',
     link: {
       label: 'Gerenciar semana',
-      href: '/(protected)/manage-activities',
+      href: '/manage-activities',
       color: palette.denim,
     },
   },
@@ -171,7 +171,7 @@ const ACTIVITY_MANAGEMENT_CARDS: readonly SecondaryCardProps[] = [
     description: 'Analise e aprove novos voluntários para o abrigo.',
     link: {
       label: 'Ver candidaturas',
-      href: '/(protected)/gestao/voluntarios',
+      href: '/gestao/voluntarios',
       color: palette.denim,
     },
   },

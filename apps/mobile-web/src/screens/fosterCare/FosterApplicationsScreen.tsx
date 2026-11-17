@@ -35,11 +35,11 @@ export function FosterApplicationsScreen() {
   });
 
   return (
-    <SafeAreaView className="flex-1 bg-cream">
+    <SafeAreaView className="flex-1 bg-cream" edges={['left', 'right']}>
       <FormSubmissionLoader visible={review.isPending} message="Salvando decisão sobre a candidatura…" />
       <ScrollView>
         <View className="w-full max-w-content self-center gap-4 px-5 pb-10 pt-3 md:px-10">
-          <BackLink label="Gestão do abrigo" />
+          <BackLink label="Gestão" />
           <Text accessibilityRole="header" className="font-heading-bold text-2xl text-ink">
             Candidaturas de Lar Temporário
           </Text>

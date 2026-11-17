@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { ActivityIndicator, Image, Pressable, Text, View } from 'react-native';
-import { PawPrintIcon, ArrowLeftIcon } from 'phosphor-react-native';
+import { PawPrintIcon } from 'phosphor-react-native';
 import { router, Redirect } from 'expo-router';
 import { canManageAnimals, type Animal, type AnimalStatus } from '@kapa/shared';
 import { useState } from 'react';
@@ -27,12 +27,7 @@ export function TextButton({ label, onPress, disabled = false }: { label: string
   </Pressable>;
 }
 
-export function BackLink({ label = 'Início', onPress }: { label?: string; onPress?: () => void }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={`Voltar para ${label}`} onPress={onPress ?? (() => router.replace('/(protected)/(tabs)'))}
-    className="min-h-12 self-start flex-row items-center gap-2 py-3 pr-4">
-    <ArrowLeftIcon size={18} color={palette.denim} /><Text className="font-body-medium text-sm text-denim">{label}</Text>
-  </Pressable>;
-}
+export { BackLink } from '@/components/layout/BackLink';
 
 export function StatusBadge({ status }: { status: AnimalStatus }) {
   const tone = status === 'available' ? 'bg-success-soft text-success' : status === 'treating'

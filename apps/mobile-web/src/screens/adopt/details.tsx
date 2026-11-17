@@ -13,7 +13,6 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import {
-  ArrowLeftIcon,
   BuildingsIcon,
   CheckIcon,
   HeartIcon,
@@ -38,6 +37,7 @@ import { useAdopterProfileMe } from '@/hooks/useAdopterProfile';
 import { useAnimalPosts, useCreateAnimalPost } from '@/hooks/useAnimalPosts';
 import { useAuth } from '@/hooks/useAuth';
 import { AnimalMedication } from '@/screens/animalCare/AnimalMedication';
+import { BackLink } from '@/components/layout/BackLink';
 import { palette } from '@/theme';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useToggleFavorite } from '@/hooks/useFavorites';
@@ -388,19 +388,12 @@ export function AdoptPetDetailsScreen() {
     <View className="flex-1 bg-cream">
       <ScrollView contentContainerStyle={{ paddingBottom: 132 }}>
         <View className="w-full max-w-content self-center px-5 md:px-10 pt-3 gap-6">
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Voltar para a lista de pets"
-            className="min-h-12 self-start flex-row items-center gap-2 py-3 pr-4"
+          <BackLink
+            label="Adotar"
             onPress={() =>
               router.canGoBack() ? router.back() : router.replace('/adopet')
             }
-          >
-            <ArrowLeftIcon size={18} color={palette.denim} />
-            <Text className="font-body-medium text-sm text-denim">
-              Ver todos os pets
-            </Text>
-          </Pressable>
+          />
 
           <PetPhotos animal={animal} />
 

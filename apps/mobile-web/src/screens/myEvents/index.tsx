@@ -9,7 +9,6 @@ import {
   View,
 } from 'react-native';
 import {
-  ArrowLeftIcon,
   CalendarCheckIcon,
   ClockCounterClockwiseIcon,
   HeartIcon,
@@ -17,6 +16,7 @@ import {
 } from 'phosphor-react-native';
 import { SystemEventTypes, type SystemEvent } from '@kapa/shared';
 import { useUserEvents } from '@/hooks/useUserEvents';
+import { Page } from '@/components/layout/Page';
 import { palette } from '@/theme';
 
 const EVENT_FILTER_OPTIONS: readonly {
@@ -191,9 +191,9 @@ export function MyEventsScreen() {
   const total = data?.total ?? 0;
 
   return (
-    <ScrollView
-      className="flex-1 bg-cream"
-      contentContainerStyle={{ padding: 20, paddingBottom: 48, gap: 20 }}
+    <Page
+      backLabel="Perfil"
+      onBack={() => router.replace('/(protected)/(tabs)/profile')}
       refreshControl={
         <RefreshControl
           refreshing={isRefetching}
@@ -203,221 +203,207 @@ export function MyEventsScreen() {
         />
       }
     >
-      <View className="w-full max-w-content self-center gap-5">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Voltar para o perfil"
-          className="min-h-10 self-start flex-row items-center gap-2 py-2 pr-4"
-          onPress={() => router.replace('/(protected)/(tabs)/profile')}
-        >
-          <ArrowLeftIcon size={18} color={palette.denim} />
-          <Text className="font-body-medium text-sm text-denim">
-            Voltar ao perfil
-          </Text>
-        </Pressable>
-
-        <View className="items-center bg-white rounded-2xl border border-line px-5 py-6 gap-2">
-          <View className="w-12 h-12 rounded-full bg-peach items-center justify-center">
-            <ClockCounterClockwiseIcon
-              size={26}
-              color={palette.orange}
-              weight="bold"
-            />
-          </View>
-          <Text
-            accessibilityRole="header"
-            className="font-heading-bold text-3xl text-ink text-center"
-          >
-            Minhas atividades
-          </Text>
-          <Text className="font-body text-base text-ink-muted text-center">
-            Acompanhe todo o seu histórico de ações e interações no Kapa.
-          </Text>
+      <View className="items-center bg-white rounded-2xl border border-line px-5 py-6 gap-2">
+        <View className="w-12 h-12 rounded-full bg-peach items-center justify-center">
+          <ClockCounterClockwiseIcon
+            size={26}
+            color={palette.orange}
+            weight="bold"
+          />
         </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8 }}
-          accessibilityLabel="Filtrar por tipo de atividade"
+        <Text
+          accessibilityRole="header"
+          className="font-heading-bold text-3xl text-ink text-center"
         >
-          {EVENT_FILTER_OPTIONS.map((option) => {
-            const isSelected = selectedType === option.value;
-            return (
-              <Pressable
-                key={option.label}
-                accessibilityRole="button"
-                accessibilityState={{ selected: isSelected }}
-                accessibilityLabel={`Filtrar por ${option.label}`}
-                onPress={() => {
-                  setSelectedType(option.value);
-                  setPage(1);
-                }}
-                className={`min-h-11 px-4 py-2.5 rounded-full border items-center justify-center ${
-                  isSelected
-                    ? 'bg-denim border-denim'
-                    : 'bg-white border-line active:bg-peach'
+          Minhas atividades
+        </Text>
+        <Text className="font-body text-base text-ink-muted text-center">
+          Acompanhe todo o seu histórico de ações e interações no Kapa.
+        </Text>
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 8 }}
+        accessibilityLabel="Filtrar por tipo de atividade"
+      >
+        {EVENT_FILTER_OPTIONS.map((option) => {
+          const isSelected = selectedType === option.value;
+          return (
+            <Pressable
+              key={option.label}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isSelected }}
+              accessibilityLabel={`Filtrar por ${option.label}`}
+              onPress={() => {
+                setSelectedType(option.value);
+                setPage(1);
+              }}
+              className={`min-h-11 px-4 py-2.5 rounded-full border items-center justify-center ${
+                isSelected
+                  ? 'bg-denim border-denim'
+                  : 'bg-white border-line active:bg-peach'
+              }`}
+            >
+              <Text
+                className={`font-body-medium text-xs ${
+                  isSelected ? 'text-white' : 'text-denim'
                 }`}
               >
-                <Text
-                  className={`font-body-medium text-xs ${
-                    isSelected ? 'text-white' : 'text-denim'
-                  }`}
-                >
-                  {option.label}
-                </Text>
+                {option.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
+      {isLoading ? (
+        <View className="py-16 items-center gap-3">
+          <ActivityIndicator size="large" color={palette.orange} />
+          <Text className="font-body text-ink-muted">
+            Carregando histórico de atividades...
+          </Text>
+        </View>
+      ) : error ? (
+        <View className="bg-white rounded-2xl border border-danger-soft p-6 items-center gap-3">
+          <Text className="font-heading-bold text-danger text-center">
+            Não foi possível carregar suas atividades.
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Tentar novamente"
+            onPress={() => void refetch()}
+            className="bg-orange px-5 py-3 rounded-lg"
+          >
+            <Text className="font-heading-bold text-white">
+              Tentar novamente
+            </Text>
+          </Pressable>
+        </View>
+      ) : events.length === 0 ? (
+        <View className="bg-white rounded-2xl border border-line p-10 items-center gap-3">
+          <PawPrintIcon size={44} color={palette.denim} weight="duotone" />
+          <Text className="font-heading-bold text-lg text-ink text-center">
+            Nenhuma atividade encontrada
+          </Text>
+          <Text className="font-body text-sm text-ink-muted text-center">
+            {selectedType
+              ? 'Você ainda não possui registros para este filtro.'
+              : 'Suas interações com pets, solicitações e voluntariado aparecerão aqui.'}
+          </Text>
+        </View>
+      ) : (
+        <View className="gap-3">
+          {events.map((event) => {
+            const { title, subtitle, badge } =
+              formatSystemEventDetails(event);
+            const isFavoriteEvent =
+              event.type === SystemEventTypes.PET_FAVORITED ||
+              event.type === SystemEventTypes.PET_UNFAVORITED;
+            const isVolunteerEvent =
+              event.type === SystemEventTypes.VOLUNTEER_REGISTERED;
+
+            return (
+              <Pressable
+                key={event.id}
+                disabled={!event.animalId}
+                onPress={() => {
+                  if (event.animalId) {
+                    router.push({
+                      pathname: '/adopet/[id]',
+                      params: { id: event.animalId },
+                    });
+                  }
+                }}
+                className="bg-white rounded-2xl border border-line p-4 gap-3 active:opacity-85"
+              >
+                <View className="flex-row items-start gap-3.5">
+                  <View className="size-11 rounded-full bg-peach items-center justify-center">
+                    {isFavoriteEvent ? (
+                      <HeartIcon
+                        size={22}
+                        color={palette.orange}
+                        weight="fill"
+                      />
+                    ) : isVolunteerEvent ? (
+                      <CalendarCheckIcon
+                        size={22}
+                        color={palette.denim}
+                        weight="fill"
+                      />
+                    ) : (
+                      <PawPrintIcon
+                        size={22}
+                        color={palette.denim}
+                        weight="fill"
+                      />
+                    )}
+                  </View>
+
+                  <View className="flex-1 gap-1">
+                    <View className="flex-row items-center justify-between gap-2 flex-wrap">
+                      <Text className="font-heading-bold text-base text-ink">
+                        {title}
+                      </Text>
+                      <View className="rounded-full bg-peach px-2.5 py-0.5">
+                        <Text className="font-body-medium text-xs text-denim">
+                          {badge}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Text className="font-body text-sm text-ink-muted">
+                      {subtitle}
+                    </Text>
+
+                    <Text className="font-body text-xs text-ink-muted mt-1">
+                      {formatEventDateTime(event.emittedAt)}
+                    </Text>
+                  </View>
+                </View>
               </Pressable>
             );
           })}
-        </ScrollView>
 
-        {isLoading ? (
-          <View className="py-16 items-center gap-3">
-            <ActivityIndicator size="large" color={palette.orange} />
-            <Text className="font-body text-ink-muted">
-              Carregando histórico de atividades...
-            </Text>
-          </View>
-        ) : error ? (
-          <View className="bg-white rounded-2xl border border-danger-soft p-6 items-center gap-3">
-            <Text className="font-heading-bold text-danger text-center">
-              Não foi possível carregar suas atividades.
-            </Text>
+          <View className="bg-white rounded-2xl border border-line p-4 flex-row items-center justify-between gap-3">
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Tentar novamente"
-              onPress={() => void refetch()}
-              className="bg-orange px-5 py-3 rounded-lg"
+              accessibilityLabel="Página anterior"
+              disabled={page <= 1}
+              onPress={() => setPage((prev) => Math.max(1, prev - 1))}
+              className={`min-h-11 px-4 py-2 rounded-lg border border-line items-center justify-center ${
+                page <= 1 ? 'opacity-40' : 'active:bg-peach'
+              }`}
             >
-              <Text className="font-heading-bold text-white">
-                Tentar novamente
+              <Text className="font-body-medium text-sm text-denim">
+                Anterior
+              </Text>
+            </Pressable>
+
+            <Text className="font-body text-xs text-ink-muted text-center">
+              Página {page} de {totalPages} ({total}{' '}
+              {total === 1 ? 'registro' : 'registros'})
+            </Text>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Próxima página"
+              disabled={page >= totalPages}
+              onPress={() =>
+                setPage((prev) => Math.min(totalPages, prev + 1))
+              }
+              className={`min-h-11 px-4 py-2 rounded-lg border border-line items-center justify-center ${
+                page >= totalPages ? 'opacity-40' : 'active:bg-peach'
+              }`}
+            >
+              <Text className="font-body-medium text-sm text-denim">
+                Próxima
               </Text>
             </Pressable>
           </View>
-        ) : events.length === 0 ? (
-          <View className="bg-white rounded-2xl border border-line p-10 items-center gap-3">
-            <PawPrintIcon size={44} color={palette.denim} weight="duotone" />
-            <Text className="font-heading-bold text-lg text-ink text-center">
-              Nenhuma atividade encontrada
-            </Text>
-            <Text className="font-body text-sm text-ink-muted text-center">
-              {selectedType
-                ? 'Você ainda não possui registros para este filtro.'
-                : 'Suas interações com pets, solicitações e voluntariado aparecerão aqui.'}
-            </Text>
-          </View>
-        ) : (
-          <View className="gap-3">
-            {events.map((event) => {
-              const { title, subtitle, badge } =
-                formatSystemEventDetails(event);
-              const isFavoriteEvent =
-                event.type === SystemEventTypes.PET_FAVORITED ||
-                event.type === SystemEventTypes.PET_UNFAVORITED;
-              const isVolunteerEvent =
-                event.type === SystemEventTypes.VOLUNTEER_REGISTERED;
-
-              return (
-                <Pressable
-                  key={event.id}
-                  disabled={!event.animalId}
-                  onPress={() => {
-                    if (event.animalId) {
-                      router.push({
-                        pathname: '/adopet/[id]',
-                        params: { id: event.animalId },
-                      });
-                    }
-                  }}
-                  className="bg-white rounded-2xl border border-line p-4 gap-3 active:opacity-85"
-                >
-                  <View className="flex-row items-start gap-3.5">
-                    <View className="size-11 rounded-full bg-peach items-center justify-center">
-                      {isFavoriteEvent ? (
-                        <HeartIcon
-                          size={22}
-                          color={palette.orange}
-                          weight="fill"
-                        />
-                      ) : isVolunteerEvent ? (
-                        <CalendarCheckIcon
-                          size={22}
-                          color={palette.denim}
-                          weight="fill"
-                        />
-                      ) : (
-                        <PawPrintIcon
-                          size={22}
-                          color={palette.denim}
-                          weight="fill"
-                        />
-                      )}
-                    </View>
-
-                    <View className="flex-1 gap-1">
-                      <View className="flex-row items-center justify-between gap-2 flex-wrap">
-                        <Text className="font-heading-bold text-base text-ink">
-                          {title}
-                        </Text>
-                        <View className="rounded-full bg-peach px-2.5 py-0.5">
-                          <Text className="font-body-medium text-xs text-denim">
-                            {badge}
-                          </Text>
-                        </View>
-                      </View>
-
-                      <Text className="font-body text-sm text-ink-muted">
-                        {subtitle}
-                      </Text>
-
-                      <Text className="font-body text-xs text-ink-muted mt-1">
-                        {formatEventDateTime(event.emittedAt)}
-                      </Text>
-                    </View>
-                  </View>
-                </Pressable>
-              );
-            })}
-
-            <View className="bg-white rounded-2xl border border-line p-4 flex-row items-center justify-between gap-3">
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Página anterior"
-                disabled={page <= 1}
-                onPress={() => setPage((prev) => Math.max(1, prev - 1))}
-                className={`min-h-11 px-4 py-2 rounded-lg border border-line items-center justify-center ${
-                  page <= 1 ? 'opacity-40' : 'active:bg-peach'
-                }`}
-              >
-                <Text className="font-body-medium text-sm text-denim">
-                  Anterior
-                </Text>
-              </Pressable>
-
-              <Text className="font-body text-xs text-ink-muted text-center">
-                Página {page} de {totalPages} ({total}{' '}
-                {total === 1 ? 'registro' : 'registros'})
-              </Text>
-
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Próxima página"
-                disabled={page >= totalPages}
-                onPress={() =>
-                  setPage((prev) => Math.min(totalPages, prev + 1))
-                }
-                className={`min-h-11 px-4 py-2 rounded-lg border border-line items-center justify-center ${
-                  page >= totalPages ? 'opacity-40' : 'active:bg-peach'
-                }`}
-              >
-                <Text className="font-body-medium text-sm text-denim">
-                  Próxima
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        )}
-      </View>
-    </ScrollView>
+        </View>
+      )}
+    </Page>
   );
 }
