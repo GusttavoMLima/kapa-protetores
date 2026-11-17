@@ -2,6 +2,28 @@
 
 Este documento consolida a arquitetura de autenticação (**Google OAuth** e **E-mail/Senha**), persistência de sessão, integração entre React Native/Expo e a API Express, infraestrutura local com Docker e procedimentos para resolução de problemas e garantia de qualidade.
 
+## Correção de segurança do picomatch
+
+O postinstall raiz executa `scripts/patch-picomatch.mjs` nas cópias transitivas
+2.3.2 e 4.0.7. O lockfile atualiza a antiga cópia 4.0.5 para 4.0.7. O patch
+MIT adapta a proposta upstream #246 (commit f03bec2c02e46f063fbfdc161aae1d0f854b2565)
+para CVE-2026-112366. Ainda não há release oficial corrigida.
+Ramos simples com estrela são simplificados; ramos complexos com estrela livre
+(por exemplo `+(**a)`, `+(a?*)`, `+(*[ab])`) usam o fallback literal já existente
+na biblioteca, pois também apresentaram backtracking nos testes. Isso restringe
+esses padrões raros; estrelas escapadas, entre aspas ou em classes são preservadas.
+O script confere SHA-256 do parser original e do resultado antes de gravar;
+é idempotente e rejeita versões ou conteúdos não revisados. Instalações com
+`--ignore-scripts` precisam executar o script explicitamente, como no Docker.
+Em produção, `--production` verifica apenas cópias presentes após `--omit=dev`.
+A auditoria valida todas as cópias por SHA-256 antes de reconhecer essa advisory
+como corrigida localmente. Sem o patch, a auditoria falha; a allowlist permanece
+inalterada. `npm audit` isolado ainda reporta a versão publicada vulnerável.
+O CI executa `node --test scripts/picomatch-security.test.mjs`, com testes de
+compatibilidade e ataques em subprocessos com timeout. Remover o patch e o
+tratamento específico da auditoria quando uma versão oficial corrigida estiver
+disponível, após atualizar o lockfile e manter as regressões de segurança.
+
 ## Gestão dos animais do abrigo
 
 ### Interface e permissões
