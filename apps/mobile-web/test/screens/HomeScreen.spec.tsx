@@ -76,8 +76,10 @@ describe('HomeScreen', () => {
     for (const title of ['Solicitações de adoção', 'Animais do abrigo', 'Organizar atividades', 'Candidaturas de voluntários']) {
       await fireEvent.press(screen.getByText(title));
     }
-    expect(router.push).toHaveBeenCalledTimes(4);
-    expect(screen.getByLabelText('Cadastrar usuário da equipe')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Usuários - Gerenciar usuários'));
+    expect(router.push).toHaveBeenCalledTimes(5);
+    expect(router.push).toHaveBeenLastCalledWith('/(protected)/gestao/usuarios');
+    expect(screen.queryByLabelText('Cadastrar usuário da equipe')).toBeNull();
   });
 
   it('mostra animais disponíveis cadastrados', async () => {

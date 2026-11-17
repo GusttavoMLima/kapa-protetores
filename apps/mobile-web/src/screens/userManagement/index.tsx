@@ -7,11 +7,13 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Redirect } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
+  ArrowRightIcon,
   MagnifyingGlassIcon,
   PencilSimpleIcon,
+  UserPlusIcon,
   UsersIcon,
 } from 'phosphor-react-native';
 import type { User, UserRole } from '@kapa/shared';
@@ -177,6 +179,24 @@ export function UserManagementScreen() {
               desative quem não deve mais acessar o app.
             </Text>
           </View>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Cadastrar usuário da equipe"
+            onPress={() => router.push('/cadastro-usuario')}
+            className="min-h-12 flex-row items-center gap-4 rounded-2xl border border-line bg-white p-5 hover:bg-peach active:opacity-80"
+          >
+            <UserPlusIcon size={24} color={palette.denim} />
+            <View className="flex-1 gap-1">
+              <Text className="font-heading-bold text-base text-denim">
+                Mais mãos para cuidar
+              </Text>
+              <Text className="font-body text-sm text-ink-muted">
+                Cadastrar um usuário e definir seu papel na equipe.
+              </Text>
+            </View>
+            <ArrowRightIcon size={20} color={palette.denim} />
+          </Pressable>
 
           {feedback ? <Notice message={feedback} /> : null}
 

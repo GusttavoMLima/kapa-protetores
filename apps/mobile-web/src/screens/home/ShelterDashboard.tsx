@@ -1,6 +1,6 @@
 import { ImageBackground, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { ArrowRightIcon, UserPlusIcon } from 'phosphor-react-native';
+import { ArrowRightIcon } from 'phosphor-react-native';
 import type { SecondaryCardProps } from '@/components/cards/secondary';
 import { useAuth } from '@/hooks/useAuth';
 import { palette } from '@/theme';
@@ -32,14 +32,6 @@ export function ShelterDashboard({ cards }: { cards: readonly SecondaryCardProps
           <ScrollView testID="home-card-carousel" horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-4">
             {cards.map((card) => <ManagementCard key={card.title} card={card} />)}
           </ScrollView>
-        )}
-        {user?.role === 'admin' && (
-          <Pressable accessibilityRole="button" accessibilityLabel="Cadastrar usuário da equipe" onPress={() => router.push('/cadastro-usuario')}
-            className="min-h-12 flex-row items-center gap-4 rounded-2xl bg-white border border-line p-5">
-            <UserPlusIcon size={24} color={palette.denim} />
-            <View className="flex-1 gap-1"><Text className="font-heading-bold text-base text-denim">Mais mãos para cuidar</Text><Text className="font-body text-sm text-ink-muted">Cadastrar um usuário e definir seu papel na equipe.</Text></View>
-            <ArrowRightIcon size={20} color={palette.denim} />
-          </Pressable>
         )}
         <Text className="font-body text-sm text-center text-ink-muted">Desde 2002, transformando cuidado em novos começos.</Text>
       </View>

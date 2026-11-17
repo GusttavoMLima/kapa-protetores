@@ -1,4 +1,4 @@
-import { animalEditorSchema, managementPageSchema } from '../../src/screens/animalManagement/model';
+import { animalEditorSchema, animalEditorUpdate, editorValues, managedAnimalSchema, managementPageSchema } from '../../src/screens/animalManagement/model';
 
 describe('Animal Management Model', () => {
   const form = {
@@ -18,6 +18,14 @@ describe('Animal Management Model', () => {
     place: '',
     observations: 'Anotações internas',
     medicationNotes: '',
+    rescuedAt: '10/10/2026',
+    v10Doses: [],
+    vacinaRaivaDoses: [],
+    vermifugoDoses: [],
+    energyLevel: 3,
+    kidFriendly: 4,
+    apartmentFriendly: false,
+    otherPetFriendly: true,
   };
 
   it('editor accepts Brazilian decimal weights and does not send hidden fields', () => {
@@ -54,5 +62,43 @@ describe('Animal Management Model', () => {
     expect(
       managementPageSchema.safeParse({ ...page, items: [{ name: 'Missing required fields' }] }).success,
     ).toBe(false);
+  });
+
+  it('loads the saved histories and sends only modified dose lists', () => {
+    const animal = managedAnimalSchema.parse({
+      ...animalEditorSchema.parse(form),
+      id: 'c000000000000000000000001',
+      createdAt: '2026-10-11T00:00:00.000Z',
+      ageStage: 2,
+      noiseLevel: 3,
+      v10Doses: [{ status: 'sim', data: '09/10/2026' }],
+    });
+    const initial = editorValues(animal);
+    expect(initial.v10Doses).toEqual([{ status: 'sim', data: '09/10/2026' }]);
+    expect(initial.vacinaRaivaDoses).toEqual([]);
+
+    const unchanged = animalEditorUpdate(animal, animalEditorSchema.parse(initial));
+    expect(unchanged.v10Doses).toBeUndefined();
+    expect(unchanged.rescuedAt).toBeUndefined();
+    expect(unchanged.dewormed).toBe('yes');
+
+    const update = animalEditorUpdate(animal, animalEditorSchema.parse({
+      ...initial,
+      v10Doses: [{ status: 'nao' }],
+      vermifugoDoses: [{ status: 'sim', data: '13/10/2026' }],
+    }));
+    expect(update).toMatchObject({
+      v10Doses: [{ status: 'nao' }],
+      vacinaRaivaDoses: undefined,
+      vermifugoDoses: [{ status: 'sim', data: '13/10/2026' }],
+      vaccinated: false,
+      dewormed: 'yes',
+    });
+  });
+
+  it('rejects invalid application dates and keeps unapplied doses free of date fields', () => {
+    expect(animalEditorSchema.safeParse({ ...form, v10Doses: [{ status: 'sim', data: '31/02/2026' }] }).success).toBe(false);
+    expect(animalEditorSchema.parse({ ...form, v10Doses: [{ status: 'nao', data: '10/10/2026' }] }).v10Doses)
+      .toEqual([{ status: 'nao' }]);
   });
 });

@@ -21,6 +21,7 @@ export type Option<T extends string> = {
 };
 
 export type PrimaryChipGroupProps<T extends string> = {
+  disabled?: boolean;
   className?: string;
   options: Option<T>[];
   value: T;
@@ -97,6 +98,7 @@ export const PrimaryChip = ({
 };
 
 export function PrimaryChipGroup<T extends string>({
+  disabled,
   className,
   options,
   value,
@@ -108,6 +110,7 @@ export function PrimaryChipGroup<T extends string>({
         <PrimaryChip
           key={option.value}
           label={option.label}
+          disabled={disabled}
           selected={option.value === value}
           onPress={() => onChange(option.value)}
         />

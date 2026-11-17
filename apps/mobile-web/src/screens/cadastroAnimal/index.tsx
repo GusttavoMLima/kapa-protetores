@@ -2,7 +2,6 @@ import { useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   Text,
   View,
@@ -10,11 +9,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryInputText } from '@/components/inputText/primary';
 import { PrimaryChipGroup } from '@/components/chips/primaryChip';
+import { DoseFields } from '@/components/forms/animal/DoseFields';
+import { parseAnimalDate } from '@/utils/animalDate';
 import { MultiFotoPicker } from '@/components/photoPicker/animal';
 import { saveAnimal, uploadAnimalPhotos } from '@/storage/animals';
 import { PrimaryButton } from '@/components/buttons/primary';
 import { FormSubmissionLoader } from '@/components/feedback/FormSubmissionLoader';
-import { palette } from '@/theme';
 import type {
   CondicaoChegada,
   Especie,
@@ -26,7 +26,6 @@ import type {
   Temperamento,
   Humor,
   DoseRecord,
-  DoseStatus,
 } from '@/types/animal';
 import { hojeBr } from '@kapa/shared/utils';
 import { ApiError } from '@/services/api';
@@ -36,56 +35,6 @@ import * as Crypto from 'expo-crypto';
 
 function novoId(): string {
   return `${Date.now()}-${Crypto.randomUUID().slice(0, 8)}`;
-}
-
-type DoseFieldProps = {
-  label: string;
-  dose: DoseRecord;
-  erro?: string;
-  onChange: (dose: DoseRecord) => void;
-  onRemove?: VoidFunction;
-};
-
-function DoseField({ label, dose, erro, onChange, onRemove }: DoseFieldProps) {
-  return (
-    <View className="gap-2 py-1">
-      <View className="flex-row items-center justify-between gap-3">
-        <Text className="font-body-medium text-sm leading-4 text-ink">{label}</Text>
-        {onRemove ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Remover ${label}`}
-            onPress={onRemove}
-            className="rounded-lg px-2 py-2 active:bg-danger-soft"
-          >
-            <Text className="font-body-medium text-xs leading-[14px] text-danger">
-              Remover
-            </Text>
-          </Pressable>
-        ) : null}
-      </View>
-      <PrimaryChipGroup<DoseStatus>
-        value={dose.status}
-        onChange={(status) =>
-          onChange({ status, data: status === 'sim' ? dose.data : undefined })
-        }
-        options={[
-          { value: 'sim', label: 'Sim' },
-          { value: 'nao', label: 'Não' },
-        ]}
-      />
-      {dose.status === 'sim' ? (
-        <PrimaryInputText
-          label="Data da aplicação"
-          value={dose.data ?? ''}
-          onChangeText={(data) => onChange({ ...dose, data })}
-          placeholder="DD/MM/AAAA"
-          keyboardType="numeric"
-          erro={erro}
-        />
-      ) : null}
-    </View>
-  );
 }
 
 export function CadastroAnimalScreen() {
@@ -125,23 +74,24 @@ export function CadastroAnimalScreen() {
   const [tentouSalvar, setTentouSalvar] = useState(false);
   const [sucesso, setSucesso] = useState<string>();
   const [erroSalvar, setErroSalvar] = useState<string>();
+  const [animalComFotosPendentes, setAnimalComFotosPendentes] = useState<string>();
   const scrollRef = useRef<ScrollView>(null);
 
   const nomeErro =
     tentouSalvar && !nome.trim() ? 'Preencha o nome do animal.' : undefined;
   const datasPendentes = [
     ...v10Doses.flatMap((dose, index) =>
-      dose.status === 'sim' && !dose.data?.trim()
+      dose.status === 'sim' && !parseAnimalDate(dose.data?.trim() ?? '')
         ? [`data da ${index + 1}ª dose da V10`]
         : [],
     ),
     ...vacinaRaivaDoses.flatMap((dose, index) =>
-      dose.status === 'sim' && !dose.data?.trim()
+      dose.status === 'sim' && !parseAnimalDate(dose.data?.trim() ?? '')
         ? [`data da ${index + 1}ª dose da vacina antirrábica`]
         : [],
     ),
     ...vermifugoDoses.flatMap((dose, index) =>
-      dose.status === 'sim' && !dose.data?.trim()
+      dose.status === 'sim' && !parseAnimalDate(dose.data?.trim() ?? '')
         ? [`data da ${index + 1}ª dose do vermífugo`]
         : [],
     ),
@@ -191,6 +141,7 @@ export function CadastroAnimalScreen() {
     setTentouSalvar(true);
     setSucesso(undefined);
     setErroSalvar(undefined);
+    setAnimalComFotosPendentes(undefined);
 
     if (pendentesAgora.length > 0) {
       scrollRef.current?.scrollTo({ y: 0, animated: true });
@@ -256,11 +207,10 @@ export function CadastroAnimalScreen() {
       if (fotosUris.length > 0) {
         const result = await uploadAnimalPhotos(animalSalvo.id, fotosUris);
         fotosEnviadas = result.uploaded;
-        if (result.failed > 0) {
+        if (result.failures.length > 0) {
+          setAnimalComFotosPendentes(animalSalvo.id);
           setErroSalvar(
-            result.uploaded === 0
-              ? 'O animal foi cadastrado, mas não foi possível enviar as fotos.'
-              : `O animal foi cadastrado, mas apenas ${result.uploaded} de ${fotosUris.length} fotos foram enviadas.`,
+            `${result.uploaded} de ${fotosUris.length} fotos foram enviadas. ${result.failures[0].message}`,
           );
         }
       }
@@ -339,6 +289,13 @@ export function CadastroAnimalScreen() {
               <Text className="font-body-medium text-[15px] leading-5 text-danger">
                 {erroSalvar}
               </Text>
+              {animalComFotosPendentes ? (
+                <PrimaryButton
+                  title="Adicionar fotos ao animal cadastrado"
+                  className="mt-3"
+                  onPress={() => router.push({ pathname: '/gestao/animais/[id]', params: { id: animalComFotosPendentes } })}
+                />
+              ) : null}
             </View>
           ) : null}
 
@@ -464,123 +421,9 @@ export function CadastroAnimalScreen() {
                 { value: 'nao_sei', label: 'Não sei' },
               ]}
             />
-            {v10Doses.map((dose, index) => (
-              <DoseField
-                key={`v10-${index}`}
-                label={`Vacina V10 — ${index + 1}ª dose`}
-                dose={dose}
-                onChange={(nextDose) =>
-                  setV10Doses((current) =>
-                    current.map((item, itemIndex) =>
-                      itemIndex === index ? nextDose : item,
-                    ),
-                  )
-                }
-                onRemove={
-                  index >= 1
-                    ? () =>
-                        setV10Doses((current) =>
-                          current.filter((_, itemIndex) => itemIndex !== index),
-                        )
-                    : undefined
-                }
-                erro={
-                  tentouSalvar && dose.status === 'sim' && !dose.data?.trim()
-                    ? 'Informe a data da aplicação.'
-                    : undefined
-                }
-              />
-            ))}
-            <PrimaryButton
-              title="Adicionar dose da V10"
-              size="sm"
-              fullWidth={false}
-              color="transparent"
-              textColor={palette.denim}
-              onPress={() =>
-                setV10Doses((current) => [...current, { status: 'nao' }])
-              }
-            />
-            {vacinaRaivaDoses.map((dose, index) => (
-              <DoseField
-                key={`raiva-${index}`}
-                label={`Vacina antirrábica — ${index + 1}ª dose`}
-                dose={dose}
-                onChange={(nextDose) =>
-                  setVacinaRaivaDoses((current) =>
-                    current.map((item, itemIndex) =>
-                      itemIndex === index ? nextDose : item,
-                    ),
-                  )
-                }
-                onRemove={
-                  index >= 1
-                    ? () =>
-                        setVacinaRaivaDoses((current) =>
-                          current.filter((_, itemIndex) => itemIndex !== index),
-                        )
-                    : undefined
-                }
-                erro={
-                  tentouSalvar && dose.status === 'sim' && !dose.data?.trim()
-                    ? 'Informe a data da aplicação.'
-                    : undefined
-                }
-              />
-            ))}
-            <PrimaryButton
-              title="Adicionar dose antirrábica"
-              size="sm"
-              fullWidth={false}
-              color="transparent"
-              textColor={palette.denim}
-              onPress={() =>
-                setVacinaRaivaDoses((current) => [
-                  ...current,
-                  { status: 'nao' },
-                ])
-              }
-            />
-            {vermifugoDoses.map((dose, index) => (
-              <DoseField
-                key={`vermifugo-${index}`}
-                label={`Vermífugo — ${index + 1}ª dose`}
-                dose={dose}
-                onChange={(nextDose) =>
-                  setVermifugoDoses((current) =>
-                    current.map((item, itemIndex) =>
-                      itemIndex === index ? nextDose : item,
-                    ),
-                  )
-                }
-                onRemove={
-                  index >= 1
-                    ? () =>
-                        setVermifugoDoses((current) =>
-                          current.filter((_, itemIndex) => itemIndex !== index),
-                        )
-                    : undefined
-                }
-                erro={
-                  tentouSalvar && dose.status === 'sim' && !dose.data?.trim()
-                    ? 'Informe a data da aplicação.'
-                    : undefined
-                }
-              />
-            ))}
-            <PrimaryButton
-              title="Adicionar dose de vermífugo"
-              size="sm"
-              fullWidth={false}
-              color="transparent"
-              textColor={palette.denim}
-              onPress={() =>
-                setVermifugoDoses((current) => [
-                  ...current,
-                  { status: 'nao' },
-                ])
-              }
-            />
+            <DoseFields label="Vacina V10" addLabel="Adicionar dose da V10" doses={v10Doses} onChange={setV10Doses} showErrors={tentouSalvar} disabled={salvando} />
+            <DoseFields label="Vacina antirrábica" addLabel="Adicionar dose antirrábica" doses={vacinaRaivaDoses} onChange={setVacinaRaivaDoses} showErrors={tentouSalvar} disabled={salvando} />
+            <DoseFields label="Vermífugo" addLabel="Adicionar dose de vermífugo" doses={vermifugoDoses} onChange={setVermifugoDoses} showErrors={tentouSalvar} disabled={salvando} />
           </View>
 
           <View className="gap-3 rounded-2xl border border-line bg-card p-4 shadow-card">

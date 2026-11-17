@@ -8,6 +8,7 @@ import { PrimaryButton } from '@/components/buttons/primary';
 import { FormSubmissionLoader } from '@/components/feedback/FormSubmissionLoader';
 import { GoogleAuthButton } from '@/components/buttons/google';
 import { ErrorBanner } from '@/components/feedback/ErrorBanner';
+import { PrimaryCheckBox } from '@/components/checkboxs/primary';
 import { useAuth } from '@/hooks/useAuth';
 import { useGoogleAuth } from '@/hooks/useGoogleAuth';
 import { router } from 'expo-router';
@@ -47,6 +48,7 @@ type RegisterFormData = z.infer<typeof registerFormSchema>;
 export function RegisterForm() {
   const { signUp } = useAuth();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [privacyNoticeRead, setPrivacyNoticeRead] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const {
     isGoogleReady,
@@ -68,6 +70,8 @@ export function RegisterForm() {
   });
 
   const onSubmit = async (data: RegisterFormData) => {
+    if (!privacyNoticeRead) return;
+
     setIsRegistering(true);
     try {
       setErrorMessage(null);
@@ -99,6 +103,8 @@ export function RegisterForm() {
   };
 
   const handleGooglePress = async () => {
+    if (!privacyNoticeRead) return;
+
     setErrorMessage(null);
     await signInWithGoogle();
   };
@@ -182,11 +188,48 @@ export function RegisterForm() {
           )}
         />
 
+        <View className="w-full gap-2 rounded-xl border border-line bg-white p-4">
+          <Text accessibilityRole="header" className="font-heading-bold text-base text-ink">
+            Privacidade e uso dos seus dados
+          </Text>
+          <Text className="font-body text-sm leading-5 text-ink-muted">
+            A Lei Geral de Proteção de Dados (LGPD) protege seus dados pessoais.
+            O Kapa Protetores usa seu nome e e-mail para criar sua conta e sua
+            senha para proteger o acesso. Usamos a data de nascimento para
+            verificar a idade exigida em algumas atividades. O celular fica
+            cadastrado como dado de contato.
+          </Text>
+          <Text className="font-body text-sm leading-5 text-ink-muted">
+            Conforme os recursos que você usa, os dados do seu perfil e dos
+            formulários ajudam a acompanhar favoritos, pedidos de adoção e
+            candidaturas de voluntariado ou lar temporário, e a avisar você
+            sobre o andamento dessas solicitações.
+          </Text>
+          <Text className="font-body text-sm leading-5 text-ink-muted">
+            Se você continuar com o Google, o Kapa usa o nome e o e-mail da
+            sua conta Google para identificar você e pode usar sua foto no
+            perfil.
+          </Text>
+        </View>
+
+        <PrimaryCheckBox
+          label="Li e estou ciente de como o Kapa usa meus dados."
+          checked={privacyNoticeRead}
+          onChange={setPrivacyNoticeRead}
+          className="w-full min-h-14 items-center rounded-xl border border-line bg-white px-4 py-3 active:bg-peach"
+        />
+        {!privacyNoticeRead && (
+          <Text className="w-full font-body text-sm text-ink-muted">
+            Marque a caixa acima para liberar o cadastro.
+          </Text>
+        )}
+
         <FormSubmissionLoader visible={isRegistering} message="Criando sua conta…" />
         <PrimaryButton
           title="Cadastrar"
           className="mt-2"
           loading={formState.isSubmitting}
+          disabled={!privacyNoticeRead}
           onPress={handleSubmit(onSubmit)}
         />
       </View>
@@ -194,7 +237,7 @@ export function RegisterForm() {
       <GoogleAuthButton
         dividerText="ou cadastre-se com"
         onPress={handleGooglePress}
-        disabled={!isGoogleReady}
+        disabled={!isGoogleReady || !privacyNoticeRead}
       />
 
       <Text className="text-center my-6 text-sm text-ink-muted">

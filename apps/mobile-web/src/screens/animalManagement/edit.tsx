@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Animal } from '@kapa/shared';
 import { PrimaryButton } from '@/components/buttons/primary';
 import { FormSubmissionLoader } from '@/components/feedback/FormSubmissionLoader';
+import { DoseFields } from '@/components/forms/animal/DoseFields';
 import { PrimaryInputText } from '@/components/inputText/primary';
 import { MultiFotoPicker } from '@/components/photoPicker/animal';
 import { fetchManagedAnimal, updateManagedAnimal } from '@/services/animalManagement';
@@ -12,7 +13,9 @@ import { uploadAnimalPhotos } from '@/storage/animals';
 import { ApiError } from '@/services/api';
 import { palette } from '@/theme';
 import { AnimalThumbnail, BackLink, ChoiceGroup, Notice, StatusBadge, TextButton } from './components';
-import { animalEditorSchema, editorValues, speciesOptions, statusOptions, triageOptions, type AnimalEditorValues } from './model';
+import { animalEditorSchema, animalEditorUpdate, editorValues, speciesOptions, statusOptions, triageOptions, type AnimalEditorValues } from './model';
+
+const yesNoOptions = [{ value: true, label: 'Sim' }, { value: false, label: 'Não' }] as const;
 
 function Section({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return <View className="bg-white border border-border rounded-lg p-5 md:p-6 gap-5">
@@ -59,7 +62,7 @@ function AnimalEditor({ id }: { id: string }) {
     setSuccess(false); setErrors((current) => ({ ...current, [key]: '' }));
   };
   const save = async () => {
-    if (!values || saveInFlight.current) return;
+    if (!values || !animal || saveInFlight.current) return;
     const parsed = animalEditorSchema.safeParse(values);
     if (!parsed.success) {
       const nextErrors: Record<string, string> = {};
@@ -69,17 +72,15 @@ function AnimalEditor({ id }: { id: string }) {
     }
     saveInFlight.current = true; setSaving(true); setError(''); setErrors({}); setSuccess(false);
     try {
-      const { medicationNotes, ...fields } = parsed.data;
-      let result = await updateManagedAnimal(id, {
-        ...fields,
-        medicationNotes: medicationNotes === (animal?.medicationNotes ?? '') ? undefined : medicationNotes,
-      });
+      let result = hasValueChanges ? await updateManagedAnimal(id, animalEditorUpdate(animal, parsed.data)) : animal;
       if (newPhotoUris.length > 0) {
         const uploadResult = await uploadAnimalPhotos(id, newPhotoUris);
-        setNewPhotoUris([]);
-        result = await fetchManagedAnimal(id);
-        if (uploadResult.failed > 0) {
-          setError(`Dados salvos, mas apenas ${uploadResult.uploaded} de ${newPhotoUris.length} novas fotos foram enviadas.`);
+        setNewPhotoUris(uploadResult.failures.map(({ uri }) => uri));
+        if (uploadResult.uploaded > 0) result = await fetchManagedAnimal(id);
+        if (uploadResult.failures.length > 0) {
+          setError(`${uploadResult.uploaded} de ${newPhotoUris.length} novas fotos foram enviadas. ${uploadResult.failures[0].message}`);
+          setAnimal(result); setValues(editorValues(result));
+          return;
         }
       }
       setAnimal(result); setValues(editorValues(result)); setSuccess(true);
@@ -126,7 +127,7 @@ function AnimalEditor({ id }: { id: string }) {
                 }}
               />
             </Section>
-            <Section title="Identificação" description="As informações essenciais para reconhecer e acompanhar o animal.">
+            <Section title="Quem é" description="As informações essenciais para reconhecer e acompanhar o animal.">
               <View className="flex-col md:flex-row gap-4">
                 <PrimaryInputText className="flex-1" label="Nome *" value={values.name} onChangeText={(value) => change('name', value)} erro={errors.name} maxLength={120} editable={!saving} />
                 <PrimaryInputText className="flex-1" label="Raça" value={values.breed} onChangeText={(value) => change('breed', value)} maxLength={120} editable={!saving} />
@@ -139,17 +140,18 @@ function AnimalEditor({ id }: { id: string }) {
               </View>
               <ChoiceGroup label="Porte" options={[{ value: 1, label: 'Muito pequeno' }, { value: 2, label: 'Pequeno' }, { value: 3, label: 'Médio' }, { value: 4, label: 'Grande' }, { value: 5, label: 'Muito grande' }]} value={values.size} onChange={(value) => change('size', value)} disabled={saving} />
             </Section>
-            <Section title="Acompanhamento" description="Somente animais com status Disponível aparecem na consulta de adoção.">
-              <ChoiceGroup label="Status do animal" options={statusOptions} value={values.status} onChange={(value) => change('status', value)} disabled={saving} />
+            <Section title="Resgate" description="Dados sobre a chegada do animal ao abrigo.">
+              <PrimaryInputText label="Data do resgate" value={values.rescuedAt} onChangeText={(value) => change('rescuedAt', value)} erro={errors.rescuedAt} placeholder="DD/MM/AAAA" maxLength={10} editable={!saving} />
               <PrimaryInputText label="Local do resgate (uso interno)" value={values.place} onChangeText={(value) => change('place', value)} maxLength={240} editable={!saving} />
-              <Text className="font-body text-sm text-ink-muted">Data do resgate: {new Date(animal.rescuedAt).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</Text>
-            </Section>
-            <Section title="Saúde e bem-estar" description="Um resumo dos cuidados registrados. Não substitui o histórico veterinário.">
               <ChoiceGroup label="Condição de saúde" value={values.healthCondition} options={[{ value: 'healthy', label: 'Saudável' }, { value: 'injured', label: 'Ferido' }, { value: 'debilitated', label: 'Debilitado' }]} onChange={(value) => change('healthCondition', value)} disabled={saving} />
+            </Section>
+            <Section title="Saúde" description="Vacinação, vermifugação e medicação em uso.">
               <ChoiceGroup label="Castrado" value={values.castrated} options={triageOptions} onChange={(value) => change('castrated', value)} disabled={saving} />
-              <ChoiceGroup label="Vermifugado" value={values.dewormed} options={triageOptions} onChange={(value) => change('dewormed', value)} disabled={saving} />
-              <ChoiceGroup label="Vacinação registrada" value={values.vaccinated} options={[{ value: true, label: 'Sim' }, { value: false, label: 'Não' }]} onChange={(value) => change('vaccinated', value)} disabled={saving} />
-              <PrimaryInputText label="Temperamento *" value={values.mood} onChangeText={(value) => change('mood', value)} erro={errors.mood} maxLength={120} editable={!saving} />
+              {!values.vermifugoDoses.length && <ChoiceGroup label="Vermifugado" value={values.dewormed} options={triageOptions} onChange={(value) => change('dewormed', value)} disabled={saving} />}
+              {!values.v10Doses.length && !values.vacinaRaivaDoses.length && <ChoiceGroup label="Vacinação registrada" value={values.vaccinated} options={yesNoOptions} onChange={(value) => change('vaccinated', value)} disabled={saving} />}
+              <DoseFields label="Vacina V10" addLabel="Adicionar dose da V10" doses={values.v10Doses} onChange={(doses) => change('v10Doses', doses)} showErrors={Boolean(errors.v10Doses)} disabled={saving} />
+              <DoseFields label="Vacina antirrábica" addLabel="Adicionar dose antirrábica" doses={values.vacinaRaivaDoses} onChange={(doses) => change('vacinaRaivaDoses', doses)} showErrors={Boolean(errors.vacinaRaivaDoses)} disabled={saving} />
+              <DoseFields label="Vermífugo" addLabel="Adicionar dose de vermífugo" doses={values.vermifugoDoses} onChange={(doses) => change('vermifugoDoses', doses)} showErrors={Boolean(errors.vermifugoDoses)} disabled={saving} />
               <PrimaryInputText
                 label="Medicação em uso"
                 placeholder="Medicamento, dose e horários conforme orientação veterinária"
@@ -160,6 +162,18 @@ function AnimalEditor({ id }: { id: string }) {
                 maxLength={2000}
                 editable={!saving}
               />
+            </Section>
+            <Section title="Temperamento" description="Comportamento e nível de energia do animal.">
+              <PrimaryInputText label="Temperamento *" value={values.mood} onChangeText={(value) => change('mood', value)} erro={errors.mood} maxLength={120} editable={!saving} />
+              <ChoiceGroup label="Nível de energia" options={[{ value: 1, label: 'Baixo' }, { value: 2, label: '2' }, { value: 3, label: 'Moderado' }, { value: 4, label: '4' }, { value: 5, label: 'Alto' }]} value={values.energyLevel} onChange={(value) => change('energyLevel', value)} disabled={saving} />
+            </Section>
+            <Section title="Compatibilidade" description="Como o animal se adapta à convivência e à moradia.">
+              <ChoiceGroup label="Com crianças (0 a 5)" options={[0, 1, 2, 3, 4, 5].map((value) => ({ value, label: String(value) }))} value={values.kidFriendly} onChange={(value) => change('kidFriendly', value)} disabled={saving} />
+              <ChoiceGroup label="Com outros animais" options={yesNoOptions} value={values.otherPetFriendly} onChange={(value) => change('otherPetFriendly', value)} disabled={saving} />
+              <ChoiceGroup label="Para apartamento" options={yesNoOptions} value={values.apartmentFriendly} onChange={(value) => change('apartmentFriendly', value)} disabled={saving} />
+            </Section>
+            <Section title="Acompanhamento" description="Somente animais com status Disponível aparecem na consulta de adoção.">
+              <ChoiceGroup label="Status do animal" options={statusOptions} value={values.status} onChange={(value) => change('status', value)} disabled={saving} />
               <PrimaryInputText label="Observações internas" value={values.observations} onChangeText={(value) => change('observations', value)} multiline maxLength={4000} editable={!saving} />
             </Section>
             <View className="gap-4 flex-col md:flex-row md:items-center justify-between">
