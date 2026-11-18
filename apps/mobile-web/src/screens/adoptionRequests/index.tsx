@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Redirect } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { ArrowClockwiseIcon, ChatCircleDotsIcon, CheckCircleIcon, ClipboardTextIcon, HeartIcon, MagnifyingGlassIcon, PawPrintIcon, XIcon } from 'phosphor-react-native';
 import type { AdoptionStatus } from '@kapa/shared';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminAdoptions } from '@/hooks/useAdoptions';
 import { palette } from '@/theme';
+import { ErrorState, LoadingState } from '@/components/feedback/ListStates';
 import { BackLink } from '../animalManagement/components';
 import { RequestAction } from './components';
 import { filterRequests, type RequestFilter, statusLabels } from './model';
@@ -34,7 +35,7 @@ function RequestsDashboard() {
   function clearFilters() { setFilter('all'); setSearch(''); }
 
   return <View className="flex-1 bg-cream">
-    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ width: '100%', maxWidth: 1140, alignSelf: 'center', padding: 20, paddingBottom: 48, gap: 24 }}>
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="w-full max-w-content self-center px-5 md:px-10 pt-3 pb-12 gap-6">
       <BackLink label="Gestão" />
       <View className="rounded-2xl bg-peach border border-line p-5 md:p-8 gap-3">
         <View className="flex-row items-center gap-2"><HeartIcon size={18} color={palette.denim} weight="fill" /><Text className="font-body-medium text-xs tracking-widest text-denim">CUIDADO EM CADA NOVO COMEÇO</Text></View>
@@ -55,8 +56,8 @@ function RequestsDashboard() {
         </ScrollView>
       </View>
 
-      {isLoading ? <View className="items-center gap-3 rounded-2xl bg-white border border-line p-10"><ActivityIndicator color={palette.orange} size="large" /><Text accessibilityLiveRegion="polite" className="font-body text-sm text-ink-muted">Carregando solicitações…</Text></View>
-        : error ? <View className="rounded-2xl border border-line bg-white p-6 gap-4"><Text accessibilityRole="alert" className="font-heading-bold text-lg text-ink">Não foi possível carregar as solicitações.</Text><Text className="font-body text-sm leading-6 text-ink-muted">Confira sua conexão e tente novamente. Suas fichas continuam guardadas.</Text><RequestAction label="Tentar novamente" icon={ArrowClockwiseIcon} onPress={() => void refetch()} /></View>
+      {isLoading ? <LoadingState message="Carregando solicitações…" />
+        : error ? <ErrorState message="Não foi possível carregar as solicitações. Confira sua conexão e tente novamente; as fichas continuam guardadas." onRetry={() => void refetch()} />
           : filtered.length === 0 ? <View className="items-center rounded-2xl border border-line bg-white p-8 gap-4"><View className="size-16 rounded-full bg-peach items-center justify-center"><PawPrintIcon size={32} color={palette.denim} weight="duotone" /></View><Text accessibilityRole="header" className="font-heading-bold text-xl text-center text-ink">{adoptions.length ? 'Nenhuma ficha com esses filtros' : 'O próximo novo lar começa aqui'}</Text><Text className="max-w-form font-body text-sm text-center leading-6 text-ink-muted">{adoptions.length ? 'Experimente outro nome, pet ou etapa para encontrar a solicitação.' : 'Quando uma família enviar uma solicitação de adoção, você poderá conhecer a história dela por aqui.'}</Text>{adoptions.length ? <RequestAction label="Limpar filtros" onPress={clearFilters} /> : <View className="flex-row items-center gap-2"><CheckCircleIcon size={18} color={palette.denim} /><Text className="font-body-medium text-xs text-denim">Tudo em dia por aqui</Text></View>}</View>
             : <View className="gap-4"><Text accessibilityLiveRegion="polite" className="font-body text-xs text-ink-muted">{filtered.length} {filtered.length === 1 ? 'solicitação encontrada' : 'solicitações encontradas'}</Text>{filtered.map((adoption) => <RequestCard key={adoption.id} adoption={adoption} expanded={expandedId === adoption.id} onToggle={() => setExpandedId((current) => current === adoption.id ? null : adoption.id)} />)}</View>}
     </ScrollView>

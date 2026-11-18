@@ -7,7 +7,6 @@ import {
 } from 'react-native';
 import {
   CaretRightIcon,
-  CheckCircleIcon,
   PawPrintIcon,
   UserIcon,
 } from 'phosphor-react-native';
@@ -19,7 +18,7 @@ import { FotoPicker } from '@/components/photoPicker/profile';
 import { PrimaryInputText } from '@/components/inputText/primary';
 import { PrimaryButton } from '@/components/buttons/primary';
 import { FormSubmissionLoader } from '@/components/feedback/FormSubmissionLoader';
-import { ErrorBanner } from '@/components/feedback/ErrorBanner';
+import { Notice } from '@/components/feedback/Notice';
 import {
   updateUserProfile,
   uploadUserAvatar,
@@ -155,16 +154,8 @@ export function EditProfileScreen() {
         </Text>
       </View>
 
-      {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
-
-      {successMessage ? (
-        <View className="flex-row items-center gap-2.5 p-3.5 bg-emerald-50 border border-emerald-300 rounded-xl">
-          <CheckCircleIcon size={20} color="#059669" weight="fill" />
-          <Text className="font-body-medium text-sm text-emerald-800 flex-1">
-            {successMessage}
-          </Text>
-        </View>
-      ) : null}
+      {errorMessage ? <Notice error message={errorMessage} /> : null}
+      {successMessage ? <Notice message={successMessage} /> : null}
 
       <View className="items-center py-2">
         <FotoPicker

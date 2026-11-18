@@ -1,7 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  Pressable,
   RefreshControl,
   ScrollView,
   Text,
@@ -19,7 +17,8 @@ import {
   type SearchAdoptFilters,
 } from '@/components/forms/searchAdopt';
 import { PetCard } from '@/components/cards/pet';
-import { PrimaryButton } from '@/components/buttons/primary';
+import { TextButton } from '@/components/buttons/secondary';
+import { EmptyState, ErrorState, LoadingState } from '@/components/feedback/ListStates';
 import { PageHeading } from '@/components/layout/PageHeading';
 import { useAdopterProfileMe } from '@/hooks/useAdopterProfile';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -86,17 +85,9 @@ export function AdoptScreen() {
 
   const errorMessage = useMemo(() => {
     if (!error) return null;
-    if (isAxiosError<{ message?: string; error?: string }>(error)) {
-      return (
-        error.response?.data?.message ??
-        error.response?.data?.error ??
-        error.message
-      );
-    }
-    return (
-      error.message ||
-      'Não foi possível carregar os animais para adoção. Verifique sua conexão e tente novamente.'
-    );
+    const fallback = 'Não foi possível carregar os animais para adoção. Verifique sua conexão e tente novamente.';
+    // Só mensagens do servidor chegam à tela; erros técnicos (ex.: "Network Error") viram o texto padrão.
+    return isAxiosError<{ message?: string }>(error) ? error.response?.data?.message ?? fallback : fallback;
   }, [error]);
 
   const handleToggleFavorite = useCallback((id: string) => {
@@ -137,54 +128,20 @@ export function AdoptScreen() {
       </View>
 
       {isLoading ? (
-        <View className="py-16 items-center justify-center gap-3">
-          <ActivityIndicator size="large" color={palette.orange} />
-          <Text className="font-body text-sm text-ink-muted">
-            Carregando animais para adoção...
-          </Text>
-        </View>
+        <LoadingState message="Carregando animais para adoção…" />
       ) : errorMessage ? (
-        <View className="p-6 bg-white border border-danger-soft rounded-2xl items-center gap-3">
-          <Text className="font-heading-bold text-base text-danger text-center">
-            Erro ao carregar lista de pets
-          </Text>
-          <Text className="font-body text-sm text-ink-muted text-center max-w-sm">
-            {errorMessage}
-          </Text>
-          <View className="w-48 mt-2">
-            <PrimaryButton
-              title="Tentar novamente"
-              onPress={() => void refetch()}
-              size="sm"
-            />
-          </View>
-        </View>
+        <ErrorState message={errorMessage} onRetry={() => void refetch()} />
       ) : filteredAnimals.length === 0 ? (
-        <View className="py-16 px-4 bg-white border border-line rounded-2xl items-center justify-center gap-3">
-          <PawPrintIcon size={44} color={palette.denim} weight="duotone" />
-          <Text className="font-heading-bold text-base text-ink text-center">
-            {allAnimals.length === 0
-              ? 'Nenhum animal disponível no momento'
-              : 'Nenhum animal encontrado'}
-          </Text>
-          <Text className="font-body text-sm text-ink-muted text-center max-w-xs">
-            {allAnimals.length === 0
-              ? 'Não há animais marcados para adoção no abrigo no momento. Volte em breve!'
-              : 'Tente alterar os termos da busca ou limpar os filtros para ver mais bichinhos.'}
-          </Text>
-          {allAnimals.length > 0 && (
-            <Pressable
-              onPress={() => setFilters(defaultSearchAdoptFilters)}
-              accessibilityRole="button"
-              accessibilityLabel="Ver todos os animais"
-              className="mt-2 bg-peach px-4 py-2.5 rounded-full active:opacity-80"
-            >
-              <Text className="font-body-medium text-sm text-denim">
-                Ver todos os pets
-              </Text>
-            </Pressable>
-          )}
-        </View>
+        <EmptyState
+          icon={PawPrintIcon}
+          title={allAnimals.length === 0 ? 'Nenhum animal disponível no momento' : 'Nenhum animal encontrado'}
+          description={allAnimals.length === 0
+            ? 'Não há animais marcados para adoção no abrigo no momento. Volte em breve!'
+            : 'Tente alterar os termos da busca ou limpar os filtros para ver mais bichinhos.'}
+          action={allAnimals.length > 0
+            ? <TextButton label="Ver todos os pets" onPress={() => setFilters(defaultSearchAdoptFilters)} />
+            : undefined}
+        />
       ) : (
         <View className="flex-row flex-wrap items-center justify-center gap-4">
           {filteredAnimals.map((animal) => (

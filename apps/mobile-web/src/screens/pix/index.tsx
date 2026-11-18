@@ -13,6 +13,7 @@ import {
 } from 'phosphor-react-native';
 import { PrimaryCard } from '@/components/cards/primary';
 import { PrimaryButton } from '@/components/buttons/primary';
+import { TextButton } from '@/components/buttons/secondary';
 import { PrimaryChip } from '@/components/chips/primaryChip';
 import { Page } from '@/components/layout/Page';
 import { palette } from '@/theme';
@@ -158,12 +159,9 @@ export function PixScreen() {
           accessibilityLabel="Copiar chave PIX para a área de transferência"
         />
 
-        <PrimaryButton
-          title={showQrCode ? 'Ocultar QR Code' : 'Gerar QR Code'}
+        <TextButton
+          label={showQrCode ? 'Ocultar QR Code' : 'Gerar QR Code'}
           icon={<QrCodeIcon size={20} color={palette.denim} weight="bold" />}
-          color={palette.cream}
-          pressedColor={palette.peach}
-          textColor={palette.denim}
           onPress={() => setShowQrCode((visible) => !visible)}
         />
 

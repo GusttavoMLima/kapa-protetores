@@ -7,6 +7,7 @@ import { useAdoptAnimals } from '@/hooks/useAdoptAnimals';
 import { useAuth } from '@/hooks/useAuth';
 import { useToggleFavorite } from '@/hooks/useFavorites';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { EmptyState, ErrorState, LoadingState } from '@/components/feedback/ListStates';
 import { palette } from '@/theme';
 import { canManageAnimals, type Animal, type UserRole } from '@kapa/shared';
 import { router } from 'expo-router';
@@ -31,7 +32,6 @@ export type HomeSpeciesFilter = 'all' | 'dog' | 'cat';
 const FEATURED_PETS_LIMIT = 4;
 const CARD_ICON_SIZE = 24;
 const FILTER_CHIP_ICON_SIZE = 15;
-const EMPTY_STATE_ICON_SIZE = 32;
 const CTA_ARROW_ICON_SIZE = 18;
 const HERO_SPARKLE_ICON_SIZE = 14;
 const CAROUSEL_CARD_GAP = 16;
@@ -317,7 +317,7 @@ function HomeHeroBanner({
         )}
       </View>
 
-      <View className="gap-2 max-w-[680px]">
+      <View className="gap-2 max-w-form">
         <Text className="font-heading-bold font-extrabold text-2xl md:text-3xl text-ink tracking-tight">
           {headline}
         </Text>
@@ -432,29 +432,6 @@ function SpeciesFilterBar({
   );
 }
 
-interface FeaturedPetsStateCardProps {
-  message: string;
-  iconColor: string;
-}
-
-function FeaturedPetsStateCard({
-  message,
-  iconColor,
-}: FeaturedPetsStateCardProps) {
-  return (
-    <View className="bg-white border border-line rounded-2xl p-8 items-center justify-center gap-2">
-      <PawPrintIcon
-        size={EMPTY_STATE_ICON_SIZE}
-        color={iconColor}
-        weight="duotone"
-      />
-      <Text className="font-body text-base text-ink-muted text-center">
-        {message}
-      </Text>
-    </View>
-  );
-}
-
 export function HomeScreen() {
   const { user } = useAuth();
   return isShelterStaff(user?.role)
@@ -464,7 +441,7 @@ export function HomeScreen() {
 
 function CommunityHomeScreen() {
   const { user } = useAuth();
-  const { data: animals = [], isLoading: isLoadingAnimals } = useAdoptAnimals();
+  const { data: animals = [], isLoading: isLoadingAnimals, error: animalsError, refetch: refetchAnimals } = useAdoptAnimals();
   const { data: profile } = useUserProfile();
   const { mutate: toggleFavorite } = useToggleFavorite();
   const [speciesFilter, setSpeciesFilter] = useState<HomeSpeciesFilter>('all');
@@ -553,14 +530,17 @@ function CommunityHomeScreen() {
           </View>
 
           {isLoadingAnimals ? (
-            <FeaturedPetsStateCard
-              message="Carregando pets disponíveis..."
-              iconColor={palette.orange}
+            <LoadingState message="Carregando pets disponíveis…" />
+          ) : animalsError ? (
+            <ErrorState
+              message="Não foi possível carregar os pets disponíveis. Verifique sua conexão e tente novamente."
+              onRetry={() => void refetchAnimals()}
             />
           ) : featuredAnimals.length === 0 ? (
-            <FeaturedPetsStateCard
-              message="Ainda não há pets disponíveis para adoção."
-              iconColor={palette.inkMuted}
+            <EmptyState
+              icon={PawPrintIcon}
+              title="Nenhum pet disponível no momento"
+              description="Ainda não há pets disponíveis para adoção. Volte em breve!"
             />
           ) : (
             <View className="gap-6">
