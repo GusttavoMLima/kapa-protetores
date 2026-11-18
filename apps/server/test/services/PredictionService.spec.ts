@@ -71,26 +71,55 @@ describe('PredictionService (ONNX TreeEnsembleRegressor)', () => {
     expect(result.animals[2].predictedCost).toBeCloseTo(220.0, 2);
     expect(result.totalPredictedBudget).toBeCloseTo(1305.58, 2);
     expect(result.bySpecies.dog.count).toBe(2);
+    expect(result.bySpecies.dog.averageCost).toBeCloseTo(542.79, 2);
     expect(result.bySpecies.cat.count).toBe(1);
+    expect(result.bySpecies.cat.averageCost).toBeCloseTo(220.0, 2);
+    expect(result.bySize.small.count).toBe(1);
+    expect(result.bySize.medium.count).toBe(1);
+    expect(result.bySize.large.count).toBe(1);
     expect(result.byStatus.treating.count).toBe(1);
+    expect(
+      result.byCategory.nutrition +
+        result.byCategory.veterinary +
+        result.byCategory.preventives +
+        result.byCategory.hygiene,
+    ).toBeCloseTo(result.totalPredictedBudget, 1);
     expect(setCache).toHaveBeenCalledTimes(1);
   });
 
   it('returns cached prediction when Redis cache hits', async () => {
     const findMany = jest.fn();
+    const emptyBreakdown = {
+      nutrition: 0,
+      veterinary: 0,
+      preventives: 0,
+      hygiene: 0,
+    };
+    const emptyCategory = {
+      count: 0,
+      totalCost: 0,
+      averageCost: 0,
+      breakdown: emptyBreakdown,
+    };
     const cachedPrediction = {
       totalPredictedBudget: 500,
       activeAnimalsCount: 2,
       averageCostPerAnimal: 250,
+      byCategory: emptyBreakdown,
       bySpecies: {
-        dog: { count: 1, totalCost: 300 },
-        cat: { count: 1, totalCost: 200 },
-        other: { count: 0, totalCost: 0 },
+        dog: { count: 1, totalCost: 300, averageCost: 300, breakdown: emptyBreakdown },
+        cat: { count: 1, totalCost: 200, averageCost: 200, breakdown: emptyBreakdown },
+        other: emptyCategory,
+      },
+      bySize: {
+        small: emptyCategory,
+        medium: emptyCategory,
+        large: emptyCategory,
       },
       byStatus: {
-        rescued: { count: 0, totalCost: 0 },
-        treating: { count: 0, totalCost: 0 },
-        available: { count: 2, totalCost: 500 },
+        rescued: emptyCategory,
+        treating: emptyCategory,
+        available: { count: 2, totalCost: 500, averageCost: 250, breakdown: emptyBreakdown },
       },
       animals: [],
     };

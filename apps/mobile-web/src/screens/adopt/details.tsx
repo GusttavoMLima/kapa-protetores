@@ -36,7 +36,10 @@ import { useAdoptAnimals } from '@/hooks/useAdoptAnimals';
 import { useAdopterProfileMe } from '@/hooks/useAdopterProfile';
 import { useAnimalPosts, useCreateAnimalPost } from '@/hooks/useAnimalPosts';
 import { useAuth } from '@/hooks/useAuth';
-import { AnimalMedication } from '@/screens/animalCare/AnimalMedication';
+import {
+  AnimalMedication,
+  MedicationNotes,
+} from '@/screens/animalCare/AnimalMedication';
 import { BackLink } from '@/components/layout/BackLink';
 import { palette } from '@/theme';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -606,7 +609,13 @@ export function AdoptPetDetailsScreen() {
               label="Vermifugado"
               value={triageLabel(animal.dewormed)}
             />
-            {user?.role === 'volunteer' ? <AnimalMedication animalId={animal.id} /> : null}
+            {animal.medicationNotes !== undefined ? (
+              <MedicationNotes notes={animal.medicationNotes} />
+            ) : user?.role === 'volunteer' ? (
+              <AnimalMedication animalId={animal.id} />
+            ) : (
+              <MedicationNotes notes={null} />
+            )}
           </View>
 
           <PetTimelineCard
