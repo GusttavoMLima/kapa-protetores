@@ -7,18 +7,11 @@ tags:
 - runFlow:
     file: web-login.yaml
 
-- assertVisible: "Adotar Agora"
-- assertVisible: "Ver pets disponiveis"
-- assertVisible: "Ser Voluntario"
-- scrollUntilVisible:
-    centerElement: true
-    element: "Esperando por você"
-    direction: DOWN
-- assertVisible: "Esperando por você"
-- scrollUntilVisible:
-    centerElement: true
-    element: ".*Ver todos os.*"
-    direction: DOWN
-- tapOn: ".*Ver todos os.*"
+- assertVisible: "Um encontro. Uma vida inteira."
+- assertVisible: "Buscar por raça"
+- assertVisible: "Adotar"
+- assertVisible: "Apoiar"
+- assertVisible: "Voluntariado"
+- assertVisible: "Perfil"
 - waitForAnimationToEnd
 

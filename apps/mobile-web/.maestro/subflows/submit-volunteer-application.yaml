@@ -11,14 +11,7 @@ appId: edu.fatec.kapaprotetores.android
 - tapOn: "Enviar inscrição de voluntariado"
 - assertVisible: "Confirme o termo de compromisso para enviar sua inscrição."
 
-# 2. Fill out phone, area of interest, availability, motivation, and accept terms
-- scrollUntilVisible:
-    centerElement: true
-    element: "(19) 99999-9999"
-    direction: UP
-- tapOn: "(19) 99999-9999"
-- inputText: "19998887766"
-
+# 2. Fill out area of interest, availability, motivation, and accept terms
 - scrollUntilVisible:
     centerElement: true
     element: "Cuidados com os pets"
