@@ -131,10 +131,10 @@ export class AnimalService {
   private publicView(animal: AnimalDTO) {
     const { id, name, breed, species, gender, age, ageStage, size, weightKg, energyLevel,
       kidFriendly, noiseLevel, apartmentFriendly, otherPetFriendly, castrated,
-      vaccinated, dewormed, mood, status, photos } = animal;
+      vaccinated, dewormed, medicationNotes, mood, status, photos } = animal;
     return { id, name, breed, species, gender, age, ageStage, size, weightKg, energyLevel,
       kidFriendly, noiseLevel, apartmentFriendly, otherPetFriendly, castrated,
-      vaccinated, dewormed, mood, status, photos };
+      vaccinated, dewormed, medicationNotes: medicationNotes ?? null, mood, status, photos };
   }
 
   public getManagementPage(query: AnimalManagementQuery) {

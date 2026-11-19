@@ -7,26 +7,72 @@ import { apiRequest } from './api';
 import { z } from 'zod';
 import { managedAnimalSchema, managementPageSchema } from '../screens/animalManagement/model';
 
+const costBreakdownSchema = z.object({
+  nutrition: z.number().finite(),
+  veterinary: z.number().finite(),
+  preventives: z.number().finite(),
+  hygiene: z.number().finite(),
+});
+
+const emptyCostBreakdown = {
+  nutrition: 0,
+  veterinary: 0,
+  preventives: 0,
+  hygiene: 0,
+};
+
 const budgetCategorySchema = z.object({
   count: z.number().int().nonnegative(),
   totalCost: z.number().finite(),
+  averageCost: z.number().finite().default(0),
+  breakdown: costBreakdownSchema.default(emptyCostBreakdown),
 });
+
+const emptyCategorySummary = {
+  count: 0,
+  totalCost: 0,
+  averageCost: 0,
+  breakdown: emptyCostBreakdown,
+};
 
 const budgetPredictionSchema = z.object({
   totalPredictedBudget: z.number().finite(),
   activeAnimalsCount: z.number().int().nonnegative(),
   averageCostPerAnimal: z.number().finite(),
-  bySpecies: z.object({ dog: budgetCategorySchema, cat: budgetCategorySchema, other: budgetCategorySchema }),
-  byStatus: z.object({ rescued: budgetCategorySchema, treating: budgetCategorySchema, available: budgetCategorySchema }),
-  animals: z.array(z.object({
-    id: z.string(),
-    name: z.string(),
-    species: z.enum(['dog', 'cat', 'other']),
-    size: z.number(),
-    status: z.enum(['rescued', 'treating', 'available', 'adopted']),
-    healthCondition: z.enum(['healthy', 'injured', 'debilitated']),
-    predictedCost: z.number().finite(),
-  })),
+  byCategory: costBreakdownSchema.default(emptyCostBreakdown),
+  bySpecies: z.object({
+    dog: budgetCategorySchema,
+    cat: budgetCategorySchema,
+    other: budgetCategorySchema,
+  }),
+  bySize: z
+    .object({
+      small: budgetCategorySchema,
+      medium: budgetCategorySchema,
+      large: budgetCategorySchema,
+    })
+    .default({
+      small: emptyCategorySummary,
+      medium: emptyCategorySummary,
+      large: emptyCategorySummary,
+    }),
+  byStatus: z.object({
+    rescued: budgetCategorySchema,
+    treating: budgetCategorySchema,
+    available: budgetCategorySchema,
+  }),
+  animals: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      species: z.enum(['dog', 'cat', 'other']),
+      size: z.number(),
+      status: z.enum(['rescued', 'treating', 'available', 'adopted']),
+      healthCondition: z.enum(['healthy', 'injured', 'debilitated']),
+      predictedCost: z.number().finite(),
+      breakdown: costBreakdownSchema.default(emptyCostBreakdown),
+    }),
+  ),
 });
 
 export async function fetchShelterBudgetPrediction(signal?: AbortSignal): Promise<ShelterBudgetPrediction> {
