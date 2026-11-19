@@ -1,5 +1,4 @@
 import { PrimaryCard } from '@/components/cards/primary';
-import { PrimaryMenuItem } from '@/components/menuItems/primary';
 import { palette } from '@/theme';
 import {
   BedIcon,
@@ -9,7 +8,6 @@ import {
   HeartIcon,
   QrCodeIcon,
   QuestionIcon,
-  ReceiptIcon,
 } from 'phosphor-react-native';
 import { useState } from 'react';
 import {
@@ -127,7 +125,7 @@ export function SupportScreen() {
         </Pressable>
       </View>
 
-      <View className="bg-denim p-4 rounded-md max-w-lg mx-auto my-4">
+      <View className="bg-denim p-5 rounded-2xl">
         <Text className="flex gap-2 items-center text-lg md:text-xl font-heading font-bold text-cream">
           <HeartIcon color={palette.cream} weight="fill" /> 20 anos de História
         </Text>
@@ -155,17 +153,8 @@ export function SupportScreen() {
         </Text>
       </View>
 
-      <PrimaryMenuItem
-        label="Transparência"
-        description="Veja nossos relatórios financeiros"
-        labelColor="text-denim"
-        icon={ReceiptIcon}
-        iconColor={palette.ink}
-        iconBgColor={palette.cream}
-      />
-
       <View>
-        <View className="flex-row items-center gap-2.5 my-4">
+        <View className="flex-row items-center gap-2.5 mb-4">
           <QuestionIcon weight="bold" color={palette.orangeDark} size={28} />
           <Text className="text-denim font-heading font-bold text-xl md:text-2xl">
             Dúvidas Frequentes

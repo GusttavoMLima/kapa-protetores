@@ -1,9 +1,11 @@
 import { router } from 'expo-router';
-import { ActivityIndicator, Image, Pressable, Text, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
 import { CheckCircleIcon, ClockIcon, PawPrintIcon, XCircleIcon } from 'phosphor-react-native';
 import { useMyAdoptions } from '@/hooks/useAdoptions';
 import { palette } from '@/theme';
 import { Page } from '@/components/layout/Page';
+import { PrimaryButton } from '@/components/buttons/primary';
+import { EmptyState, ErrorState, LoadingState } from '@/components/feedback/ListStates';
 import { PageHeading } from '@/components/layout/PageHeading';
 
 const statusInfo = {
@@ -21,9 +23,9 @@ export function MyAdoptionsScreen() {
     <Page backLabel="Perfil" onBack={() => router.replace('/(protected)/(tabs)/profile')}>
       <PageHeading eyebrow="SEU CAMINHO ATÉ UM NOVO AMIGO" title="Minhas solicitações" description="Cada etapa é um passo mais perto de um novo começo. Acompanhe aqui suas fichas e as respostas da equipe Kapa." />
 
-      {isLoading ? <View className="py-16 items-center gap-3"><ActivityIndicator size="large" color={palette.orange} /><Text className="font-body text-ink-muted">Carregando solicitações...</Text></View>
-        : error ? <View className="bg-white rounded-2xl border border-danger-soft p-6 items-center gap-3"><Text className="font-heading-bold text-danger text-center">Não foi possível carregar suas solicitações.</Text><Pressable onPress={() => void refetch()} className="bg-orange px-5 py-3 rounded-lg"><Text className="font-body-bold text-white">Tentar novamente</Text></Pressable></View>
-          : adoptions.length === 0 ? <View className="bg-white rounded-2xl border border-line p-10 items-center gap-3"><PawPrintIcon size={44} color={palette.denim} /><Text className="font-heading-bold text-lg text-ink text-center">Nenhuma solicitação ainda</Text><Text className="font-body text-sm text-ink-muted text-center">Quando você enviar uma ficha de adoção, ela aparecerá aqui.</Text><Pressable onPress={() => router.push('/(protected)/(tabs)/adopet')} className="mt-2 bg-orange px-5 py-3 rounded-lg"><Text className="font-body-bold text-white">Ver pets disponíveis</Text></Pressable></View>
+      {isLoading ? <LoadingState message="Carregando solicitações…" />
+        : error ? <ErrorState message="Não foi possível carregar suas solicitações. Verifique sua conexão e tente novamente." onRetry={() => void refetch()} />
+          : adoptions.length === 0 ? <EmptyState icon={PawPrintIcon} title="Nenhuma solicitação ainda" description="Quando você enviar uma ficha de adoção, ela aparecerá aqui." action={<PrimaryButton title="Ver pets disponíveis" fullWidth={false} onPress={() => router.push('/adopet')} />} />
             : adoptions.map((adoption) => {
               const info = statusInfo[adoption.status];
               const Icon = info.Icon;

@@ -9,6 +9,7 @@ export const palette = {
   inkMuted: '#58423b', // Secondary text / outline variants
   inkSecondary: '#57423B',
   danger: '#BA1A1A', // Error states
+  dangerDark: '#8B1111', // Pressed state of destructive actions
   success: '#2F6F5E', // Success states
   line: '#F0E4D4',
   card: '#FFFFFF',

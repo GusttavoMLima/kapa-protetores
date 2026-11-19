@@ -1,6 +1,7 @@
 import { PrimaryButton } from '@/components/buttons/primary';
 import { PetCard } from '@/components/cards/pet';
 import { Page } from '@/components/layout/Page';
+import { EmptyState, ErrorState, LoadingState } from '@/components/feedback/ListStates';
 import { useToggleFavorite } from '@/hooks/useFavorites';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { palette } from '@/theme';
@@ -10,7 +11,6 @@ import { router } from 'expo-router';
 import { HeartIcon, PawPrintIcon } from 'phosphor-react-native';
 import { useCallback, useMemo } from 'react';
 import {
-  ActivityIndicator,
   RefreshControl,
   Text,
   View,
@@ -46,7 +46,7 @@ export function resolveFavoriteAnimalImage(
 }
 
 export function MyFavoritesScreen() {
-  const { data, isLoading, isRefetching, refetch } = useUserProfile();
+  const { data, isLoading, isRefetching, error, refetch } = useUserProfile();
   const { mutate: toggleFavorite } = useToggleFavorite();
 
   const favoritePets = useMemo(
@@ -117,33 +117,19 @@ export function MyFavoritesScreen() {
       </View>
 
       {isLoading ? (
-        <View className="bg-white border border-line rounded-2xl p-10 items-center justify-center gap-3">
-          <ActivityIndicator size="large" color={palette.orange} />
-          <Text className="font-body text-sm text-ink-muted">
-            Carregando seus pets favoritos...
-          </Text>
-        </View>
+        <LoadingState message="Carregando seus pets favoritos…" />
+      ) : error ? (
+        <ErrorState
+          message="Não foi possível carregar seus favoritos. Verifique sua conexão e tente novamente."
+          onRetry={() => void refetch()}
+        />
       ) : favoritePets.length === 0 ? (
-        <View className="bg-white border border-line rounded-2xl p-10 items-center justify-center gap-4">
-          <View className="size-14 rounded-full bg-peach items-center justify-center">
-            <PawPrintIcon size={28} color={palette.orange} weight="duotone" />
-          </View>
-          <View className="items-center gap-1 max-w-sm">
-            <Text className="font-heading-bold font-bold text-lg text-ink text-center">
-              Nenhum pet favoritado ainda
-            </Text>
-            <Text className="font-body text-sm text-ink-muted text-center">
-              Explore a vitrine de adoção e toque no coração dos animais que
-              você deseja acompanhar.
-            </Text>
-          </View>
-          <PrimaryButton
-            title="Explorar pets para adoção"
-            fullWidth={false}
-            size="sm"
-            onPress={() => router.push('/adopet')}
-          />
-        </View>
+        <EmptyState
+          icon={PawPrintIcon}
+          title="Nenhum pet favoritado ainda"
+          description="Explore a vitrine de adoção e toque no coração dos animais que você deseja acompanhar."
+          action={<PrimaryButton title="Explorar pets para adoção" fullWidth={false} onPress={() => router.push('/adopet')} />}
+        />
       ) : (
         <View className="flex-row flex-wrap justify-center sm:justify-start gap-5">
           {favoritePets.map((favorite) => (

@@ -44,6 +44,9 @@
     "concurrently": "^9.1.2",
     "prisma": "^7.10.0"
   },
+  "overrides": {
+    "effect": "3.22.5"
+  },
   "allowScripts": {
     "fsevents@2.3.3": true,
     "@prisma/engines": true,

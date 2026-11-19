@@ -169,6 +169,33 @@ describe('foster applications', () => {
     });
   });
 
+  it('filters the staff list by status, availability and applicant name on every page', async () => {
+    database.findMany.mockResolvedValue([]);
+    database.count.mockResolvedValue(0);
+    const today = new Date('2026-11-02');
+
+    expect((await request('/?status=pending&availability=available&search=%20ana%20&page=2', 'staff')).status).toBe(200);
+    const where = {
+      status: 'pending',
+      available_from: { lte: today },
+      OR: [{ available_until: null }, { available_until: { gte: today } }],
+      user: { username: { contains: 'ana', mode: 'insensitive' } },
+    };
+    expect(database.findMany).toHaveBeenLastCalledWith(expect.objectContaining({ where, skip: 20, take: 20 }));
+    expect(database.count).toHaveBeenLastCalledWith({ where });
+
+    await request('/?availability=indefinite', 'staff');
+    expect(database.count).toHaveBeenLastCalledWith({ where: { available_from: { not: null }, available_until: null } });
+    await request('/?availability=ended', 'staff');
+    expect(database.count).toHaveBeenLastCalledWith({ where: { available_until: { lt: today } } });
+    await request('/', 'staff');
+    expect(database.count).toHaveBeenLastCalledWith({ where: {} });
+
+    for (const query of ['status=archived', 'availability=soon', `search=${'a'.repeat(121)}`, 'unknown=1']) {
+      expect((await request(`/?${query}`, 'staff')).status).toBe(400);
+    }
+  });
+
   it('restricts decisions to staff and updates only pending records', async () => {
     const path = `/${id}/status`;
     expect((await request(path, 'other', 'PATCH', { status: 'approved' })).status).toBe(403);

@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   Text,
   TextInput,
@@ -22,6 +21,7 @@ import {
   useUpdateUserStatus,
 } from '@/hooks/useAdminUsers';
 import { Page } from '@/components/layout/Page';
+import { EmptyState, ErrorState, LoadingState } from '@/components/feedback/ListStates';
 import {
   ChoiceGroup,
   Notice,
@@ -279,24 +279,12 @@ export function UserManagementScreen() {
           </View>
 
           {isLoading ? (
-            <View className="py-16 items-center gap-4">
-              <ActivityIndicator color={palette.denim} />
-              <Text
-                accessibilityLiveRegion="polite"
-                className="font-body text-ink-muted"
-              >
-                Carregando usuários…
-              </Text>
-            </View>
+            <LoadingState message="Carregando usuários…" />
           ) : error ? (
-            <View className="p-6 gap-4">
-              <Notice
-                error
+            <View className="px-6">
+              <ErrorState
                 message="Não foi possível carregar os usuários. Verifique sua conexão e tente novamente."
-              />
-              <TextButton
-                label="Tentar novamente"
-                onPress={() => void refetch()}
+                onRetry={() => void refetch()}
               />
             </View>
           ) : view.items.length > 0 ? (
@@ -401,27 +389,14 @@ export function UserManagementScreen() {
               </View>
             </>
           ) : (
-            <View className="items-center px-6 py-16 gap-4">
-              <View className="p-5 rounded-full bg-peach">
-                <UsersIcon size={40} color={palette.denim} weight="duotone" />
-              </View>
-              <Text
-                accessibilityRole="header"
-                className="font-heading-bold text-xl text-ink text-center"
-              >
-                {isFiltered
-                  ? 'Nenhum usuário encontrado'
-                  : 'Nenhum usuário cadastrado ainda'}
-              </Text>
-              <Text className="font-body text-sm text-ink-muted text-center max-w-form">
-                {isFiltered
-                  ? 'Experimente outro nome ou ajuste os filtros para encontrar quem você procura.'
-                  : 'Quando alguém se cadastrar no Kapa, a conta aparecerá aqui.'}
-              </Text>
-              {isFiltered ? (
-                <TextButton label="Limpar filtros" onPress={clearFilters} />
-              ) : null}
-            </View>
+            <EmptyState
+              icon={UsersIcon}
+              title={isFiltered ? 'Nenhum usuário encontrado' : 'Nenhum usuário cadastrado ainda'}
+              description={isFiltered
+                ? 'Experimente outro nome ou ajuste os filtros para encontrar quem você procura.'
+                : 'Quando alguém se cadastrar no Kapa, a conta aparecerá aqui.'}
+              action={isFiltered ? <TextButton label="Limpar filtros" onPress={clearFilters} /> : undefined}
+            />
           )}
         </View>
       </Page>

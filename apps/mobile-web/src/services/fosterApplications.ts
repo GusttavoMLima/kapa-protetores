@@ -65,8 +65,17 @@ export async function editFosterApplication(id: string, application: FosterAppli
   }));
 }
 
-export async function fetchFosterApplications(page: number) {
-  return pageSchema.parse(await apiRequest<unknown>(`${path}?page=${page}`));
+export type FosterAvailabilityFilter = 'available' | 'indefinite' | 'ended';
+export type FosterApplicationFilters = {
+  status?: z.infer<typeof statusSchema>;
+  availability?: FosterAvailabilityFilter;
+  search?: string;
+};
+
+export async function fetchFosterApplications(page: number, filters: FosterApplicationFilters = {}) {
+  const params = new URLSearchParams({ page: String(page) });
+  for (const [key, value] of Object.entries(filters)) if (value) params.set(key, value);
+  return pageSchema.parse(await apiRequest<unknown>(`${path}?${params.toString()}`));
 }
 
 export async function reviewFosterApplication(id: string, status: FosterDecision) {
