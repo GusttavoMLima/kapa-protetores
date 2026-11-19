@@ -131,9 +131,10 @@ describe('animal management authorization, filters, edits and public boundary', 
     const { data } = await (await request('')).json();
     expect(data.length).toBe(1);
     expect(data[0].status).toBe('available');
-    for (const field of ['observations', 'place', 'healthCondition', 'rescuedAt', 'medicationNotes']) {
+    for (const field of ['observations', 'place', 'healthCondition', 'rescuedAt']) {
       expect(field in data[0]).toBe(false);
     }
+    expect(data[0].medicationNotes).toBeNull();
     for (const animal of animals.filter((animal) => animal.getStatus() !== 'available')) {
       expect((await request(`/${animal.getId().getValue()}`)).status).toBe(404);
     }
@@ -162,7 +163,7 @@ describe('animal management authorization, filters, edits and public boundary', 
     expect((await request(editPath, token('admin'), 'PATCH', { medicationNotes: 'x'.repeat(2001) })).status).toBe(400);
     expect((await request(editPath, token('admin'), 'PATCH', { status: 'available' })).status).toBe(200);
     const publicProfile = await request(`/${animal.id}`);
-    expect((await publicProfile.json()).data).not.toHaveProperty('medicationNotes');
+    expect((await publicProfile.json()).data.medicationNotes).toBe(notes);
     expect((await (await request(carePath, token('volunteer'))).json()).data.medicationNotes).toBe(notes);
     const cleared = await request(editPath, token('admin'), 'PATCH', { medicationNotes: '  ' });
     expect(cleared.status).toBe(200);

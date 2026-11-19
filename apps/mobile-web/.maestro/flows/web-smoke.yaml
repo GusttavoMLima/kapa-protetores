@@ -41,22 +41,51 @@ env:
 - assertVisible: "Junte-se ao Kapa para adotar pets e apoiar protetores."
 - scrollUntilVisible:
     centerElement: true
+    element: "Li e estou ciente de como o Kapa usa meus dados."
+    direction: DOWN
+    speed: 60
+    timeout: 40000
+- tapOn: "Li e estou ciente de como o Kapa usa meus dados."
+- scrollUntilVisible:
+    centerElement: false
+    visibilityPercentage: 50
     element: "Cadastrar"
     direction: DOWN
 - tapOn: "Cadastrar"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Confirme sua senha"
+    direction: UP
 - assertVisible: "Confirme sua senha"
+- scrollUntilVisible:
+    centerElement: true
+    element: "Informe um celular válido com DDD."
+    direction: UP
+- assertVisible: "Informe um celular válido com DDD."
+- scrollUntilVisible:
+    centerElement: true
+    element: "Informe uma data de nascimento válida."
+    direction: UP
+- assertVisible: "Informe uma data de nascimento válida."
+- scrollUntilVisible:
+    centerElement: true
+    element: "Formato de e-mail inválido"
+    direction: UP
+- assertVisible: "Formato de e-mail inválido"
 - scrollUntilVisible:
     centerElement: true
     element: "Nome de usuário deve ter no mínimo 3 caracteres"
     direction: UP
 - assertVisible: "Nome de usuário deve ter no mínimo 3 caracteres"
-- assertVisible: "Formato de e-mail inválido"
 
 # 4. Return to Login screen and submit credentials
 - scrollUntilVisible:
-    centerElement: true
+    centerElement: false
+    visibilityPercentage: 50
     element: "Entrar"
     direction: DOWN
+    speed: 60
+    timeout: 40000
 - tapOn: "Entrar"
 - scrollUntilVisible:
     centerElement: true

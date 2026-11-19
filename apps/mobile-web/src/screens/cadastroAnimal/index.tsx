@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useContext, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -7,9 +7,17 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { QueryClientContext } from '@tanstack/react-query';
+import {
+  createEmptyMedicationRecord,
+  getMedicationValidationSummary,
+  serializeMedicationRecords,
+  type MedicationRecord,
+} from '@kapa/shared';
 import { PrimaryInputText } from '@/components/inputText/primary';
 import { PrimaryChipGroup } from '@/components/chips/primaryChip';
 import { DoseFields } from '@/components/forms/animal/DoseFields';
+import { MedicationFields } from '@/components/forms/animal/MedicationFields';
 import { parseAnimalDate } from '@/utils/animalDate';
 import { MultiFotoPicker } from '@/components/photoPicker/animal';
 import { saveAnimal, uploadAnimalPhotos } from '@/storage/animals';
@@ -40,6 +48,7 @@ function novoId(): string {
 
 export function CadastroAnimalScreen() {
   const headerOffset = useHeaderOffset();
+  const queryClient = useContext(QueryClientContext);
   const [fotosUris, setFotosUris] = useState<string[]>([]);
   const [nome, setNome] = useState('');
   const [raca, setRaca] = useState('');
@@ -61,22 +70,29 @@ export function CadastroAnimalScreen() {
   const [vermifugoDoses, setVermifugoDoses] = useState<DoseRecord[]>([
     { status: 'nao' },
   ]);
+  const [medicamentos, setMedicamentos] = useState<MedicationRecord[]>([
+    createEmptyMedicationRecord(),
+  ]);
   const [temperamento, setTemperamento] = useState<Temperamento>('docil');
   const [nivelEnergia, setNivelEnergia] = useState<NivelEnergia>('moderado');
-  const [compativelCriancas, setCompativelCriancas] = useState<TriState>('nao_sei');
-  const [compativelAnimais, setCompativelAnimais] = useState<TriState>('nao_sei');
-  const [compativelApartamento, setCompativelApartamento] = useState<TriState>('nao_sei');
+  const [nivelRuido, setNivelRuido] = useState<number>(3);
+  const [compativelCriancas, setCompativelCriancas] =
+    useState<TriState>('nao_sei');
+  const [compativelAnimais, setCompativelAnimais] =
+    useState<TriState>('nao_sei');
+  const [compativelApartamento, setCompativelApartamento] =
+    useState<TriState>('nao_sei');
   const [humor, setHumor] = useState<Humor>('tranquilo');
   const [publicacoes, setPublicacoes] = useState('');
   const [status, setStatus] = useState<StatusAnimal>('resgatado');
   const [observacoes, setObservacoes] = useState('');
-  const [medicacaoEmUso, setMedicacaoEmUso] = useState('');
   const [salvando, setSalvando] = useState(false);
   const salvandoRef = useRef(false);
   const [tentouSalvar, setTentouSalvar] = useState(false);
   const [sucesso, setSucesso] = useState<string>();
   const [erroSalvar, setErroSalvar] = useState<string>();
-  const [animalComFotosPendentes, setAnimalComFotosPendentes] = useState<string>();
+  const [animalComFotosPendentes, setAnimalComFotosPendentes] =
+    useState<string>();
   const scrollRef = useRef<ScrollView>(null);
 
   const nomeErro =
@@ -98,9 +114,11 @@ export function CadastroAnimalScreen() {
         : [],
     ),
   ];
+  const medicamentosPendentes = getMedicationValidationSummary(medicamentos);
   const pendentes = [
     ...(nomeErro ? ['nome'] : []),
     ...(tentouSalvar ? datasPendentes : []),
+    ...(tentouSalvar ? medicamentosPendentes : []),
   ];
 
   function limpar() {
@@ -120,8 +138,10 @@ export function CadastroAnimalScreen() {
     setV10Doses([{ status: 'nao' }]);
     setVacinaRaivaDoses([{ status: 'nao' }]);
     setVermifugoDoses([{ status: 'nao' }]);
+    setMedicamentos([createEmptyMedicationRecord()]);
     setTemperamento('docil');
     setNivelEnergia('moderado');
+    setNivelRuido(3);
     setCompativelCriancas('nao_sei');
     setCompativelAnimais('nao_sei');
     setCompativelApartamento('nao_sei');
@@ -139,6 +159,7 @@ export function CadastroAnimalScreen() {
     const pendentesAgora = [
       ...(!nome.trim() ? ['nome'] : []),
       ...datasPendentes,
+      ...medicamentosPendentes,
     ];
     setTentouSalvar(true);
     setSucesso(undefined);
@@ -153,6 +174,7 @@ export function CadastroAnimalScreen() {
     salvandoRef.current = true;
     setSalvando(true);
     try {
+      const medicacaoSerializada = serializeMedicationRecords(medicamentos);
       const animalSalvo = await saveAnimal({
         id: novoId(),
         nome: nome.trim() || 'Sem nome',
@@ -192,13 +214,15 @@ export function CadastroAnimalScreen() {
         })),
         temperamento,
         nivelEnergia,
+        nivelRuido,
         compativelCriancas,
         compativelAnimais,
         compativelApartamento,
         humor,
         publicacoes: publicacoes.trim(),
         observacoes: observacoes.trim(),
-        medicacaoEmUso: medicacaoEmUso.trim(),
+        medicacaoEmUso: medicacaoSerializada,
+        medicamentos,
         fotoUri: fotosUris[0],
         fotosUris,
         status,
@@ -214,9 +238,14 @@ export function CadastroAnimalScreen() {
           setErroSalvar(
             `${result.uploaded} de ${fotosUris.length} fotos foram enviadas. ${result.failures[0].message}`,
           );
+          await queryClient?.invalidateQueries({ queryKey: ['animals'] });
+          limpar();
+          scrollRef.current?.scrollTo({ y: 0, animated: true });
+          return;
         }
       }
 
+      await queryClient?.invalidateQueries({ queryKey: ['animals'] });
       const nomeSalvo = nome.trim() || 'O animal';
       limpar();
       const sufixoFotos =
@@ -229,11 +258,15 @@ export function CadastroAnimalScreen() {
       scrollRef.current?.scrollTo({ y: 0, animated: true });
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
-        setErroSalvar('Sua sessão expirou. Entre novamente para cadastrar o animal.');
+        setErroSalvar(
+          'Sua sessão expirou. Entre novamente para cadastrar o animal.',
+        );
       } else if (error instanceof ApiError) {
         setErroSalvar(error.message);
       } else {
-        setErroSalvar('Não foi possível conectar à API. Confirme que o servidor está em execução.');
+        setErroSalvar(
+          'Não foi possível conectar à API. Confirme que o servidor está em execução.',
+        );
       }
       scrollRef.current?.scrollTo({ y: 0, animated: true });
     } finally {
@@ -255,261 +288,377 @@ export function CadastroAnimalScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View className="w-full max-w-form self-center gap-5 px-5 pb-8 pt-6">
-            <BackLink label="Animais do abrigo" onPress={() => { if (!salvando) { if (router.canGoBack()) router.back(); else router.replace('/gestao/animais'); } }} />
-          <View className="gap-1.5 pt-[18px]">
-            <Text className="font-heading-bold text-2xl leading-[30px] text-ink">
-              Cadastro de animal
-            </Text>
-            <Text className="font-body text-base leading-6 text-ink-muted">
-              Registre um resgate agora, ainda no campo ou no abrigo.
-            </Text>
-          </View>
-
-          {pendentes.length > 0 ? (
-            <View className="gap-1 rounded-2xl border border-danger bg-danger-soft p-3.5">
-              <Text className="font-body-medium text-[15px] leading-5 text-danger">
-                Falta preencher
+          <View className="w-full max-w-content self-center gap-6 px-5 md:px-10 pb-10 pt-3">
+            <BackLink
+              label="Animais do abrigo"
+              onPress={() => {
+                if (!salvando) {
+                  if (router.canGoBack()) router.back();
+                  else router.replace('/gestao/animais');
+                }
+              }}
+            />
+            <View className="gap-1.5 pt-2">
+              <Text className="font-body-medium text-xs tracking-widest text-denim">
+                GESTÃO DO ABRIGO
               </Text>
-              {pendentes.map((item) => (
-                <Text key={item} className="font-body-medium text-sm leading-5 text-danger">
-                  • {item}
+              <Text className="font-heading-bold text-2xl md:text-4xl text-ink">
+                Cadastro de animal
+              </Text>
+              <Text className="font-body text-base leading-6 text-ink-muted">
+                Registre um resgate agora, ainda no campo ou no abrigo.
+              </Text>
+            </View>
+
+            {pendentes.length > 0 ? (
+              <View className="gap-1 rounded-2xl border border-danger bg-danger-soft p-3.5">
+                <Text className="font-body-medium text-[15px] leading-5 text-danger">
+                  Falta preencher
                 </Text>
-              ))}
-            </View>
-          ) : null}
+                {pendentes.map((item) => (
+                  <Text
+                    key={item}
+                    className="font-body-medium text-sm leading-5 text-danger"
+                  >
+                    • {item}
+                  </Text>
+                ))}
+              </View>
+            ) : null}
 
-          {sucesso ? (
-            <View className="rounded-2xl border border-success bg-[#E8F3EE] p-3.5">
-              <Text className="font-body-medium text-[15px] leading-5 text-success">
-                {sucesso}
-              </Text>
-            </View>
-          ) : null}
+            {sucesso ? (
+              <View className="rounded-2xl border border-success bg-[#E8F3EE] p-3.5">
+                <Text className="font-body-medium text-[15px] leading-5 text-success">
+                  {sucesso}
+                </Text>
+              </View>
+            ) : null}
 
-          {erroSalvar ? (
-            <View className="rounded-2xl border border-danger bg-danger-soft p-3.5">
-              <Text className="font-body-medium text-[15px] leading-5 text-danger">
-                {erroSalvar}
-              </Text>
-              {animalComFotosPendentes ? (
-                <PrimaryButton
-                  title="Adicionar fotos ao animal cadastrado"
-                  className="mt-3"
-                  onPress={() => router.push({ pathname: '/gestao/animais/[id]', params: { id: animalComFotosPendentes } })}
-                />
-              ) : null}
-            </View>
-          ) : null}
+            {erroSalvar ? (
+              <View className="rounded-2xl border border-danger bg-danger-soft p-3.5">
+                <Text className="font-body-medium text-[15px] leading-5 text-danger">
+                  {erroSalvar}
+                </Text>
+                {animalComFotosPendentes ? (
+                  <PrimaryButton
+                    title="Adicionar fotos ao animal cadastrado"
+                    className="mt-3"
+                    onPress={() =>
+                      router.push({
+                        pathname: '/gestao/animais/[id]',
+                        params: { id: animalComFotosPendentes },
+                      })
+                    }
+                  />
+                ) : null}
+              </View>
+            ) : null}
 
-          <MultiFotoPicker
-            uris={fotosUris}
-            disabled={salvando}
-            onChange={(nextUris) => {
-              setFotosUris(nextUris);
-              setSucesso(undefined);
-            }}
-          />
-
-          <View className="gap-3 rounded-2xl border border-line bg-card p-4 shadow-card">
-            <Text className="font-heading-medium text-xl leading-7 text-orange-dark">Quem é</Text>
-            <PrimaryInputText
-              label="Nome"
-              value={nome}
-              onChangeText={(texto) => {
-                setNome(texto);
+            <MultiFotoPicker
+              uris={fotosUris}
+              disabled={salvando}
+              onChange={(nextUris) => {
+                setFotosUris(nextUris);
                 setSucesso(undefined);
               }}
-              placeholder="Como o animal vai ser chamado"
-              erro={nomeErro}
             />
-            <PrimaryInputText
-              label="Raça"
-              value={raca}
-              onChangeText={setRaca}
-              placeholder="Ex.: sem raça definida"
-            />
-            <Text className="font-body-medium text-sm leading-4 text-ink">Espécie</Text>
-            <PrimaryChipGroup
-              value={especie}
-              onChange={setEspecie}
-              options={[
-                { value: 'cao', label: 'Cão' },
-                { value: 'gato', label: 'Gato' },
-              ]}
-            />
-            <Text className="font-body-medium text-sm leading-4 text-ink">Sexo</Text>
-            <PrimaryChipGroup
-              value={sexo}
-              onChange={setSexo}
-              options={[
-                { value: 'macho', label: 'Macho' },
-                { value: 'femea', label: 'Fêmea' },
-              ]}
-            />
-            <Text className="font-body-medium text-sm leading-4 text-ink">Porte</Text>
-            <PrimaryChipGroup
-              value={porte}
-              onChange={setPorte}
-              options={[
-                { value: 'pequeno', label: 'Pequeno' },
-                { value: 'medio', label: 'Médio' },
-                { value: 'grande', label: 'Grande' },
-              ]}
-            />
-            <PrimaryInputText
-              label="Idade aproximada"
-              value={idadeAproximada}
-              onChangeText={setIdadeAproximada}
-              placeholder="Ex.: filhote, 2 anos, idoso"
-            />
-            <PrimaryInputText
-              label="Peso"
-              value={peso}
-              onChangeText={setPeso}
-              placeholder="Ex.: 12 kg"
-              keyboardType="decimal-pad"
-            />
-            <PrimaryInputText
-              label="Cor / pelagem"
-              value={corPelagem}
-              onChangeText={setCorPelagem}
-              placeholder="Ex.: caramelo, preto e branco"
-            />
-          </View>
 
-          <View className="gap-3 rounded-2xl border border-line bg-card p-4 shadow-card">
-            <Text className="font-heading-medium text-xl leading-7 text-orange-dark">Resgate</Text>
-            <PrimaryInputText
-              label="Data do resgate"
-              value={dataResgate}
-              onChangeText={setDataResgate}
-              placeholder="DD/MM/AAAA"
-            />
-            <PrimaryInputText
-              label="Local do resgate"
-              value={localResgate}
-              onChangeText={setLocalResgate}
-              placeholder="Rua, bairro ou ponto de referência"
-            />
-            <Text className="font-body-medium text-sm leading-4 text-ink">Condição na chegada</Text>
-            <PrimaryChipGroup
-              value={condicaoChegada}
-              onChange={setCondicaoChegada}
-              options={[
-                { value: 'saudavel', label: 'Saudável' },
-                { value: 'ferido', label: 'Ferido' },
-                { value: 'debilitado', label: 'Debilitado' },
-              ]}
-            />
-          </View>
+            <View className="gap-4 rounded-2xl border border-line bg-card p-5 md:p-6 shadow-card">
+              <Text className="font-heading-medium text-xl leading-7 text-orange-dark">
+                Quem é
+              </Text>
+              <View className="flex-col md:flex-row gap-4">
+                <PrimaryInputText
+                  className="flex-1"
+                  label="Nome *"
+                  value={nome}
+                  onChangeText={(texto) => {
+                    setNome(texto);
+                    setSucesso(undefined);
+                  }}
+                  placeholder="Como o animal vai ser chamado"
+                  erro={nomeErro}
+                />
+                <PrimaryInputText
+                  className="flex-1"
+                  label="Raça"
+                  value={raca}
+                  onChangeText={setRaca}
+                  placeholder="Ex.: sem raça definida"
+                />
+              </View>
+              <Text className="font-body-medium text-sm leading-4 text-ink">
+                Espécie
+              </Text>
+              <PrimaryChipGroup
+                value={especie}
+                onChange={setEspecie}
+                options={[
+                  { value: 'cao', label: 'Cão' },
+                  { value: 'gato', label: 'Gato' },
+                  { value: 'outro', label: 'Outro' },
+                ]}
+              />
+              <Text className="font-body-medium text-sm leading-4 text-ink">
+                Sexo
+              </Text>
+              <PrimaryChipGroup
+                value={sexo}
+                onChange={setSexo}
+                options={[
+                  { value: 'macho', label: 'Macho' },
+                  { value: 'femea', label: 'Fêmea' },
+                ]}
+              />
+              <Text className="font-body-medium text-sm leading-4 text-ink">
+                Porte
+              </Text>
+              <PrimaryChipGroup
+                value={porte}
+                onChange={setPorte}
+                options={[
+                  { value: 'pequeno', label: 'Pequeno' },
+                  { value: 'medio', label: 'Médio' },
+                  { value: 'grande', label: 'Grande' },
+                ]}
+              />
+              <View className="flex-col md:flex-row gap-4">
+                <PrimaryInputText
+                  className="flex-1"
+                  label="Idade aproximada (anos)"
+                  value={idadeAproximada}
+                  onChangeText={setIdadeAproximada}
+                  placeholder="Ex.: filhote, 2 anos, idoso"
+                />
+                <PrimaryInputText
+                  className="flex-1"
+                  label="Peso (kg)"
+                  value={peso}
+                  onChangeText={setPeso}
+                  placeholder="Ex.: 12 kg"
+                  keyboardType="decimal-pad"
+                />
+              </View>
+              <PrimaryInputText
+                label="Cor / pelagem"
+                value={corPelagem}
+                onChangeText={setCorPelagem}
+                placeholder="Ex.: caramelo, preto e branco"
+              />
+            </View>
 
-          <View className="gap-3 rounded-2xl border border-line bg-card p-4 shadow-card">
-            <Text className="font-heading-medium text-xl leading-7 text-orange-dark">Saúde</Text>
-            <PrimaryInputText
-              label="Medicação em uso"
-              placeholder="Medicamento, dose e horários conforme orientação veterinária"
-              value={medicacaoEmUso}
-              onChangeText={setMedicacaoEmUso}
-              multiline
-              maxLength={2000}
-            />
-            <Text className="font-body-medium text-sm leading-4 text-ink">Castrado</Text>
-            <PrimaryChipGroup
-              value={castrado}
-              onChange={setCastrado}
-              options={[
-                { value: 'sim', label: 'Sim' },
-                { value: 'nao', label: 'Não' },
-                { value: 'nao_sei', label: 'Não sei' },
-              ]}
-            />
-            <DoseFields label="Vacina V10" addLabel="Adicionar dose da V10" doses={v10Doses} onChange={setV10Doses} showErrors={tentouSalvar} disabled={salvando} />
-            <DoseFields label="Vacina antirrábica" addLabel="Adicionar dose antirrábica" doses={vacinaRaivaDoses} onChange={setVacinaRaivaDoses} showErrors={tentouSalvar} disabled={salvando} />
-            <DoseFields label="Vermífugo" addLabel="Adicionar dose de vermífugo" doses={vermifugoDoses} onChange={setVermifugoDoses} showErrors={tentouSalvar} disabled={salvando} />
-          </View>
+            <View className="gap-4 rounded-2xl border border-line bg-card p-5 md:p-6 shadow-card">
+              <Text className="font-heading-medium text-xl leading-7 text-orange-dark">
+                Resgate
+              </Text>
+              <View className="flex-col md:flex-row gap-4">
+                <PrimaryInputText
+                  className="flex-1"
+                  label="Data do resgate"
+                  value={dataResgate}
+                  onChangeText={setDataResgate}
+                  placeholder="DD/MM/AAAA"
+                />
+                <PrimaryInputText
+                  className="flex-1"
+                  label="Local do resgate"
+                  value={localResgate}
+                  onChangeText={setLocalResgate}
+                  placeholder="Rua, bairro ou ponto de referência"
+                />
+              </View>
+              <Text className="font-body-medium text-sm leading-4 text-ink">
+                Condição na chegada
+              </Text>
+              <PrimaryChipGroup
+                value={condicaoChegada}
+                onChange={setCondicaoChegada}
+                options={[
+                  { value: 'saudavel', label: 'Saudável' },
+                  { value: 'ferido', label: 'Ferido' },
+                  { value: 'debilitado', label: 'Debilitado' },
+                ]}
+              />
+            </View>
 
-          <View className="gap-3 rounded-2xl border border-line bg-card p-4 shadow-card">
-            <Text className="font-heading-medium text-xl leading-7 text-orange-dark">Temperamento</Text>
-            <Text className="font-body-medium text-sm leading-4 text-ink">Como o animal está</Text>
-            <PrimaryChipGroup
-              value={temperamento}
-              onChange={setTemperamento}
-              options={[
-                { value: 'docil', label: 'Dócil' },
-                { value: 'medroso', label: 'Medroso' },
-                { value: 'sociavel', label: 'Sociável' },
-                { value: 'agressivo', label: 'Agressivo' },
-              ]}
-            />
-            <Text className="font-body-medium text-sm leading-4 text-ink">Nível de energia</Text>
-            <PrimaryChipGroup
-              value={nivelEnergia}
-              onChange={setNivelEnergia}
-              options={[
-                { value: 'baixo', label: 'Baixo' },
-                { value: 'moderado', label: 'Moderado' },
-                { value: 'alto', label: 'Alto' },
-              ]}
-            />
-            <Text className="font-body-medium text-sm leading-4 text-ink">Humor</Text>
-            <PrimaryChipGroup
-              value={humor}
-              onChange={setHumor}
-              options={[
-                { value: 'tranquilo', label: 'Tranquilo' },
-                { value: 'brincalhao', label: 'Brincalhão' },
-                { value: 'assustado', label: 'Assustado' },
-              ]}
-            />
-          </View>
+            <View className="gap-4 rounded-2xl border border-line bg-card p-5 md:p-6 shadow-card">
+              <Text className="font-heading-medium text-xl leading-7 text-orange-dark">
+                Saúde
+              </Text>
+              <Text className="font-body-medium text-sm leading-4 text-ink">
+                Castrado
+              </Text>
+              <PrimaryChipGroup
+                value={castrado}
+                onChange={setCastrado}
+                options={[
+                  { value: 'sim', label: 'Sim' },
+                  { value: 'nao', label: 'Não' },
+                  { value: 'nao_sei', label: 'Não sei' },
+                ]}
+              />
+              <DoseFields
+                label="Vacina V10"
+                addLabel="Adicionar dose da V10"
+                doses={v10Doses}
+                onChange={setV10Doses}
+                showErrors={tentouSalvar}
+                disabled={salvando}
+              />
+              <DoseFields
+                label="Vacina antirrábica"
+                addLabel="Adicionar dose antirrábica"
+                doses={vacinaRaivaDoses}
+                onChange={setVacinaRaivaDoses}
+                showErrors={tentouSalvar}
+                disabled={salvando}
+              />
+              <DoseFields
+                label="Vermífugo"
+                addLabel="Adicionar dose de vermífugo"
+                doses={vermifugoDoses}
+                onChange={setVermifugoDoses}
+                showErrors={tentouSalvar}
+                disabled={salvando}
+              />
+              <MedicationFields
+                medications={medicamentos}
+                onChange={setMedicamentos}
+                showErrors={tentouSalvar}
+                disabled={salvando}
+              />
+            </View>
 
-          <View className="gap-3 rounded-2xl border border-line bg-card p-4 shadow-card">
-            <Text className="font-heading-medium text-xl leading-7 text-orange-dark">Compatibilidade</Text>
-            <Text className="font-body-medium text-sm leading-4 text-ink">Com crianças</Text>
-            <PrimaryChipGroup value={compativelCriancas} onChange={setCompativelCriancas} options={triStateOptions} />
-            <Text className="font-body-medium text-sm leading-4 text-ink">Com outros animais</Text>
-            <PrimaryChipGroup value={compativelAnimais} onChange={setCompativelAnimais} options={triStateOptions} />
-            <Text className="font-body-medium text-sm leading-4 text-ink">Para apartamento</Text>
-            <PrimaryChipGroup value={compativelApartamento} onChange={setCompativelApartamento} options={triStateOptions} />
-          </View>
+            <View className="gap-4 rounded-2xl border border-line bg-card p-5 md:p-6 shadow-card">
+              <Text className="font-heading-medium text-xl leading-7 text-orange-dark">
+                Temperamento
+              </Text>
+              <Text className="font-body-medium text-sm leading-4 text-ink">
+                Como o animal está
+              </Text>
+              <PrimaryChipGroup
+                value={temperamento}
+                onChange={setTemperamento}
+                options={[
+                  { value: 'docil', label: 'Dócil' },
+                  { value: 'medroso', label: 'Medroso' },
+                  { value: 'sociavel', label: 'Sociável' },
+                  { value: 'agressivo', label: 'Agressivo' },
+                ]}
+              />
+              <Text className="font-body-medium text-sm leading-4 text-ink">
+                Nível de energia
+              </Text>
+              <PrimaryChipGroup
+                value={nivelEnergia}
+                onChange={setNivelEnergia}
+                options={[
+                  { value: 'baixo', label: 'Baixo' },
+                  { value: 'moderado', label: 'Moderado' },
+                  { value: 'alto', label: 'Alto' },
+                ]}
+              />
+              <Text className="font-body-medium text-sm leading-4 text-ink">
+                Humor
+              </Text>
+              <PrimaryChipGroup
+                value={humor}
+                onChange={setHumor}
+                options={[
+                  { value: 'tranquilo', label: 'Tranquilo' },
+                  { value: 'brincalhao', label: 'Brincalhão' },
+                  { value: 'assustado', label: 'Assustado' },
+                ]}
+              />
+              <Text className="font-body-medium text-sm leading-4 text-ink">
+                Nível de ruído
+              </Text>
+              <PrimaryChipGroup
+                value={String(nivelRuido) as '1' | '2' | '3' | '4' | '5'}
+                onChange={(val) => setNivelRuido(Number(val))}
+                options={[
+                  { value: '1', label: 'Muito silencioso' },
+                  { value: '2', label: 'Silencioso' },
+                  { value: '3', label: 'Moderado' },
+                  { value: '4', label: 'Vocal' },
+                  { value: '5', label: 'Muito vocal' },
+                ]}
+              />
+            </View>
 
-          <View className="gap-3 rounded-2xl border border-line bg-card p-4 shadow-card">
-            <Text className="font-heading-medium text-xl leading-7 text-orange-dark">Acompanhamento</Text>
-            <Text className="font-body-medium text-sm leading-4 text-ink">Status do animal</Text>
-            <PrimaryChipGroup
-              value={status}
-              onChange={setStatus}
-              options={[
-                { value: 'resgatado', label: 'Resgatado' },
-                { value: 'em_tratamento', label: 'Em tratamento' },
-                { value: 'disponivel', label: 'Disponível' },
-                { value: 'adotado', label: 'Adotado' },
-              ]}
-            />
-            <PrimaryInputText
-              label="Fotos e publicações"
-              value={publicacoes}
-              onChangeText={setPublicacoes}
-              placeholder="Links ou referências de publicações sobre o animal"
-              multiline
-            />
-            <PrimaryInputText
-              label="Observações"
-              value={observacoes}
-              onChangeText={setObservacoes}
-              placeholder="Ferimentos, coleira, algo que a equipe precise saber"
-              multiline
-            />
-          </View>
+            <View className="gap-4 rounded-2xl border border-line bg-card p-5 md:p-6 shadow-card">
+              <Text className="font-heading-medium text-xl leading-7 text-orange-dark">
+                Compatibilidade
+              </Text>
+              <Text className="font-body-medium text-sm leading-4 text-ink">
+                Com crianças
+              </Text>
+              <PrimaryChipGroup
+                value={compativelCriancas}
+                onChange={setCompativelCriancas}
+                options={triStateOptions}
+              />
+              <Text className="font-body-medium text-sm leading-4 text-ink">
+                Com outros animais
+              </Text>
+              <PrimaryChipGroup
+                value={compativelAnimais}
+                onChange={setCompativelAnimais}
+                options={triStateOptions}
+              />
+              <Text className="font-body-medium text-sm leading-4 text-ink">
+                Para apartamento
+              </Text>
+              <PrimaryChipGroup
+                value={compativelApartamento}
+                onChange={setCompativelApartamento}
+                options={triStateOptions}
+              />
+            </View>
 
-          <FormSubmissionLoader visible={salvando} message="Cadastrando animal…" />
-          <PrimaryButton
-            title="Salvar cadastro"
-            loading={salvando}
-            onPress={() => void onSalvar()}
-            size="lg"
-          />
+            <View className="gap-4 rounded-2xl border border-line bg-card p-5 md:p-6 shadow-card">
+              <Text className="font-heading-medium text-xl leading-7 text-orange-dark">
+                Acompanhamento
+              </Text>
+              <Text className="font-body-medium text-sm leading-4 text-ink">
+                Status do animal
+              </Text>
+              <PrimaryChipGroup
+                value={status}
+                onChange={setStatus}
+                options={[
+                  { value: 'resgatado', label: 'Resgatado' },
+                  { value: 'em_tratamento', label: 'Em tratamento' },
+                  { value: 'disponivel', label: 'Disponível' },
+                  { value: 'adotado', label: 'Adotado' },
+                ]}
+              />
+              <PrimaryInputText
+                label="Fotos e publicações"
+                value={publicacoes}
+                onChangeText={setPublicacoes}
+                placeholder="Links ou referências de publicações sobre o animal"
+                multiline
+              />
+              <PrimaryInputText
+                label="Observações"
+                value={observacoes}
+                onChangeText={setObservacoes}
+                placeholder="Ferimentos, coleira, algo que a equipe precise saber"
+                multiline
+              />
+            </View>
+
+            <FormSubmissionLoader
+              visible={salvando}
+              message="Cadastrando animal…"
+            />
+            <PrimaryButton
+              title="Salvar cadastro"
+              loading={salvando}
+              onPress={() => void onSalvar()}
+              size="lg"
+            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

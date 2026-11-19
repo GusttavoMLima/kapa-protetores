@@ -38,6 +38,18 @@ env:
 - inputRandomEmail
 - scrollUntilVisible:
     centerElement: true
+    element: "Data de nascimento"
+    direction: DOWN
+- tapOn: "Data de nascimento"
+- inputText: "1995-05-10"
+- scrollUntilVisible:
+    centerElement: true
+    element: "(19) 99999-9999"
+    direction: DOWN
+- tapOn: "(19) 99999-9999"
+- inputText: "19998887766"
+- scrollUntilVisible:
+    centerElement: true
     element: "Mínimo 6 caracteres"
     direction: DOWN
 - tapOn: "Mínimo 6 caracteres"
@@ -50,6 +62,14 @@ env:
 - inputText: ${TEST_PASSWORD}
 - scrollUntilVisible:
     centerElement: true
+    element: "Li e estou ciente de como o Kapa usa meus dados."
+    direction: DOWN
+    speed: 60
+    timeout: 40000
+- tapOn: "Li e estou ciente de como o Kapa usa meus dados."
+- scrollUntilVisible:
+    centerElement: false
+    visibilityPercentage: 50
     element: "Cadastrar"
     direction: DOWN
 - tapOn: "Cadastrar"
@@ -57,16 +77,7 @@ env:
 # 3. Complete mandatory 9-step Adopter Profile onboarding
 - runFlow: ../subflows/complete-adopter-profile.yaml
 
-# 4. Verify Home Screen
-- assertVisible: "Adotar Agora"
-- scrollUntilVisible:
-    centerElement: true
-    element: "Esperando por você"
-    direction: DOWN
-- assertVisible: "Esperando por você"
-
-# 5. Navigate to Adopt tab and exercise search/filters
-- tapOn: "Adotar"
+# 4. Verify Adopt Catalog & Filters (initial screen for Adopters)
 - scrollUntilVisible:
     centerElement: true
     element: "Buscar por raça"
@@ -88,7 +99,7 @@ env:
     direction: UP
 - tapOn: "Limpar filtros"
 
-# 6. Navigate to Support tab, test PIX Donation and Volunteer screens
+# 5. Navigate to Support tab, test PIX Donation and Volunteer screens
 - tapOn: "Apoiar"
 - scrollUntilVisible:
     centerElement: true
@@ -97,7 +108,7 @@ env:
 - assertVisible: "Doar via PIX"
 - tapOn: "Doar via PIX"
 - assertVisible: "Chave PIX Oficial (CNPJ)"
-- assertVisible: "12.345.678/0001-90"
+- assertVisible: "05095176000198"
 - scrollUntilVisible:
     centerElement: true
     element: "Copiar Chave PIX"
@@ -106,9 +117,9 @@ env:
 - assertVisible: "Chave Copiada com Sucesso!"
 - scrollUntilVisible:
     centerElement: true
-    element: "Voltar"
+    element: "Voltar para Apoiar"
     direction: UP
-- tapOn: "Voltar"
+- tapOn: "Voltar para Apoiar"
 
 - scrollUntilVisible:
     centerElement: true
@@ -118,11 +129,11 @@ env:
 - runFlow: ../subflows/submit-volunteer-application.yaml
 - scrollUntilVisible:
     centerElement: true
-    element: "Voltar"
+    element: "Voltar para Apoiar"
     direction: UP
-- tapOn: "Voltar"
+- tapOn: "Voltar para Apoiar"
 
-# 7. Navigate to Profile tab, inspect Edit Profile, and Sign Out
+# 6. Navigate to Profile tab, inspect Edit Profile, and Sign Out
 - tapOn: "Perfil"
 - scrollUntilVisible:
     centerElement: true
@@ -138,9 +149,9 @@ env:
 - assertVisible: "Preferências de Adoção"
 - scrollUntilVisible:
     centerElement: true
-    element: "Voltar"
+    element: "Voltar para Perfil"
     direction: UP
-- tapOn: "Voltar"
+- tapOn: "Voltar para Perfil"
 
 - scrollUntilVisible:
     centerElement: true

@@ -69,6 +69,7 @@ export const animalEditorSchema = z.object({
     return z.NEVER;
   }),
   energyLevel: z.number().int().min(1).max(5), kidFriendly: z.number().int().min(0).max(5),
+  noiseLevel: z.number().int().min(0).max(5).optional(),
   apartmentFriendly: z.boolean(), otherPetFriendly: z.boolean(),
   mood: z.string().trim().min(1, 'Informe o temperamento.').max(120),
   place: z.string().trim().max(240), observations: z.string().trim().max(4000),
@@ -85,18 +86,20 @@ export function editorValues(animal: Animal): AnimalEditorValues {
     vermifugoDoses: animal.vermifugoDoses ?? [],
     rescuedAt: animal.rescuedAt.slice(0, 10).split('-').reverse().join('/'),
     energyLevel: animal.energyLevel, kidFriendly: animal.kidFriendly,
+    noiseLevel: animal.noiseLevel,
     apartmentFriendly: animal.apartmentFriendly, otherPetFriendly: animal.otherPetFriendly,
     vaccinated: animal.vaccinated, mood: animal.mood, place: animal.place, observations: animal.observations ?? '' };
 }
 
 export function animalEditorUpdate(animal: Animal, values: z.output<typeof animalEditorSchema>): UpdateAnimalInput {
   const initial = editorValues(animal);
-  const { v10Doses, vacinaRaivaDoses, vermifugoDoses, rescuedAt, medicationNotes, ...fields } = values;
+  const { v10Doses, vacinaRaivaDoses, vermifugoDoses, rescuedAt, medicationNotes, noiseLevel, ...fields } = values;
   const v10Changed = JSON.stringify(v10Doses) !== JSON.stringify(initial.v10Doses);
   const rabiesChanged = JSON.stringify(vacinaRaivaDoses) !== JSON.stringify(initial.vacinaRaivaDoses);
   const dewormingChanged = JSON.stringify(vermifugoDoses) !== JSON.stringify(initial.vermifugoDoses);
   return {
     ...fields,
+    ...(noiseLevel !== undefined && noiseLevel !== initial.noiseLevel ? { noiseLevel } : {}),
     v10Doses: v10Changed ? v10Doses : undefined,
     vacinaRaivaDoses: rabiesChanged ? vacinaRaivaDoses : undefined,
     vermifugoDoses: dewormingChanged ? vermifugoDoses : undefined,

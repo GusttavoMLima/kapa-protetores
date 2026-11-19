@@ -201,4 +201,39 @@ describe('AdoptPetDetailsScreen', () => {
 
     expect(getByText('Este pet não está disponível')).toBeTruthy();
   });
+
+  it('exibe de forma organizada os medicamentos em uso na ficha do animal para o adotante', async () => {
+    mockedUseAdoptAnimals.mockReturnValue({
+      data: [
+        {
+          ...animal,
+          medicationNotes: JSON.stringify([
+            {
+              name: 'Apoquel',
+              dose: '16 mg',
+              frequency: '1x ao dia',
+              continuousUse: true,
+            },
+            {
+              name: 'Amoxicilina',
+              dose: '250 mg',
+              frequency: 'A cada 12h',
+              continuousUse: false,
+              period: '7 dias',
+            },
+          ]),
+        },
+      ],
+      isLoading: false,
+      error: null,
+    } as ReturnType<typeof useAdoptAnimals>);
+
+    const { getByText } = await render(<AdoptPetDetailsScreen />);
+
+    expect(getByText('Medicação em uso')).toBeTruthy();
+    expect(getByText('Apoquel')).toBeTruthy();
+    expect(getByText('Uso contínuo')).toBeTruthy();
+    expect(getByText('Amoxicilina')).toBeTruthy();
+    expect(getByText('Período: 7 dias')).toBeTruthy();
+  });
 });
