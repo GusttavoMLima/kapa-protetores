@@ -34,4 +34,12 @@ describe('PrimaryButton', () => {
     const button = screen.getByRole('button');
     expect(button.props.accessibilityState.busy).toBe(true);
   });
+
+  it('keeps a visible outline and exposes the reason for a blocked action', async () => {
+    await render(<PrimaryButton title="Salvar" disabled disabledReason="Altere algum dado para salvar." />);
+    const button = screen.getByRole('button', { name: 'Salvar' });
+    expect(button).toBeDisabled();
+    expect(button).toHaveStyle({ borderWidth: 1.5 });
+    expect(screen.getByHintText('Altere algum dado para salvar.')).toBe(button);
+  });
 });

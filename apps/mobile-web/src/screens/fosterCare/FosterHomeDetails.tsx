@@ -59,7 +59,7 @@ export function FosterHomeDetails({ application }: { application: HomeDetails })
       </View>
       <View className="gap-1 rounded-xl bg-cream p-4">
         <Text className="font-body-bold text-xs uppercase text-denim">Espaço de acolhimento</Text>
-        <Text className="font-body leading-6 text-ink">{application.homeNotes}</Text>
+        <Text className="font-body leading-6 text-ink">{application.homeNotes || 'Não informado'}</Text>
       </View>
     </View>
   );

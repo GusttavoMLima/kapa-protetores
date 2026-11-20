@@ -178,7 +178,8 @@ function AnimalEditor({ id }: { id: string }) {
             </Section>
             <View className="gap-4 flex-col md:flex-row md:items-center justify-between">
               <Text accessibilityLiveRegion="polite" className="font-body text-sm text-ink-muted">{dirty ? 'Há alterações ainda não salvas.' : 'Todas as informações estão salvas.'}</Text>
-              <View className="flex-col md:flex-row gap-3"><TextButton label="Voltar à listagem" onPress={requestLeave} disabled={saving} /><PrimaryButton title="Salvar alterações" fullWidth={false} textColor={palette.ink} onPress={save} loading={saving} disabled={!dirty} /></View>
+              {!dirty && !saving && <Text className="font-body text-sm text-ink-muted">Altere algum dado do animal para salvar.</Text>}
+              <View className="flex-col md:flex-row gap-3"><TextButton label="Voltar à listagem" onPress={requestLeave} disabled={saving} /><PrimaryButton title="Salvar alterações" fullWidth={false} onPress={save} loading={saving} disabled={!dirty} disabledReason="Altere algum dado do animal para salvar." /></View>
             </View>
           </>}
       </View>

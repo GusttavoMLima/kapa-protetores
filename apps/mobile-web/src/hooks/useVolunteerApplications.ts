@@ -5,6 +5,26 @@ import type {
   VolunteerApplicationData,
 } from '@kapa/shared';
 import { kapaService } from '@/services/kapaService';
+import { z } from 'zod';
+
+const currentUserRoleSchema = z.object({
+  id: z.string(),
+  role: z.enum(['adopter', 'volunteer', 'protector', 'admin']),
+});
+
+export function useCurrentVolunteerUserRole(userId?: string) {
+  return useQuery({
+    queryKey: ['volunteer-applications', 'current-role', userId],
+    enabled: Boolean(userId),
+    refetchOnWindowFocus: true,
+    queryFn: async ({ signal }) => {
+      const response = await kapaService.get<ApiResponse<unknown>>('/users/me', { signal });
+      const user = currentUserRoleSchema.parse(response.data.data);
+      if (user.id !== userId) throw new Error('A conta retornada não corresponde à sessão atual.');
+      return user.role;
+    },
+  });
+}
 
 async function createVolunteerApplication(
   input: VolunteerApplicationData,

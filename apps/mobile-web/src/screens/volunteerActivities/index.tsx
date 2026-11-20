@@ -307,6 +307,7 @@ export function VolunteerActivitiesScreen() {
                   activity.remainingVacancies === 0 ||
                   submittingId === activity.id
                 }
+                disabledReason={activity.remainingVacancies === 0 ? 'Não há vagas disponíveis nesta atividade.' : undefined}
                 loading={submittingId === activity.id}
                 onPress={() => void signUp(activity.id)}
                 accessibilityLabel={

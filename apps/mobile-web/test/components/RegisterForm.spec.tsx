@@ -1,5 +1,6 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { RegisterForm } from '@/components/forms/register';
+import { palette } from '@/theme';
 
 const mockSignUp = jest.fn().mockResolvedValue(undefined);
 const mockSignInWithGoogle = jest.fn().mockResolvedValue(undefined);
@@ -21,7 +22,7 @@ jest.mock('@/components/inputDateTime', () => {
 describe('RegisterForm dados pessoais', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('exige a leitura do aviso para habilitar o cadastro por e-mail ou Google', async () => {
+  it('valida a leitura do aviso no cadastro por e-mail e bloqueia o Google até a confirmação', async () => {
     const screen = await render(<RegisterForm />);
     const notice = screen.getByRole('checkbox', {
       name: 'Li e estou ciente de como o Kapa usa meus dados.',
@@ -31,23 +32,26 @@ describe('RegisterForm dados pessoais', () => {
 
     expect(screen.getByText('Privacidade e uso dos seus dados')).toBeTruthy();
     expect(notice).not.toBeChecked();
-    expect(register).toBeDisabled();
+    expect(register).toBeEnabled();
+    expect(screen.getByText('Cadastrar')).toHaveStyle({ color: palette.white });
     expect(google).toBeDisabled();
-    expect(screen.getByText('Marque a caixa acima para liberar o cadastro.')).toBeTruthy();
+    expect(screen.getByText('Confirme a leitura do aviso para criar sua conta.')).toBeTruthy();
     await fireEvent.press(register);
     await fireEvent.press(google);
+    expect(await screen.findByText('Marque a caixa do aviso de privacidade.')).toBeTruthy();
+    expect(screen.getByText(/Revise os campos para cadastrar: .*Aviso de privacidade/)).toBeTruthy();
     expect(mockSignUp).not.toHaveBeenCalled();
     expect(mockSignInWithGoogle).not.toHaveBeenCalled();
 
     await fireEvent.press(notice);
     expect(notice).toBeChecked();
     expect(register).toBeEnabled();
-    expect(screen.queryByText('Marque a caixa acima para liberar o cadastro.')).toBeNull();
+    expect(screen.queryByText('Marque a caixa do aviso de privacidade.')).toBeNull();
     await fireEvent.press(google);
     expect(mockSignInWithGoogle).toHaveBeenCalledTimes(1);
 
     await fireEvent.press(notice);
-    expect(register).toBeDisabled();
+    expect(register).toBeEnabled();
     expect(google).toBeDisabled();
     expect(mockSignUp).not.toHaveBeenCalled();
   });
@@ -58,6 +62,7 @@ describe('RegisterForm dados pessoais', () => {
     await fireEvent.press(screen.getByText('Cadastrar'));
     await waitFor(() => expect(screen.getByText('Informe uma data de nascimento válida.')).toBeTruthy());
     expect(screen.getByText('Informe um celular válido com DDD.')).toBeTruthy();
+    expect(screen.getByText(/Revise os campos para cadastrar: .*Data de nascimento, Celular com DDD/)).toBeTruthy();
     expect(mockSignUp).not.toHaveBeenCalled();
     expect(screen.queryByRole('status', { name: 'Criando sua conta…' })).toBeNull();
   });

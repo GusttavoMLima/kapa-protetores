@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Text, View } from 'react-native';
 import { SecondaryInputText } from '@/components/inputText/secondary';
@@ -18,6 +18,7 @@ import { DateTimeField } from '@/components/inputDateTime';
 
 const registerFormSchema = z
   .object({
+    privacyNoticeRead: z.boolean().refine(Boolean, 'Marque a caixa do aviso de privacidade.'),
     birthDate: z.string().refine((value) => ageFromBirthDate(value) !== null, 'Informe uma data de nascimento válida.'),
     phone: z.string().max(20).refine(isValidPhone, 'Informe um celular válido com DDD.'),
     username: z
@@ -45,10 +46,19 @@ const registerFormSchema = z
 
 type RegisterFormData = z.infer<typeof registerFormSchema>;
 
+const fieldLabels = [
+  ['username', 'Nome de usuário'],
+  ['email', 'E-mail'],
+  ['birthDate', 'Data de nascimento'],
+  ['phone', 'Celular com DDD'],
+  ['password', 'Senha'],
+  ['confirmPassword', 'Confirmar senha'],
+  ['privacyNoticeRead', 'Aviso de privacidade'],
+] as const satisfies readonly (readonly [keyof RegisterFormData, string])[];
+
 export function RegisterForm() {
   const { signUp } = useAuth();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [privacyNoticeRead, setPrivacyNoticeRead] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const {
     isGoogleReady,
@@ -57,7 +67,7 @@ export function RegisterForm() {
     clearGoogleError,
   } = useGoogleAuth();
 
-  const { control, handleSubmit, formState } = useForm<RegisterFormData>({
+  const { control, handleSubmit, formState: { errors, isSubmitted, isSubmitting } } = useForm<RegisterFormData>({
     resolver: zodResolver(registerFormSchema),
     defaultValues: {
       birthDate: '',
@@ -66,12 +76,14 @@ export function RegisterForm() {
       email: '',
       password: '',
       confirmPassword: '',
+      privacyNoticeRead: false,
     },
   });
 
-  const onSubmit = async (data: RegisterFormData) => {
-    if (!privacyNoticeRead) return;
+  const privacyNoticeRead = useWatch({ control, name: 'privacyNoticeRead' });
+  const invalidFields = fieldLabels.filter(([key]) => errors[key]).map(([, label]) => label);
 
+  const onSubmit = async (data: RegisterFormData) => {
     setIsRegistering(true);
     try {
       setErrorMessage(null);
@@ -125,7 +137,7 @@ export function RegisterForm() {
               icon={<UserIcon size={28} color="#57423B50" />}
               value={value}
               onChangeText={onChange}
-              placeholder="Ex: Danilo Alves"
+              placeholder="Digite seu nome completo"
               autoCapitalize="words"
               error={error?.message}
             />
@@ -212,15 +224,24 @@ export function RegisterForm() {
           </Text>
         </View>
 
-        <PrimaryCheckBox
-          label="Li e estou ciente de como o Kapa usa meus dados."
-          checked={privacyNoticeRead}
-          onChange={setPrivacyNoticeRead}
-          className="w-full min-h-14 items-center rounded-xl border border-line bg-white px-4 py-3 active:bg-peach"
-        />
-        {!privacyNoticeRead && (
+        <Controller control={control} name="privacyNoticeRead" render={({ field: { value, onChange }, fieldState: { error } }) => (
+          <PrimaryCheckBox
+            label="Li e estou ciente de como o Kapa usa meus dados."
+            checked={value}
+            onChange={onChange}
+            error={error?.message}
+            className="w-full min-h-14 items-center rounded-xl border border-line bg-white px-4 py-3 active:bg-peach"
+          />
+        )} />
+        {!privacyNoticeRead && !errors.privacyNoticeRead && (
           <Text className="w-full font-body text-sm text-ink-muted">
-            Marque a caixa acima para liberar o cadastro.
+            Confirme a leitura do aviso para criar sua conta.
+          </Text>
+        )}
+
+        {isSubmitted && invalidFields.length > 0 && (
+          <Text accessibilityRole="alert" className="w-full rounded-lg bg-danger-soft p-3 font-body text-sm text-danger">
+            Revise os campos para cadastrar: {invalidFields.join(', ')}.
           </Text>
         )}
 
@@ -228,9 +249,9 @@ export function RegisterForm() {
         <PrimaryButton
           title="Cadastrar"
           className="mt-2"
-          loading={formState.isSubmitting}
-          disabled={!privacyNoticeRead}
-          onPress={handleSubmit(onSubmit)}
+          loading={isRegistering}
+          disabled={isSubmitting}
+          onPress={handleSubmit(onSubmit, () => { setErrorMessage(null); clearGoogleError(); })}
         />
       </View>
 
