@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { PrimaryButton } from '@/components/buttons';
 import { View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,19 +19,8 @@ export function ErrorScreen() {
       </View>
       <TroubleMascot />
       <View className="flex flex-col gap-4 items-center">
-        <PrimaryButton title="Voltar à home" className="rounded-full w-[200]" />
-        <PrimaryButton
-          title="Relatar problema"
-          className="rounded-full border-4 border-denim w-[160]"
-          textColor="#2A4E75"
-          size="sm"
-          color="transparent"
-        />
+        <PrimaryButton title="Voltar à home" fullWidth={false} onPress={() => router.replace('/')} />
       </View>
-
-      <Text className="absolute bottom-4 font-jakarta-medium text-ink-muted md:left-4 text-xs">
-        Trace ID: 65d4asdas84sasda84sa
-      </Text>
     </SafeAreaView>
   );
 }

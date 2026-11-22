@@ -11,6 +11,13 @@ type FosterApplicationInput = {
   hasSecureGate: boolean;
 };
 
+type FosterAvailabilityFilter = 'available' | 'indefinite' | 'ended';
+export type FosterApplicationFilters = {
+  status?: 'pending' | 'approved' | 'rejected';
+  availability?: FosterAvailabilityFilter;
+  search?: string;
+};
+
 const applicationOrder = [{ submitted_at: 'desc' }, { id: 'desc' }] satisfies Prisma.FosterApplicationOrderByWithRelationInput[];
 const saoPauloDate = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' });
 
@@ -87,17 +94,34 @@ export class FosterApplicationService {
     }
   }
 
-  public async list(page: number, pageSize: number) {
+  public async list(page: number, pageSize: number, filters: FosterApplicationFilters = {}) {
+    const where = this.listWhere(filters);
     const [items, total] = await this.prisma.$transaction([
       this.prisma.fosterApplication.findMany({
+        where,
         orderBy: applicationOrder,
         skip: (page - 1) * pageSize,
         take: pageSize,
         include: { user: { select: { username: true, email: true } } },
       }),
-      this.prisma.fosterApplication.count(),
+      this.prisma.fosterApplication.count({ where }),
     ]);
     return { items, total };
+  }
+
+  private listWhere({ status, availability, search }: FosterApplicationFilters): Prisma.FosterApplicationWhereInput {
+    // Datas são @db.Date: o dia de hoje em São Paulo vira meia-noite UTC, igual ao valor gravado.
+    const today = new Date(saoPauloDate.format(this.now()));
+    const byAvailability: Record<FosterAvailabilityFilter, Prisma.FosterApplicationWhereInput> = {
+      available: { available_from: { lte: today }, OR: [{ available_until: null }, { available_until: { gte: today } }] },
+      indefinite: { available_from: { not: null }, available_until: null },
+      ended: { available_until: { lt: today } },
+    };
+    return {
+      ...(status ? { status } : {}),
+      ...(availability ? byAvailability[availability] : {}),
+      ...(search ? { user: { username: { contains: search, mode: 'insensitive' } } } : {}),
+    };
   }
 
   public async review(id: string, status: 'approved' | 'rejected'): Promise<void> {

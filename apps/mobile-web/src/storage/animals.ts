@@ -1,6 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Animal, LegacyAnimal } from '../types/animal';
-import type { CreateAnimalInput } from '@kapa/shared';
+import {
+  serializeMedicationRecords,
+  type CreateAnimalInput,
+} from '@kapa/shared';
 import { apiRequest, ApiError } from '@/services/api';
 import { Platform } from 'react-native';
 
@@ -135,7 +138,7 @@ function toCreateAnimalInput(animal: LegacyAnimal): CreateAnimalInput {
     size: animal.porte === 'pequeno' ? 2 : animal.porte === 'medio' ? 3 : 4,
     energyLevel: animal.nivelEnergia === 'baixo' ? 1 : animal.nivelEnergia === 'alto' ? 5 : 3,
     kidFriendly: animal.compativelCriancas === 'sim' ? 5 : animal.compativelCriancas === 'nao' ? 0 : 3,
-    noiseLevel: 3,
+    noiseLevel: animal.nivelRuido ?? 3,
     apartmentFriendly: animal.compativelApartamento === 'sim',
     otherPetFriendly: animal.compativelAnimais === 'sim',
     healthCondition: animal.condicaoChegada === 'ferido' ? 'injured' : animal.condicaoChegada === 'debilitado' ? 'debilitated' : 'healthy',
@@ -149,7 +152,10 @@ function toCreateAnimalInput(animal: LegacyAnimal): CreateAnimalInput {
     place: animal.localResgate,
     mood: animal.humor ?? animal.temperamento,
     observations: animal.observacoes || null,
-    medicationNotes: animal.medicacaoEmUso?.trim() || null,
+    medicationNotes:
+      (animal.medicamentos
+        ? serializeMedicationRecords(animal.medicamentos)
+        : animal.medicacaoEmUso?.trim()) || null,
     status: animal.status === 'em_tratamento' ? 'treating' : animal.status === 'disponivel' ? 'available' : animal.status === 'adotado' ? 'adopted' : 'rescued',
   };
 }

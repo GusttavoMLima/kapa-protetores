@@ -17,7 +17,7 @@
         "EXPO_PUBLIC_API_URL": "https://kapa-api-staging.onrender.com/api",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "810628694805-9s7jiri2r4te3kt4v3hos6sacaktj9ma.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "810628694805-4fn7374od9b44mnm9ivf5dipkq4npf0l.apps.googleusercontent.com",
-        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "810628694805-spqtrlsm13ql2gagq7l6vjgnpufqm8k0.apps.googleusercontent.comEXPO_PUBLIC_API_URL=http://localhost:4000/api"
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "810628694805-spqtrlsm13ql2gagq7l6vjgnpufqm8k0.apps.googleusercontent.com"
       }
     },
     "production": {

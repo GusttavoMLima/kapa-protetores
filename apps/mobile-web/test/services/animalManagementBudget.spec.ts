@@ -9,10 +9,25 @@ it('rejects malformed forecasts before the management screen can render them', a
 });
 
 it('accepts a valid empty budget forecast', async () => {
-  const empty = { count: 0, totalCost: 0 };
+  const emptyBreakdown = {
+    nutrition: 0,
+    veterinary: 0,
+    preventives: 0,
+    hygiene: 0,
+  };
+  const empty = {
+    count: 0,
+    totalCost: 0,
+    averageCost: 0,
+    breakdown: emptyBreakdown,
+  };
   const forecast = {
-    totalPredictedBudget: 0, activeAnimalsCount: 0, averageCostPerAnimal: 0,
+    totalPredictedBudget: 0,
+    activeAnimalsCount: 0,
+    averageCostPerAnimal: 0,
+    byCategory: emptyBreakdown,
     bySpecies: { dog: empty, cat: empty, other: empty },
+    bySize: { small: empty, medium: empty, large: empty },
     byStatus: { rescued: empty, treating: empty, available: empty },
     animals: [],
   };

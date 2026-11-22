@@ -18,6 +18,7 @@
     "build:shared": "npm run build --workspace=@kapa/shared",
     "build:server": "npm run build --workspace=apps/server",
     "build:web": "npm run build:shared && npm run build:web --workspace=apps/mobile-web",
+    "build:apk": "npm run build:apk --workspace=@kapa/mobile-web",
     "lint": "npm run lint --workspaces --if-present",
     "prisma:generate": "prisma generate",
     "prisma:seed": "npm run prisma:seed --workspace=apps/server",
@@ -42,6 +43,9 @@
   "devDependencies": {
     "concurrently": "^9.1.2",
     "prisma": "^7.10.0"
+  },
+  "overrides": {
+    "effect": "3.22.5"
   },
   "allowScripts": {
     "fsevents@2.3.3": true,

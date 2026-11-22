@@ -6,6 +6,7 @@ import { canManageAnimals, type Animal, type AnimalStatus } from '@kapa/shared';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { palette } from '@/theme';
+import { TextButton } from '@/components/buttons/secondary';
 import { statusLabel } from './model';
 
 export function AnimalAccess({ children }: { children: ReactNode }) {
@@ -20,14 +21,10 @@ export function AnimalAccess({ children }: { children: ReactNode }) {
   return children;
 }
 
-export function TextButton({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled}
-    onPress={onPress} className={`min-h-12 px-4 py-3 rounded-md items-center justify-center border border-border ${disabled ? 'opacity-40' : 'hover:bg-peach active:bg-peach'}`}>
-    <Text className="font-body-medium text-sm text-denim">{label}</Text>
-  </Pressable>;
-}
 
 export { BackLink } from '@/components/layout/BackLink';
+export { TextButton };
+export { Notice } from '@/components/feedback/Notice';
 
 export function StatusBadge({ status }: { status: AnimalStatus }) {
   const tone = status === 'available' ? 'bg-success-soft text-success' : status === 'treating'
@@ -59,8 +56,3 @@ export function ChoiceGroup<T extends string | number | boolean>({ label, option
   </View>;
 }
 
-export function Notice({ message, error = false }: { message: string; error?: boolean }) {
-  return <View className={`p-4 rounded-lg ${error ? 'bg-danger-soft' : 'bg-success-soft'}`}>
-    <Text accessibilityRole="alert" accessibilityLiveRegion="polite" className={`font-body text-sm ${error ? 'text-danger' : 'text-success'}`}>{message}</Text>
-  </View>;
-}

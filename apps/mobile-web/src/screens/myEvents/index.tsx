@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { router } from 'expo-router';
 import {
-  ActivityIndicator,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -17,6 +16,7 @@ import {
 import { SystemEventTypes, type SystemEvent } from '@kapa/shared';
 import { useUserEvents } from '@/hooks/useUserEvents';
 import { Page } from '@/components/layout/Page';
+import { EmptyState, ErrorState, LoadingState } from '@/components/feedback/ListStates';
 import { palette } from '@/theme';
 
 const EVENT_FILTER_OPTIONS: readonly {
@@ -259,40 +259,20 @@ export function MyEventsScreen() {
       </ScrollView>
 
       {isLoading ? (
-        <View className="py-16 items-center gap-3">
-          <ActivityIndicator size="large" color={palette.orange} />
-          <Text className="font-body text-ink-muted">
-            Carregando histórico de atividades...
-          </Text>
-        </View>
+        <LoadingState message="Carregando histórico de atividades…" />
       ) : error ? (
-        <View className="bg-white rounded-2xl border border-danger-soft p-6 items-center gap-3">
-          <Text className="font-heading-bold text-danger text-center">
-            Não foi possível carregar suas atividades.
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Tentar novamente"
-            onPress={() => void refetch()}
-            className="bg-orange px-5 py-3 rounded-lg"
-          >
-            <Text className="font-heading-bold text-white">
-              Tentar novamente
-            </Text>
-          </Pressable>
-        </View>
+        <ErrorState
+          message="Não foi possível carregar suas atividades. Verifique sua conexão e tente novamente."
+          onRetry={() => void refetch()}
+        />
       ) : events.length === 0 ? (
-        <View className="bg-white rounded-2xl border border-line p-10 items-center gap-3">
-          <PawPrintIcon size={44} color={palette.denim} weight="duotone" />
-          <Text className="font-heading-bold text-lg text-ink text-center">
-            Nenhuma atividade encontrada
-          </Text>
-          <Text className="font-body text-sm text-ink-muted text-center">
-            {selectedType
-              ? 'Você ainda não possui registros para este filtro.'
-              : 'Suas interações com pets, solicitações e voluntariado aparecerão aqui.'}
-          </Text>
-        </View>
+        <EmptyState
+          icon={PawPrintIcon}
+          title={selectedType ? 'Nenhuma atividade encontrada' : 'Nenhuma atividade ainda'}
+          description={selectedType
+            ? 'Você ainda não possui registros para este filtro.'
+            : 'Suas interações com pets, solicitações e voluntariado aparecerão aqui.'}
+        />
       ) : (
         <View className="gap-3">
           {events.map((event) => {

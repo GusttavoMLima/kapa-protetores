@@ -35,6 +35,7 @@ export class AnimalsController {
     try {
       const parsed = animalManagementQuerySchema.safeParse(req.query);
       if (!parsed.success) throw new BadRequestError('Filtros inválidos.');
+      res.set('Cache-Control', 'no-store');
       res.json({ success: true, data: await this.animalService.getManagementPage(parsed.data) });
     } catch (error) { next(error); }
   };
@@ -63,6 +64,7 @@ export class AnimalsController {
     try {
       const parsed = animalIdSchema.safeParse(req.params.id);
       if (!parsed.success) throw new BadRequestError('ID inválido.');
+      res.set('Cache-Control', 'no-store');
       res.json({ success: true, data: await this.animalService.getManagedById(parsed.data) });
     } catch (error) { next(error); }
   };
@@ -84,6 +86,7 @@ export class AnimalsController {
         data,
         count: data.length,
       };
+      res.set('Cache-Control', 'no-store');
       res.status(200).json(response);
     } catch (error) {
       next(error);
@@ -103,6 +106,7 @@ export class AnimalsController {
         message: 'Animal obtido com sucesso',
         data,
       };
+      res.set('Cache-Control', 'no-store');
       res.status(200).json(response);
     } catch (error) {
       next(error);

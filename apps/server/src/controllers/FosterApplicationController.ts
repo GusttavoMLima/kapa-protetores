@@ -14,7 +14,12 @@ const submissionSchema = z.object({
   hasSecureGate: z.boolean(),
 }).strict().refine(({ availableFrom, availableUntil }) => availableUntil === null || availableUntil >= availableFrom);
 const reviewSchema = z.object({ status: z.enum(['approved', 'rejected']) }).strict();
-const listSchema = z.object({ page: z.coerce.number().int().min(1).max(100000).default(1) }).strict();
+const listSchema = z.object({
+  page: z.coerce.number().int().min(1).max(100000).default(1),
+  status: z.enum(['pending', 'approved', 'rejected']).optional(),
+  availability: z.enum(['available', 'indefinite', 'ended']).optional(),
+  search: z.string().trim().max(120).optional(),
+}).strict();
 const pageSize = 20;
 
 function toView(application: FosterApplication) {
@@ -77,8 +82,9 @@ export class FosterApplicationController {
   public list: RequestHandler = async (req, res, next) => {
     try {
       const parsed = listSchema.safeParse(req.query);
-      if (!parsed.success) throw new BadRequestError('Página inválida.');
-      const { items, total } = await this.service.list(parsed.data.page, pageSize);
+      if (!parsed.success) throw new BadRequestError('Filtros inválidos.');
+      const { page, ...filters } = parsed.data;
+      const { items, total } = await this.service.list(page, pageSize, filters);
       res.json({
         success: true,
         data: { items: items.map((item) => ({ ...toView(item), applicant: item.user })), total, pageSize },
