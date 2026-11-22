@@ -4,6 +4,7 @@ import { VolunteerScreen } from '@/screens/volunteer';
 import { useAuth } from '@/hooks/useAuth';
 import {
   useCreateVolunteerApplication,
+  useCurrentVolunteerUserRole,
   useEditVolunteerApplication,
   useMyVolunteerApplication,
 } from '@/hooks/useVolunteerApplications';
@@ -16,10 +17,12 @@ jest.mock('@/hooks/useAuth', () => ({
 jest.mock('@/hooks/useVolunteerApplications', () => ({
   useMyVolunteerApplication: jest.fn(),
   useCreateVolunteerApplication: jest.fn(),
+  useCurrentVolunteerUserRole: jest.fn(),
   useEditVolunteerApplication: jest.fn(),
 }));
 
 jest.mock('expo-router', () => ({
+  useFocusEffect: jest.fn(),
   router: {
     push: jest.fn(),
     back: jest.fn(),
@@ -72,6 +75,13 @@ describe('VolunteerScreen', () => {
       mutateAsync: jest.fn().mockResolvedValue({}),
       isPending: false,
     } as unknown as ReturnType<typeof useCreateVolunteerApplication>);
+    jest.mocked(useCurrentVolunteerUserRole).mockImplementation(() => ({
+      data: mockedUseAuth().user?.role,
+      isFetchedAfterMount: true,
+      isLoading: false,
+      isError: false,
+      refetch: jest.fn(),
+    }) as unknown as ReturnType<typeof useCurrentVolunteerUserRole>);
   });
 
   it('renders the volunteer signup form when user has no application', async () => {
@@ -183,10 +193,19 @@ describe('VolunteerScreen', () => {
     expect(router.push).toHaveBeenCalledWith('/cuidados-animais');
   });
 
-  it('submits the volunteer form when valid data is provided', async () => {
+  it('submits a new application after the volunteer role is removed', async () => {
+    const auth = mockedUseAuth();
+    mockedUseAuth.mockReturnValue({ ...auth, user: { ...auth.user!, role: 'volunteer' } });
+    jest.mocked(useCurrentVolunteerUserRole).mockReturnValue({
+      data: 'adopter',
+      isFetchedAfterMount: true,
+      isLoading: false,
+      isError: false,
+      refetch: jest.fn(),
+    } as unknown as ReturnType<typeof useCurrentVolunteerUserRole>);
     const mutateAsync = jest.fn().mockResolvedValue({});
     mockedUseMyVolunteerApplication.mockReturnValue({
-      data: null,
+      data: { status: 'approved' },
       isLoading: false,
       refetch: jest.fn(),
     } as unknown as ReturnType<typeof useMyVolunteerApplication>);
@@ -198,6 +217,7 @@ describe('VolunteerScreen', () => {
     const { getByPlaceholderText, getByLabelText, getByText } = await render(
       <VolunteerScreen />,
     );
+    expect(auth.updateUserData).toHaveBeenCalledWith(expect.objectContaining({ role: 'adopter' }));
 
     await fireEvent.press(getByLabelText('Cuidados com os pets'));
     await fireEvent.press(getByLabelText('Finais de semana'));

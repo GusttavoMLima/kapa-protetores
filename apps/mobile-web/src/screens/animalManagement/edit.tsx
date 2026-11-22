@@ -647,7 +647,7 @@ function AnimalEditor({ id }: { id: string }) {
                   >
                     {dirty
                       ? 'Há alterações ainda não salvas.'
-                      : 'Todas as informações estão salvas.'}
+                      : 'Altere algum dado do animal para salvar.'}
                   </Text>
                   <View className="flex-col md:flex-row gap-3">
                     <TextButton
@@ -658,10 +658,10 @@ function AnimalEditor({ id }: { id: string }) {
                     <PrimaryButton
                       title="Salvar alterações"
                       fullWidth={false}
-                      textColor={palette.ink}
                       onPress={() => void save()}
                       loading={saving}
                       disabled={!dirty}
+                      disabledReason="Altere algum dado do animal para salvar."
                     />
                   </View>
                 </View>

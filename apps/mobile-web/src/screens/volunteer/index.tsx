@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -23,12 +23,14 @@ import {
 } from 'phosphor-react-native';
 import type { CommunityEventType, VolunteerAvailability } from '@kapa/shared';
 import { PrimaryButton } from '@/components/buttons/primary';
+import { FormActions } from '@/components/forms/FormActions';
 import { FormSubmissionStatus } from '@/components/feedback/FormSubmissionLoader';
 import { PrimaryCheckBox } from '@/components/checkboxs/primary';
 import { PrimaryInputText } from '@/components/inputText/primary';
 import { useAuth } from '@/hooks/useAuth';
 import {
   useCreateVolunteerApplication,
+  useCurrentVolunteerUserRole,
   useEditVolunteerApplication,
   useMyVolunteerApplication,
 } from '@/hooks/useVolunteerApplications';
@@ -128,10 +130,15 @@ function handleNavigateBack() {
 
 export function VolunteerScreen() {
   const { user, updateUserData } = useAuth();
+  const currentRole = useCurrentVolunteerUserRole(user?.id);
+  const { refetch: refetchRole } = currentRole;
+  const userId = user?.id;
+  useFocusEffect(useCallback(() => {
+    if (userId) void refetchRole({ cancelRefetch: false });
+  }, [refetchRole, userId]));
+  const role = currentRole.data;
   const isAlreadyVolunteerOrStaff =
-    user?.role === 'volunteer' ||
-    user?.role === 'protector' ||
-    user?.role === 'admin';
+    role === 'volunteer' || role === 'protector' || role === 'admin';
 
   const {
     data: myApplication,
@@ -145,26 +152,18 @@ export function VolunteerScreen() {
   const [submissionError, setSubmissionError] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  const isApproved =
-    isAlreadyVolunteerOrStaff || myApplication?.status === 'approved';
-
   useEffect(() => {
-    if (
-      myApplication?.status === 'approved' &&
-      user &&
-      user.role === 'adopter' &&
-      updateUserData
-    ) {
-      void updateUserData({ ...user, role: 'volunteer' });
+    if (currentRole.isFetchedAfterMount && !currentRole.isError && role && user && role !== user.role) {
+      void updateUserData({ ...user, role });
     }
-  }, [myApplication?.status, updateUserData, user]);
+  }, [currentRole.isFetchedAfterMount, currentRole.isError, role, updateUserData, user]);
 
   const {
     control,
     handleSubmit,
     setValue,
     reset,
-    formState: { errors },
+    formState: { errors, isSubmitted },
   } = useForm<VolunteerFormData>({
     resolver: zodResolver(volunteerFormSchema),
     defaultValues: {
@@ -222,7 +221,7 @@ export function VolunteerScreen() {
 
   if (!isAdult(user?.birthDate) || !isValidPhone(user?.phone)) return <EligibilityNotice user={user} />;
 
-  if (isLoading && !isAlreadyVolunteerOrStaff) {
+  if (currentRole.isLoading || (isLoading && !isAlreadyVolunteerOrStaff)) {
     return (
       <View className="flex-1 items-center justify-center bg-cream gap-3">
         <ActivityIndicator size="large" color={palette.orange} />
@@ -239,7 +238,12 @@ export function VolunteerScreen() {
         <PageHeading icon={HandHeartIcon} eyebrow="SEU TEMPO FAZ A DIFERENÇA" title="Seja Voluntário na Kapa" description="Doe seu tempo e carinho para transformar a rotina dos animais resgatados." />
 
         {/* State 1: Approved Volunteer or Staff */}
-        {isApproved ? (
+        {currentRole.isError ? (
+          <View className="gap-3">
+            <Text accessibilityRole="alert" className="font-body text-danger">Não foi possível verificar seu acesso ao voluntariado.</Text>
+            <PrimaryButton title="Tentar novamente" onPress={() => void currentRole.refetch()} />
+          </View>
+        ) : isAlreadyVolunteerOrStaff ? (
           <View className="bg-white rounded-2xl border border-line p-6 gap-5">
             <View className="flex-row items-center gap-3">
               <View className="size-11 rounded-full bg-[#E8F3EE] items-center justify-center">
@@ -276,7 +280,7 @@ export function VolunteerScreen() {
               </Text>
             </View>
 
-            {user?.role === 'volunteer' ? (
+            {role === 'volunteer' ? (
               <>
                 <PrimaryButton
                   title="Ver atividades disponíveis"
@@ -582,18 +586,20 @@ export function VolunteerScreen() {
               />
             </View>
 
-            {submissionError && (editingId === null || isEditing) ? (
+            {isSubmitted && Object.keys(errors).length > 0 ? (
+              <Text accessibilityRole="alert" className="font-body-medium text-sm text-danger">Revise os campos indicados acima para continuar.</Text>
+            ) : submissionError && (editingId === null || isEditing) ? (
               <Text className="font-body-medium text-sm text-danger text-center">
                 {submissionError}
               </Text>
             ) : null}
 
-            <PrimaryButton
+            <FormActions
               title={isEditing ? 'Salvar alterações' : 'Enviar inscrição de voluntariado'}
-              loading={isSubmitting || isSaving}
-              onPress={handleSubmit(onSubmit)}
+              pending={isSubmitting || isSaving}
+              onSubmit={handleSubmit(onSubmit)}
+              onCancel={isEditing ? closeEditor : undefined}
             />
-            {isEditing ? <PrimaryButton title="Cancelar edição" disabled={isSaving} onPress={closeEditor} /> : null}
           </>
         )}
       </Page>

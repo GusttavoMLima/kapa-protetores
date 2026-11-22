@@ -112,6 +112,15 @@ describe('foster applications', () => {
     expect((await request('/', 'applicant', 'POST', details)).status).toBe(409);
   });
 
+  it.each([undefined, null, '  '])('accepts an optional home description (%p)', async (homeNotes) => {
+    database.findFirst.mockResolvedValueOnce(null);
+    database.create.mockResolvedValueOnce({ ...record, home_notes: '' });
+    const response = await request('/', 'applicant', 'POST', { ...details, homeNotes });
+    expect(response.status).toBe(201);
+    expect((await response.json()).data.homeNotes).toBeNull();
+    expect(database.create).toHaveBeenCalledWith({ data: expect.objectContaining({ home_notes: '' }) });
+  });
+
   it('allows another application only on the day after the latest end date in São Paulo', async () => {
     database.findFirst.mockResolvedValue(record);
     const next = { ...details, availableFrom: '2026-11-03', availableUntil: null };

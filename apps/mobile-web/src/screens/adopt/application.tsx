@@ -170,7 +170,7 @@ export function AdoptionApplicationScreen() {
     () => animals.find((item) => item.id === id && item.status === 'available'),
     [animals, id],
   );
-  const { control, handleSubmit, setValue, formState: { errors } } = useForm<AdoptionApplicationFormData>({
+  const { control, handleSubmit, setValue, formState: { errors, isSubmitted } } = useForm<AdoptionApplicationFormData>({
     resolver: zodResolver(adoptionApplicationSchema),
     defaultValues: {
       fullName: user?.username ?? '',
@@ -329,7 +329,9 @@ export function AdoptionApplicationScreen() {
           )} />
         </View>
 
-        {submissionError ? <Text className="font-body-medium text-sm text-danger text-center">{submissionError}</Text> : null}
+        {isSubmitted && Object.keys(errors).length > 0 ? (
+          <Text accessibilityRole="alert" className="font-body-medium text-sm text-danger">Revise os campos indicados acima para enviar a ficha.</Text>
+        ) : submissionError ? <Text accessibilityRole="alert" className="font-body-medium text-sm text-danger text-center">{submissionError}</Text> : null}
         <PrimaryButton title="Enviar ficha" loading={isSubmitting} onPress={handleSubmit(submitApplication)} />
       </Page>
 

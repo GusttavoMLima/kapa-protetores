@@ -30,6 +30,7 @@ export type PrimaryButtonProps = Omit<PressableProps, 'style' | 'children'> & {
   loadingColor?: string;
   size?: PrimaryButtonSize;
   fullWidth?: boolean;
+  disabledReason?: string;
   style?:
     | StyleProp<ViewStyle>
     | ((state: {
@@ -52,14 +53,17 @@ export const PrimaryButton = memo(
     loading = false,
     loadingColor,
     disabled = false,
+    disabledReason,
     size = 'md',
     fullWidth = true,
     style,
     accessibilityRole = 'button',
     accessibilityLabel,
+    accessibilityHint,
     ...rest
   }: PrimaryButtonProps) => {
     const isInteractive = !disabled && !loading;
+    const showBlockedStyle = disabled && Boolean(disabledReason) && !loading;
 
     const pressedBackgroundColor =
       pressedColor ?? (color ? undefined : palette.orangeDark);
@@ -113,7 +117,7 @@ export const PrimaryButton = memo(
         return (
           <Text
             className={cn('font-bold text-center', textSizeClasses)}
-            style={[{ color: textColor }, textStyle]}
+            style={[{ color: showBlockedStyle ? palette.white : textColor }, textStyle]}
           >
             {title ?? children}
           </Text>
@@ -145,6 +149,7 @@ export const PrimaryButton = memo(
         disabled={!isInteractive}
         accessibilityRole={accessibilityRole}
         accessibilityLabel={label}
+        accessibilityHint={showBlockedStyle ? disabledReason : accessibilityHint}
         accessibilityState={{
           disabled: !isInteractive,
           busy: loading,
@@ -157,8 +162,9 @@ export const PrimaryButton = memo(
           state.pressed && isInteractive
             ? { transform: [{ scale: 0.99 }] }
             : null,
-          !isInteractive ? { opacity: 0.55 } : null,
+          !isInteractive && !showBlockedStyle ? { opacity: 0.55 } : null,
           typeof style === 'function' ? style(state) : style,
+          showBlockedStyle ? { backgroundColor: palette.denim, borderColor: palette.denim, borderWidth: 1.5 } : null,
         ]}
       >
         {hasIcon && (

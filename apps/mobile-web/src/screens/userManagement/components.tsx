@@ -9,6 +9,7 @@ import {
 } from '@/screens/animalManagement/components';
 import { palette } from '@/theme';
 import { FormSubmissionStatus } from '@/components/feedback/FormSubmissionLoader';
+import { PrimaryButton } from '@/components/buttons/primary';
 import {
   ROLE_LABELS,
   ROLE_ORDER,
@@ -159,20 +160,17 @@ export function ManageUserModal({
                   onChange={setRole}
                   disabled={locked}
                 />
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Salvar papel"
-                  accessibilityState={{ disabled: saveDisabled, busy }}
+                {!locked && saveDisabled && (
+                  <Text className="font-body text-sm text-ink-muted">Selecione um papel diferente para salvar.</Text>
+                )}
+                <PrimaryButton
+                  title="Salvar papel"
+                  fullWidth={false}
+                  loading={busy}
                   disabled={saveDisabled}
+                  disabledReason={isSelf ? 'Você não pode alterar a sua própria conta por aqui.' : 'Selecione um papel diferente para salvar.'}
                   onPress={() => onSaveRole(role)}
-                  className={`min-h-12 self-start px-6 py-3 rounded-md items-center justify-center bg-orange ${
-                    saveDisabled ? 'opacity-40' : 'hover:bg-orange-dark active:bg-orange-dark'
-                  }`}
-                >
-                  <Text className="font-body-medium text-sm text-ink">
-                    {busy ? 'Salvando…' : 'Salvar papel'}
-                  </Text>
-                </Pressable>
+                />
               </View>
 
               <View className="gap-3 pt-5 border-t border-border">

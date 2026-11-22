@@ -7,7 +7,7 @@ import type { FosterApplicationService } from '../services/FosterApplicationServ
 const submissionSchema = z.object({
   availableFrom: z.string().date(),
   availableUntil: z.string().date().nullable(),
-  homeNotes: z.string().trim().min(1).max(2000),
+  homeNotes: z.string().trim().max(2000).nullish(),
   homeAddress: z.string().trim().min(1).max(500),
   hasOtherAnimals: z.boolean(),
   hasPerimeterBarrier: z.boolean(),
@@ -28,7 +28,7 @@ function toView(application: FosterApplication) {
     availability: application.availability,
     availableFrom: application.available_from?.toISOString().slice(0, 10) ?? null,
     availableUntil: application.available_until?.toISOString().slice(0, 10) ?? null,
-    homeNotes: application.home_notes,
+    homeNotes: application.home_notes || null,
     homeAddress: application.home_address,
     hasOtherAnimals: application.has_other_animals,
     hasPerimeterBarrier: application.has_perimeter_barrier,

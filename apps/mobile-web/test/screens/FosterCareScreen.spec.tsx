@@ -67,7 +67,7 @@ describe('Lar Temporário', () => {
       user: { id: 'applicant', role: 'adopter' },
     } as ReturnType<typeof useAuth>);
     const details = {
-      availableFrom: '2026-11-20', availableUntil: null, homeNotes: 'Quarto separado',
+      availableFrom: '2026-11-20', availableUntil: null, homeNotes: null,
       homeAddress: 'Rua de Teste, 123 • Centro, Mogi Guaçu • CEP 13840-001',
       hasOtherAnimals: false, hasPerimeterBarrier: true, hasSecureGate: true,
     };
@@ -87,26 +87,40 @@ describe('Lar Temporário', () => {
         <FosterCareScreen />
       </QueryClientProvider>,
     );
-    await fireEvent.changeText(await screen.findByLabelText('Quando pode começar'), details.availableFrom);
+    const pendingTitle = 'Revise os campos indicados acima para continuar.';
+    const startDate = await screen.findByLabelText('Quando pode começar');
+    expect(screen.queryByText(pendingTitle)).toBeNull();
+    await fireEvent.changeText(startDate, details.availableFrom);
+    expect(screen.queryByText(pendingTitle)).toBeNull();
+    const submit = screen.getByRole('button', { name: 'Enviar candidatura' });
+    await fireEvent.press(submit);
+    expect(submitFosterApplication).not.toHaveBeenCalled();
+    expect(screen.getByText(pendingTitle)).toBeTruthy();
+    expect(screen.getByText('Informe a data final ou selecione prazo indeterminado.')).toBeTruthy();
+    expect(screen.getByText('Informe um CEP válido.')).toBeTruthy();
+    expect(screen.getAllByText('Selecione Sim ou Não.')).toHaveLength(3);
     await fireEvent.changeText(screen.getByLabelText('Até quando pode acolher'), '2026-11-19');
     expect(screen.getByText('A data final deve ser igual ou posterior à inicial.')).toBeTruthy();
     await fireEvent.press(screen.getByRole('checkbox', { name: 'Prazo indeterminado' }));
     expect(screen.queryByLabelText('Até quando pode acolher')).toBeNull();
-    await fireEvent.changeText(screen.getByLabelText('Espaço de acolhimento'), details.homeNotes);
-    const submit = screen.getByRole('button', { name: 'Enviar candidatura' });
+    expect(screen.getByLabelText('Espaço de acolhimento (opcional)')).toHaveDisplayValue('');
     await fireEvent.press(within(screen.getByLabelText(fosterHomeQuestions.hasOtherAnimals)).getByRole('radio', { name: 'Não' }));
     await fireEvent.press(within(screen.getByLabelText(fosterHomeQuestions.hasPerimeterBarrier)).getByRole('radio', { name: 'Sim' }));
-    expect(submit).toBeDisabled();
+    await fireEvent.press(submit);
+    expect(submitFosterApplication).not.toHaveBeenCalled();
     await fireEvent.changeText(screen.getByLabelText('CEP'), '13840001');
     expect(await screen.findByDisplayValue('Rua de Teste')).toBeTruthy();
     expect(lookup).toHaveBeenCalledWith('https://viacep.com.br/ws/13840001/json/', expect.objectContaining({ signal: expect.anything() }));
     await fireEvent.changeText(screen.getByLabelText('Número'), '123');
-    expect(submit).toBeDisabled();
+    expect(screen.getAllByText('Selecione Sim ou Não.')).toHaveLength(1);
     await fireEvent.press(within(screen.getByLabelText(fosterHomeQuestions.hasSecureGate)).getByRole('radio', { name: 'Sim' }));
+    expect(screen.queryByText(pendingTitle)).toBeNull();
+    expect(submit).toBeEnabled();
     await fireEvent.press(submit);
     expect(await screen.findByText('Em análise')).toBeTruthy();
     expect(screen.getByText(details.homeAddress)).toBeTruthy();
     expect(screen.getByText('Prazo indeterminado')).toBeTruthy();
+    expect(screen.getByText('Para enviar uma nova candidatura, a anterior precisa ter uma data final de disponibilidade e esse prazo precisa terminar.')).toBeTruthy();
     expect(jest.mocked(submitFosterApplication).mock.calls[0]?.[0]).toEqual(details);
     expect(screen.queryByRole('button', { name: 'Enviar candidatura' })).toBeNull();
   });
@@ -122,17 +136,20 @@ describe('Lar Temporário', () => {
       submittedAt: '2026-11-14T10:00:00.000Z', updatedAt: '2026-11-14T10:00:00.000Z',
     };
     jest.mocked(fetchMyFosterApplication).mockResolvedValue(saved);
-    jest.mocked(editFosterApplication).mockResolvedValue({ ...saved, availableUntil: '2026-12-01' });
+    jest.mocked(editFosterApplication).mockResolvedValue({ ...saved, availableUntil: '2026-12-01', homeNotes: null });
     const client = new QueryClient({ defaultOptions: { queries: { gcTime: Infinity }, mutations: { gcTime: Infinity } } });
     const screen = await render(<QueryClientProvider client={client}><FosterCareScreen /></QueryClientProvider>);
-    await fireEvent.press(await screen.findByRole('button', { name: 'Editar candidatura' }));
+    const edit = await screen.findByRole('button', { name: 'Editar candidatura' });
+    expect(screen.getByText('Você poderá enviar uma nova candidatura no dia seguinte ao fim da disponibilidade atual.')).toBeTruthy();
+    await fireEvent.press(edit);
     expect(screen.getByLabelText('Quando pode começar')).toHaveDisplayValue(saved.availableFrom);
     expect(screen.getByLabelText('Até quando pode acolher')).toHaveDisplayValue(saved.availableUntil);
     await fireEvent.changeText(screen.getByLabelText('Até quando pode acolher'), '2026-12-01');
+    await fireEvent.changeText(screen.getByLabelText('Espaço de acolhimento (opcional)'), '  ');
     await fireEvent.press(screen.getByRole('button', { name: 'Salvar alterações' }));
     expect(await screen.findByText('Até 01/12/2026')).toBeTruthy();
     expect(editFosterApplication).toHaveBeenCalledWith(saved.id, expect.objectContaining({
-      availableFrom: saved.availableFrom, availableUntil: '2026-12-01', homeAddress: saved.homeAddress,
+      availableFrom: saved.availableFrom, availableUntil: '2026-12-01', homeAddress: saved.homeAddress, homeNotes: null,
     }));
   });
 
@@ -152,7 +169,7 @@ describe('Lar Temporário', () => {
     expect(screen.queryByRole('button', { name: 'Editar candidatura' })).toBeNull();
     await fireEvent.press(start);
     expect(screen.getByLabelText('Quando pode começar')).toHaveDisplayValue('');
-    expect(screen.getByRole('button', { name: 'Enviar candidatura' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Enviar candidatura' })).toBeEnabled();
   });
 
   it('offers sign-in instead of retrying a rejected session', async () => {

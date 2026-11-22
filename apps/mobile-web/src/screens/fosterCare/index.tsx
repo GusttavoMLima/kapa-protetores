@@ -12,6 +12,7 @@ import { PrimaryCheckBox } from '@/components/checkboxs/primary';
 import { DateTimeField } from '@/components/inputDateTime';
 import { ResidentialAddressFields, residentialAddressSchema, type ResidentialAddress } from '@/components/forms/ResidentialAddressFields';
 import { PrimaryButton } from '@/components/buttons/primary';
+import { FormActions } from '@/components/forms/FormActions';
 import { FormSubmissionLoader } from '@/components/feedback/FormSubmissionLoader';
 import { PrimaryInputText } from '@/components/inputText/primary';
 import { useAuth } from '@/hooks/useAuth';
@@ -130,9 +131,13 @@ function FosterApplicationForm({ userId }: { userId: string }) {
       ) : latest && !showEditor ? (
         <>
           <FosterHomeDetails application={latest} />
-          {latest.canSubmitNew && (
-            <Text className="font-body text-sm text-ink-muted">A disponibilidade desta candidatura terminou.</Text>
-          )}
+          <Text className="font-body text-sm text-ink-muted">
+            {latest.canSubmitNew
+              ? 'A disponibilidade desta candidatura terminou.'
+              : latest.availableUntil
+                ? 'Você poderá enviar uma nova candidatura no dia seguinte ao fim da disponibilidade atual.'
+                : 'Para enviar uma nova candidatura, a anterior precisa ter uma data final de disponibilidade e esse prazo precisa terminar.'}
+          </Text>
           <View className="flex-row flex-wrap gap-3">
             {latest.canEdit && (
               <PrimaryButton title="Editar candidatura" fullWidth={false} onPress={() => {
@@ -169,6 +174,7 @@ function FosterApplicationEditor({ initial, pending, error, onSubmit, onCancel }
   onSubmit: (input: FosterApplicationInput) => void;
   onCancel?: () => void;
 }) {
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [availableFrom, setAvailableFrom] = useState(initial?.availableFrom ?? '');
   const [availableUntil, setAvailableUntil] = useState(initial?.availableUntil ?? '');
   const [indefinite, setIndefinite] = useState(Boolean(initial?.availableFrom && !initial.availableUntil));
@@ -191,11 +197,13 @@ function FosterApplicationEditor({ initial, pending, error, onSubmit, onCancel }
     : initial?.homeAddress;
   const invalidPeriod = !indefinite && availableFrom && availableUntil && availableUntil < availableFrom;
   const { hasOtherAnimals, hasPerimeterBarrier, hasSecureGate } = homeAnswers;
-  const submission = availableFrom && (indefinite || availableUntil) && !invalidPeriod && homeAddress && homeNotes.trim() &&
+  const addressErrors = attemptedSubmit && replaceAddress && !parsedAddress.success
+    ? parsedAddress.error.flatten().fieldErrors : {};
+  const submission = availableFrom && (indefinite || availableUntil) && !invalidPeriod && homeAddress &&
     hasOtherAnimals !== null && hasPerimeterBarrier !== null && hasSecureGate !== null
     ? {
         availableFrom, availableUntil: indefinite ? null : availableUntil,
-        homeNotes: homeNotes.trim(), homeAddress,
+        homeNotes: homeNotes.trim() || null, homeAddress,
         hasOtherAnimals, hasPerimeterBarrier, hasSecureGate,
       }
     : null;
@@ -204,10 +212,11 @@ function FosterApplicationEditor({ initial, pending, error, onSubmit, onCancel }
     <View className="gap-4">
       <View className="gap-3">
         <Text accessibilityRole="header" className="font-heading-bold text-base text-ink">Disponibilidade</Text>
-        <DateTimeField label="Quando pode começar" mode="date" value={availableFrom} onChange={setAvailableFrom} disabled={pending} />
+        <DateTimeField label="Quando pode começar" mode="date" value={availableFrom} onChange={setAvailableFrom} disabled={pending}
+          error={attemptedSubmit && !availableFrom ? 'Informe a data inicial.' : undefined} />
         {!indefinite && (
           <DateTimeField label="Até quando pode acolher" mode="date" value={availableUntil} onChange={setAvailableUntil} disabled={pending}
-            error={invalidPeriod ? 'A data final deve ser igual ou posterior à inicial.' : undefined} />
+            error={invalidPeriod ? 'A data final deve ser igual ou posterior à inicial.' : attemptedSubmit && !availableUntil ? 'Informe a data final ou selecione prazo indeterminado.' : undefined} />
         )}
         <PrimaryCheckBox label="Prazo indeterminado" checked={indefinite} onChange={setIndefinite} disabled={pending} />
       </View>
@@ -223,6 +232,10 @@ function FosterApplicationEditor({ initial, pending, error, onSubmit, onCancel }
           title="Endereço da casa"
           description="Informe onde o animal será acolhido."
           address={address}
+          errors={{
+            postalCode: addressErrors.postalCode?.[0], street: addressErrors.street?.[0],
+            number: addressErrors.number?.[0], neighborhood: addressErrors.neighborhood?.[0], city: addressErrors.city?.[0],
+          }}
           onChange={(fields) => setAddress((previous) => ({ ...previous, ...fields }))}
           editable={!pending}
         />
@@ -241,10 +254,13 @@ function FosterApplicationEditor({ initial, pending, error, onSubmit, onCancel }
               />
             ))}
           </View>
+          {attemptedSubmit && homeAnswers[key] === null && (
+            <Text className="font-body text-xs text-danger">Selecione Sim ou Não.</Text>
+          )}
         </View>
       ))}
       <PrimaryInputText
-        label="Espaço de acolhimento"
+        label="Espaço de acolhimento (opcional)"
         placeholder="Descreva onde o animal ficará e, se houver outros animais, quais são"
         value={homeNotes}
         onChangeText={setHomeNotes}
@@ -252,20 +268,24 @@ function FosterApplicationEditor({ initial, pending, error, onSubmit, onCancel }
         maxLength={2000}
         editable={!pending}
       />
-      {error && (
+      {attemptedSubmit && !submission ? (
+        <Text accessibilityRole="alert" className="font-body-medium text-sm text-danger">Revise os campos indicados acima para continuar.</Text>
+      ) : error && (
         <Text accessibilityRole="alert" className="font-body text-danger">
           {error instanceof ApiError && (error.status === 400 || error.status === 409) && error.responseMessage
             ? error.responseMessage
             : 'Não foi possível salvar a candidatura. Tente novamente.'}
         </Text>
       )}
-      <PrimaryButton
+      <FormActions
         title={initial ? 'Salvar alterações' : 'Enviar candidatura'}
-        disabled={!submission}
-        loading={pending}
-        onPress={() => { if (submission) onSubmit(submission); }}
+        pending={pending}
+        onSubmit={() => {
+          if (submission) onSubmit(submission);
+          else setAttemptedSubmit(true);
+        }}
+        onCancel={onCancel}
       />
-      {onCancel && <PrimaryButton title="Cancelar" fullWidth={false} disabled={pending} onPress={onCancel} />}
     </View>
   );
 }

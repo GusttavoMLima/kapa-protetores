@@ -4,7 +4,7 @@ import { BadRequestError, ConflictError, NotFoundError, UnauthorizedError } from
 type FosterApplicationInput = {
   availableFrom: string;
   availableUntil: string | null;
-  homeNotes: string;
+  homeNotes?: string | null;
   homeAddress: string;
   hasOtherAnimals: boolean;
   hasPerimeterBarrier: boolean;
@@ -26,7 +26,7 @@ function applicationData(input: FosterApplicationInput) {
     availability: null,
     available_from: new Date(input.availableFrom),
     available_until: input.availableUntil ? new Date(input.availableUntil) : null,
-    home_notes: input.homeNotes,
+    home_notes: input.homeNotes ?? '',
     home_address: input.homeAddress,
     has_other_animals: input.hasOtherAnimals,
     has_perimeter_barrier: input.hasPerimeterBarrier,

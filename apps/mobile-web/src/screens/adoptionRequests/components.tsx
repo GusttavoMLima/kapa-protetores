@@ -3,11 +3,13 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import type { Icon } from 'phosphor-react-native';
 import { palette } from '@/theme';
 
-export function RequestAction({ label, onPress, icon: IconComponent, disabled = false, busy = false, destructive = false }: {
-  label: string; onPress: () => void; icon?: Icon; disabled?: boolean; busy?: boolean; destructive?: boolean;
+export function RequestAction({ label, onPress, icon: IconComponent, disabled = false, disabledReason, busy = false, destructive = false }: {
+  label: string; onPress: () => void; icon?: Icon; disabled?: boolean; disabledReason?: string; busy?: boolean; destructive?: boolean;
 }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: disabled || busy, busy }} disabled={disabled || busy} onPress={onPress}
-    className={`min-h-12 flex-row items-center justify-center gap-2 rounded-xl border px-4 py-3 ${destructive ? 'border-danger/30 bg-white' : 'border-line bg-white hover:bg-peach'} ${disabled || busy ? 'opacity-50' : 'active:opacity-70'}`}>
+  const blocked = disabled && Boolean(disabledReason) && !busy;
+  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityHint={blocked ? disabledReason : undefined} accessibilityState={{ disabled: disabled || busy, busy }} disabled={disabled || busy} onPress={onPress}
+    className={`min-h-12 flex-row items-center justify-center gap-2 rounded-xl border px-4 py-3 ${destructive ? 'border-danger/30 bg-white' : 'border-line bg-white hover:bg-peach'} ${disabled || busy ? (blocked ? '' : 'opacity-50') : 'active:opacity-70'}`}
+    style={blocked ? { backgroundColor: palette.peach, borderColor: palette.denim, borderWidth: 1.5 } : undefined}>
     {busy ? <ActivityIndicator size="small" color={palette.denim} /> : IconComponent ? <IconComponent size={18} color={destructive ? palette.danger : palette.denim} /> : null}
     <Text className={`font-body-medium text-sm text-center ${destructive ? 'text-danger' : 'text-denim'}`}>{label}</Text>
   </Pressable>;

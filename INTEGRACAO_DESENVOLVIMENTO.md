@@ -1136,6 +1136,7 @@ A camada de tratamento e propagação de erros do servidor foi padronizada atrav
 * **Endpoints da API ([`VolunteerApplicationRouter.ts`](apps/server/src/routes/VolunteerApplicationRouter.ts) e [`VolunteerApplicationService.ts`](apps/server/src/services/VolunteerApplicationService.ts))**:
   * `POST /api/volunteer-applications`: envia a ficha de voluntariado do usuário autenticado (`fullName`, `phone`, `areasOfInterest`, `availability`, `motivation`, `acceptsTerms`), bloqueando duplicidade de solicitações pendentes.
   * `GET /api/volunteer-applications/mine`: retorna a solicitação mais recente do usuário autenticado.
+  * A tela de voluntariado consulta a função atual em `GET /api/users/me` ao ganhar foco. Uma aprovação anterior permanece no histórico e não impede uma nova inscrição quando a função volta para `adopter`. A API verifica a função atual e a existência de candidatura pendente no banco antes de gravar.
   * `PATCH /api/volunteer-applications/:id`: permite ao titular editar uma solicitação pendente. A API valida os dados da ficha, usa o telefone do perfil e exige que a solicitação ainda esteja pendente no momento da gravação.
     * A tela de inscrição exibe a solicitação pendente e consulta o status ao reabrir a tela ou voltar à janela do navegador.
   * `GET /api/volunteer-applications`: listagem administrativa restrita a `admin` e `protector`.
@@ -1357,6 +1358,8 @@ Implementação em `src/screens/adoptionRequests/` (`model`, componentes, cartã
 - A tela mostra o formulário quando a API retorna `data: null`. Se receber HTTP 401 na consulta ou no envio, oferece um botão para encerrar a sessão local e entrar novamente.
 - A migração `20261111230000_add_foster_home_details` adiciona `home_address`, `has_other_animals`, `has_perimeter_barrier` e `has_secure_gate`. O envio exige o endereço da casa e respostas explícitas de Sim ou Não. As candidaturas anteriores preservam valores nulos, exibidos como **Não informado**. O endereço e as respostas são retornados apenas ao titular e à equipe autorizada.
 - Lar Temporário e ficha de adoção usam os mesmos campos de endereço (CEP, rua, número, bairro e cidade) e a mesma consulta ViaCEP. Lar Temporário combina os campos preenchidos no endereço salvo da candidatura.
+- No formulário de Lar Temporário, uma tentativa inválida exibe mensagens nos campos e o mesmo aviso junto ao botão da inscrição de voluntariado. Os avisos acompanham as correções e a API só é chamada com o formulário válido. Quando uma candidatura anterior bloqueia o reenvio, a tela explica a condição de disponibilidade retornada pela API.
+- A descrição do espaço de acolhimento é opcional na criação e na edição. A API aceita `homeNotes` ausente, nulo ou em branco e retorna `null` quando não há descrição. O banco armazena esse caso como texto vazio na coluna existente.
 - Administradores e protetores analisam candidaturas em **Gestão do abrigo → Lar Temporário**. `GET /api/foster-applications` lista resultados paginados (filtros opcionais `status`, `availability` e `search`, ver seção 49) e `PATCH /api/foster-applications/:id/status` registra uma decisão sobre a candidatura pendente. As permissões são verificadas no banco e o status é atualizado de forma atômica.
 - A migração `20261114235000_add_foster_availability_dates` troca a restrição de uma candidatura por usuário por um índice para consultar o histórico. As colunas `available_from` e `available_until` são datas de calendário. O texto das candidaturas anteriores é preservado sem inferir datas.
 - `POST /api/foster-applications` exige data inicial e data final igual ou posterior à inicial, ou fim nulo para prazo indeterminado. Permite nova candidatura no dia seguinte à data final da mais recente, no fuso `America/Sao_Paulo`. Um período indefinido ou sem datas legíveis no cadastro antigo não libera reenvio automático.
@@ -1390,6 +1393,10 @@ O formulário público de cadastro apresenta um resumo do uso de dados pelo Kapa
 O componente `FormSubmissionLoader` cobre a tela com um ossinho animado e uma mensagem específica enquanto o formulário aguarda a API. Formulários com um modal próprio usam `FormSubmissionStatus` dentro do mesmo modal. A animação usa o Reanimated já instalado e respeita o movimento reduzido do sistema.
 
 O loader acompanha o envio validado no login por e-mail, cadastro de conta ou usuário, ficha e perfil de adoção, edição de perfil, cadastro e edição de animal, publicação no diário do pet, cadastro de atividade, candidaturas de voluntariado e lar temporário, análise de solicitações e gestão de usuários. Ao receber a resposta, a tela mostra o resultado do fluxo. Em caso de erro, o formulário continua preenchido para uma nova tentativa. Buscas e navegação comum mantêm o carregamento da própria tela.
+
+Quando há um requisito para liberar o envio, o botão primário desabilitado usa fundo e contorno azuis com texto branco. A ação tem uma explicação próxima ou no rótulo e uma dica de acessibilidade. No cadastro de conta por e-mail, na ficha de adoção e na inscrição de voluntariado, o botão pode ser acionado para validar o formulário. Se houver erros, aparecem mensagens nos campos e um aviso junto ao botão. No cadastro, a confirmação de leitura do aviso de privacidade é validada com os demais campos antes de chamar a API.
+
+Os formulários de voluntariado e Lar Temporário compartilham `FormActions`. Na edição, **Salvar alterações** e **Cancelar** têm a mesma largura e aparecem nessa ordem, lado a lado em telas largas e empilhados em telas estreitas.
 
 ### Envio de fotos de animais
 

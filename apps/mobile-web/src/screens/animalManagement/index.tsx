@@ -78,8 +78,8 @@ export function AnimalManagementScreen() {
         <BackLink label="Gestão" />
         <View className="flex-col md:flex-row md:items-center justify-between gap-6">
           <View className="flex-1"><PageHeading eyebrow="GESTÃO DO ABRIGO" title="Cada cuidado conta." description="Acompanhe os animais do abrigo, do resgate ao novo lar." /></View>
-          <PrimaryButton title="Cadastrar animal" fullWidth={false} textColor={palette.ink}
-            icon={<PlusIcon size={20} color={palette.ink} />} onPress={() => router.push('/cadastro-animal')} />
+          <PrimaryButton title="Cadastrar animal" fullWidth={false}
+            icon={<PlusIcon size={20} color={palette.white} />} onPress={() => router.push('/cadastro-animal')} />
         </View>
         <ScrollView horizontal contentContainerClassName="flex-row gap-3 md:grow" accessibilityLabel="Filtrar por acompanhamento">
           {([{ key: undefined, label: 'Todos os animais', count: total },
@@ -246,7 +246,7 @@ export function AnimalManagementScreen() {
                 <View className="p-5 rounded-full bg-peach"><PawPrintIcon size={40} color={palette.denim} weight="duotone" /></View>
                 <Text accessibilityRole="header" className="font-heading-bold text-xl text-ink text-center">{filtered ? 'Nenhum animal encontrado' : 'O próximo cuidado começa aqui'}</Text>
                 <Text className="font-body text-sm text-ink-muted text-center max-w-form">{filtered ? 'Experimente outro nome ou ajuste os filtros para encontrar quem você procura.' : 'Cadastre o primeiro animal para acompanhar sua jornada no abrigo.'}</Text>
-                {filtered ? <TextButton label="Limpar filtros" onPress={clearFilters} /> : <PrimaryButton title="Cadastrar primeiro animal" textColor={palette.ink} fullWidth={false} onPress={() => router.push('/cadastro-animal')} />}
+                {filtered ? <TextButton label="Limpar filtros" onPress={clearFilters} /> : <PrimaryButton title="Cadastrar primeiro animal" fullWidth={false} onPress={() => router.push('/cadastro-animal')} />}
               </View>}
         </View>
         <Text className="font-body text-xs text-ink-muted text-center">Cada registro atualizado ajuda a oferecer o cuidado certo.</Text>

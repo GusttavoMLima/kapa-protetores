@@ -50,6 +50,10 @@ async function main() {
         await page.getByTestId('animated-splash-overlay').waitFor({ state: 'hidden', timeout: 30000 });
         await page.screenshot({ path: path.join(output, 'register-mobile.png') });
         await page.getByRole('button', { name: 'Cadastrar', exact: true }).click();
+        await page.getByText(/Revise os campos para cadastrar: Aviso de privacidade/).waitFor();
+        assert.deepEqual(writes, []);
+        await page.getByRole('checkbox', { name: 'Li e estou ciente de como o Kapa usa meus dados.' }).click();
+        await page.getByRole('button', { name: 'Cadastrar', exact: true }).click();
         await page.getByText('Cadastro simulado para teste', { exact: true }).waitFor();
         assert.equal(writes.length, 1);
       } else {

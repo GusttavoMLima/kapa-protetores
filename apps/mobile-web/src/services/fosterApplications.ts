@@ -7,7 +7,7 @@ const applicationSchema = z.object({
   availability: z.string().nullable(),
   availableFrom: z.string().date().nullable(),
   availableUntil: z.string().date().nullable(),
-  homeNotes: z.string(),
+  homeNotes: z.string().nullable(),
   homeAddress: z.string().nullable(),
   hasOtherAnimals: z.boolean().nullable(),
   hasPerimeterBarrier: z.boolean().nullable(),
@@ -46,7 +46,7 @@ export async function fetchMyFosterApplication() {
 export type FosterApplicationInput = {
   availableFrom: string;
   availableUntil: string | null;
-  homeNotes: string;
+  homeNotes: string | null;
   homeAddress: string;
   hasOtherAnimals: boolean;
   hasPerimeterBarrier: boolean;

@@ -103,6 +103,7 @@ describe('AdoptionApplicationScreen', () => {
     await waitFor(() => {
       expect(getByText('Informe a cidade.')).toBeTruthy();
       expect(getByText('Selecione onde você mora.')).toBeTruthy();
+      expect(getByText('Revise os campos indicados acima para enviar a ficha.')).toBeTruthy();
     });
   });
 
