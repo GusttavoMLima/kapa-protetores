@@ -95,6 +95,9 @@ export class CommunityEventService {
       if (error.message === 'COMMUNITY_EVENT_ALREADY_JOINED') {
         throw new ConflictError('Você já está inscrito nesta atividade.');
       }
+      if (error.message === 'COMMUNITY_EVENT_SCHEDULE_CONFLICT') {
+        throw new ConflictError('Você já está inscrito em outra atividade com horário sobreposto.');
+      }
       if (error.message === 'COMMUNITY_EVENT_FULL') {
         throw new ConflictError('As vagas para esta atividade foram preenchidas.');
       }

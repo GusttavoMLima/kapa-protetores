@@ -15,6 +15,12 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { ageFromBirthDate, isValidPhone } from '@kapa/shared';
 import { DateTimeField } from '@/components/inputDateTime';
+import { colors, palette } from '@/theme';
+
+const inputContrast = {
+  borderColor: colors.border,
+  placeholderTextColor: palette.inkMuted,
+};
 
 const registerFormSchema = z
   .object({
@@ -133,8 +139,9 @@ export function RegisterForm() {
           name="username"
           render={({ field: { onChange, value }, fieldState: { error } }) => (
             <SecondaryInputText
+              {...inputContrast}
               label="Nome de usuário"
-              icon={<UserIcon size={28} color="#57423B50" />}
+              icon={<UserIcon size={28} color={palette.inkMuted} />}
               value={value}
               onChangeText={onChange}
               placeholder="Digite seu nome completo"
@@ -149,8 +156,9 @@ export function RegisterForm() {
           name="email"
           render={({ field: { onChange, value }, fieldState: { error } }) => (
             <SecondaryInputText
+              {...inputContrast}
               label="E-mail"
-              icon={<EnvelopeSimpleIcon size={28} color="#57423B50" />}
+              icon={<EnvelopeSimpleIcon size={28} color={palette.inkMuted} />}
               value={value}
               onChangeText={onChange}
               placeholder="seu.email@kapa.com"
@@ -162,10 +170,10 @@ export function RegisterForm() {
         />
 
         <Controller control={control} name="birthDate" render={({ field: { onChange, value }, fieldState: { error } }) => (
-          <DateTimeField label="Data de nascimento" value={value} onChange={onChange} mode="date" error={error?.message} containerStyle={{ width: '100%' }} />
+          <DateTimeField label="Data de nascimento" value={value} onChange={onChange} mode="date" borderColor={colors.border} error={error?.message} containerStyle={{ width: '100%' }} />
         )} />
         <Controller control={control} name="phone" render={({ field: { onChange, value }, fieldState: { error } }) => (
-          <SecondaryInputText label="Celular com DDD" value={value} onChangeText={onChange} placeholder="(19) 99999-9999" keyboardType="phone-pad" maxLength={20} error={error?.message} />
+          <SecondaryInputText {...inputContrast} label="Celular com DDD" value={value} onChangeText={onChange} placeholder="(19) 99999-9999" keyboardType="phone-pad" maxLength={20} error={error?.message} />
         )} />
         <Text className="font-body text-xs text-ink-muted">Adoção e candidatura ao voluntariado são permitidas a partir de 18 anos completos.</Text>
         <Controller
@@ -173,8 +181,9 @@ export function RegisterForm() {
           name="password"
           render={({ field: { onChange, value }, fieldState: { error } }) => (
             <SecondaryInputText
+              {...inputContrast}
               label="Senha"
-              icon={<LockIcon size={28} color="#57423B50" />}
+              icon={<LockIcon size={28} color={palette.inkMuted} />}
               value={value}
               onChangeText={onChange}
               placeholder="Mínimo 6 caracteres"
@@ -189,8 +198,9 @@ export function RegisterForm() {
           name="confirmPassword"
           render={({ field: { onChange, value }, fieldState: { error } }) => (
             <SecondaryInputText
+              {...inputContrast}
               label="Confirmar senha"
-              icon={<LockIcon size={28} color="#57423B50" />}
+              icon={<LockIcon size={28} color={palette.inkMuted} />}
               value={value}
               onChangeText={onChange}
               placeholder="Repita sua senha"
@@ -228,6 +238,10 @@ export function RegisterForm() {
           <PrimaryCheckBox
             label="Li e estou ciente de como o Kapa usa meus dados."
             checked={value}
+            boxStyle={{
+              borderColor: error ? palette.danger : colors.border,
+              backgroundColor: value ? colors.primaryContainer : palette.white,
+            }}
             onChange={onChange}
             error={error?.message}
             className="w-full min-h-14 items-center rounded-xl border border-line bg-white px-4 py-3 active:bg-peach"
@@ -248,6 +262,7 @@ export function RegisterForm() {
         <FormSubmissionLoader visible={isRegistering} message="Criando sua conta…" />
         <PrimaryButton
           title="Cadastrar"
+          textColor={palette.ink}
           className="mt-2"
           loading={isRegistering}
           disabled={isSubmitting}
@@ -264,7 +279,8 @@ export function RegisterForm() {
       <Text className="text-center my-6 text-sm text-ink-muted">
         Já tem uma conta?{' '}
         <Text
-          className="text-orange font-bold cursor-pointer"
+          accessibilityRole="link"
+          className="text-denim font-bold underline cursor-pointer"
           onPress={() => router.push('/signIn')}
         >
           Entrar

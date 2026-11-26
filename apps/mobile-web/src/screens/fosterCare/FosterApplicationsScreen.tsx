@@ -150,9 +150,21 @@ export function FosterApplicationsScreen() {
                     </View>
                   </>
                 ) : (
-                  <View className="flex-row flex-wrap gap-3">
-                    <PrimaryButton title="Aprovar" accessibilityLabel={`Aprovar candidatura de ${application.applicant.username}`} fullWidth={false} disabled={review.isPending} onPress={() => startDecision(application.id, 'approved')} />
-                    <PrimaryButton title="Recusar" accessibilityLabel={`Recusar candidatura de ${application.applicant.username}`} fullWidth={false} color={palette.danger} pressedColor={palette.dangerDark} disabled={review.isPending} onPress={() => startDecision(application.id, 'rejected')} />
+                  <View className="gap-3">
+                    <PrimaryButton
+                      title="Aprovar candidatura"
+                      accessibilityLabel={`Aprovar candidatura de ${application.applicant.username}`}
+                      disabled={review.isPending}
+                      onPress={() => startDecision(application.id, 'approved')}
+                    />
+                    <PrimaryButton
+                      title="Recusar candidatura"
+                      accessibilityLabel={`Recusar candidatura de ${application.applicant.username}`}
+                      color={palette.danger}
+                      pressedColor={palette.dangerDark}
+                      disabled={review.isPending}
+                      onPress={() => startDecision(application.id, 'rejected')}
+                    />
                   </View>
                 )
               )}
