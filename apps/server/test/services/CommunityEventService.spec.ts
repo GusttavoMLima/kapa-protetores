@@ -21,6 +21,17 @@ const sampleEvent: CommunityEventListItem = {
 };
 
 describe('CommunityEventService', () => {
+  it('returns a conflict with a readable message when signup overlaps', async () => {
+    const mockRepository: Partial<CommunityEventRepository> = {
+      signUp: jest.fn().mockRejectedValue(new Error('COMMUNITY_EVENT_SCHEDULE_CONFLICT')),
+    };
+    const service = new CommunityEventService(mockRepository as CommunityEventRepository);
+
+    await expect(service.signUp('vol-1', 'evt-1')).rejects.toThrow(
+      new ConflictError('Você já está inscrito em outra atividade com horário sobreposto.'),
+    );
+  });
+
   it('cancels volunteer signup and invalidates caches', async () => {
     const mockRepository: Partial<CommunityEventRepository> = {
       cancelSignUp: jest.fn().mockResolvedValue(sampleEvent),

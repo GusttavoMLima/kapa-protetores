@@ -18,6 +18,7 @@ export type SecondaryInputTextProps = TextInputProps & {
   error?: string;
   icon?: ReactNode;
   isPassword?: boolean;
+  borderColor?: string;
 };
 
 const SecondaryInputText = memo(
@@ -31,6 +32,8 @@ const SecondaryInputText = memo(
     icon,
     isPassword = false,
     placeholderTextColor,
+    borderColor,
+    style,
     autoCapitalize,
     autoCorrect,
     accessibilityLabel,
@@ -72,6 +75,7 @@ const SecondaryInputText = memo(
             } ${isPassword ? 'pr-13' : ''} ${
               hasError ? 'border-danger' : 'border-border'
             } ${multiline ? 'min-h-[100px] pt-3.5' : ''}`}
+            style={borderColor && !hasError ? [{ borderColor }, style] : style}
             {...rest}
           />
 

@@ -50,6 +50,7 @@ export interface PrimaryCheckBoxProps
   size?: PrimaryCheckBoxSize;
   className?: string;
   style?: StyleProp<ViewStyle>;
+  boxStyle?: StyleProp<ViewStyle>;
 }
 
 const sizeConfig: Record<
@@ -93,6 +94,7 @@ export const PrimaryCheckBox = memo(function PrimaryCheckBox({
   size = 'md',
   className,
   style,
+  boxStyle,
   accessibilityRole = 'checkbox',
   accessibilityLabel,
   accessibilityHint,
@@ -175,6 +177,7 @@ export const PrimaryCheckBox = memo(function PrimaryCheckBox({
     >
       <Animated.View style={boxAnimatedStyle}>
         <View
+          style={boxStyle}
           className={cn(
             'items-center justify-center border transition-colors mt-0.5',
             config.boxClasses,

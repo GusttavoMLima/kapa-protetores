@@ -2,6 +2,10 @@
 
 Este documento consolida a arquitetura de autenticação (**Google OAuth** e **E-mail/Senha**), persistência de sessão, integração entre React Native/Expo e a API Express, infraestrutura local com Docker e procedimentos para resolução de problemas e garantia de qualidade.
 
+## Contraste no cadastro público
+
+O formulário de cadastro reutiliza os tokens da paleta Kapa para reforçar o contorno dos campos, os textos de exemplo e os ícones no app e na web. A confirmação de leitura usa o tom de contêiner primário quando marcada. O botão Cadastrar usa texto escuro sobre o laranja da marca e o link Entrar usa Deep Denim com sublinhado.
+
 ## Correção de segurança do picomatch
 
 O postinstall raiz executa `scripts/patch-picomatch.mjs` nas cópias transitivas
@@ -429,7 +433,7 @@ A branch `feat/volunteers` acrescenta uma tela separada para voluntários em `/(
 | `GET /api/community-events/manage` | Exige autenticação e papel atual `admin` ou `protector`; lista atividades futuras e a contagem de inscrições. |
 | `POST /api/community-events` | Exige autenticação e papel atual `admin` ou `protector`; valida e cadastra atividade futura, com limite positivo de vagas. |
 | `GET /api/community-events` | Exige autenticação e papel atual `volunteer`; lista atividades futuras, vagas restantes e se o usuário da sessão já está inscrito. |
-| `POST /api/community-events/:id/volunteers` | Exige autenticação e papel atual `volunteer`; inscreve o usuário autenticado. Atividade passada, inscrição duplicada e atividade lotada são rejeitadas. Inscrições simultâneas usam transação serializável para respeitar o limite. |
+| `POST /api/community-events/:id/volunteers` | Exige autenticação e papel atual `volunteer` e inscreve o usuário autenticado. Atividade passada, inscrição duplicada, atividade lotada e sobreposição com outra inscrição retornam HTTP 409. Atividades consecutivas são permitidas e registros sem término ocupam apenas o instante de início. A transação serializável protege a verificação de horários e vagas em inscrições simultâneas. |
 
 Admin/protetores e voluntários usam o mesmo contrato e os mesmos registros da API. Campos novos da migration são opcionais no banco para preservar atividades antigas; a API exige esses dados ao cadastrar atividades novas. Atividades antigas não possuem local, horário final ou quantidade máxima de vagas, então são apresentadas sem esses detalhes e sem limite de vagas definido.
 
@@ -1361,6 +1365,7 @@ Implementação em `src/screens/adoptionRequests/` (`model`, componentes, cartã
 - No formulário de Lar Temporário, uma tentativa inválida exibe mensagens nos campos e o mesmo aviso junto ao botão da inscrição de voluntariado. Os avisos acompanham as correções e a API só é chamada com o formulário válido. Quando uma candidatura anterior bloqueia o reenvio, a tela explica a condição de disponibilidade retornada pela API.
 - A descrição do espaço de acolhimento é opcional na criação e na edição. A API aceita `homeNotes` ausente, nulo ou em branco e retorna `null` quando não há descrição. O banco armazena esse caso como texto vazio na coluna existente.
 - Administradores e protetores analisam candidaturas em **Gestão do abrigo → Lar Temporário**. `GET /api/foster-applications` lista resultados paginados (filtros opcionais `status`, `availability` e `search`, ver seção 49) e `PATCH /api/foster-applications/:id/status` registra uma decisão sobre a candidatura pendente. As permissões são verificadas no banco e o status é atualizado de forma atômica.
+- Candidaturas em análise exibem **Recusar candidatura** em vermelho e em largura total, no mesmo padrão da tela de candidaturas de voluntariado. A decisão é enviada após confirmação.
 - A migração `20261114235000_add_foster_availability_dates` troca a restrição de uma candidatura por usuário por um índice para consultar o histórico. As colunas `available_from` e `available_until` são datas de calendário. O texto das candidaturas anteriores é preservado sem inferir datas.
 - `POST /api/foster-applications` exige data inicial e data final igual ou posterior à inicial, ou fim nulo para prazo indeterminado. Permite nova candidatura no dia seguinte à data final da mais recente, no fuso `America/Sao_Paulo`. Um período indefinido ou sem datas legíveis no cadastro antigo não libera reenvio automático.
 - `GET /api/foster-applications/mine` retorna a última candidatura com as permissões de edição e reenvio. `PATCH /api/foster-applications/:id` permite ao titular editar sua candidatura mais recente enquanto não estiver aprovada. Uma candidatura recusada volta para análise ao salvar. Criação e edição usam transações serializáveis para evitar submissões duplicadas ou alterações concorrentes na candidatura mais recente.

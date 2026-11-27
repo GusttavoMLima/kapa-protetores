@@ -82,11 +82,26 @@ describe('FosterApplicationsScreen (admin)', () => {
     jest.mocked(reviewFosterApplication).mockResolvedValue(undefined);
     await renderScreen();
 
-    await fireEvent.press(await screen.findByLabelText('Recusar candidatura de Maria'));
+    expect(await screen.findByText('Recusar candidatura')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Recusar candidatura de Maria' }));
+    expect(screen.getByText('Confirmar recusa?')).toBeTruthy();
+    expect(reviewFosterApplication).not.toHaveBeenCalled();
     await fireEvent.press(screen.getByLabelText('Confirmar decisão'));
 
     expect(await screen.findByText('Candidatura recusada.')).toBeTruthy();
     expect(reviewFosterApplication).toHaveBeenCalledWith('c1', 'rejected');
+  });
+
+  it('oferece recusa apenas para candidaturas em análise', async () => {
+    jest.mocked(fetchFosterApplications).mockResolvedValue({
+      items: [item('c1', 'Maria', 'approved'), item('c2', 'Ana')],
+      total: 2,
+      pageSize: 20,
+    });
+    await renderScreen();
+
+    expect(await screen.findByRole('button', { name: 'Recusar candidatura de Ana' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Recusar candidatura de Maria' })).toBeNull();
   });
 
   it('mostra o erro da decisão sem fechar a lista', async () => {

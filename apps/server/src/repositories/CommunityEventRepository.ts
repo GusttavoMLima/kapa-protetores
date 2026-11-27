@@ -131,7 +131,7 @@ export class CommunityEventRepository {
           async (transaction) => {
             const event = await transaction.communityEvents.findUnique({
               where: { id: communityEventId },
-              select: { id: true, start_at: true, vacancies: true },
+              select: { start_at: true, end_at: true, vacancies: true },
             });
 
             if (!event) throw new Error('COMMUNITY_EVENT_NOT_FOUND');
@@ -149,6 +149,23 @@ export class CommunityEventRepository {
               select: { volunteer_id: true },
             });
             if (existingSignup) throw new Error('COMMUNITY_EVENT_ALREADY_JOINED');
+
+            const overlappingSignup = await transaction.communityEventVolunteers.findFirst({
+              where: {
+                volunteer_id: volunteerId,
+                community_event: {
+                  start_at: event.end_at
+                    ? { lt: event.end_at }
+                    : { lte: event.start_at },
+                  OR: [
+                    { end_at: { gt: event.start_at } },
+                    { end_at: null, start_at: { gte: event.start_at } },
+                  ],
+                },
+              },
+              select: { community_event_id: true },
+            });
+            if (overlappingSignup) throw new Error('COMMUNITY_EVENT_SCHEDULE_CONFLICT');
 
             const volunteerCount = await transaction.communityEventVolunteers.count({
               where: { community_event_id: communityEventId },

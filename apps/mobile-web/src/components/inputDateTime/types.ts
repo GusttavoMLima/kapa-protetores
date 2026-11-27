@@ -7,5 +7,6 @@ export type DateTimeFieldProps = {
   mode: 'date' | 'time';
   disabled?: boolean;
   error?: string;
+  borderColor?: string;
   containerStyle?: StyleProp<ViewStyle>;
 };

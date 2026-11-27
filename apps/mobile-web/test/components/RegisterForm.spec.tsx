@@ -1,6 +1,6 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { RegisterForm } from '@/components/forms/register';
-import { palette } from '@/theme';
+import { colors, palette } from '@/theme';
 
 const mockSignUp = jest.fn().mockResolvedValue(undefined);
 const mockSignInWithGoogle = jest.fn().mockResolvedValue(undefined);
@@ -33,7 +33,7 @@ describe('RegisterForm dados pessoais', () => {
     expect(screen.getByText('Privacidade e uso dos seus dados')).toBeTruthy();
     expect(notice).not.toBeChecked();
     expect(register).toBeEnabled();
-    expect(screen.getByText('Cadastrar')).toHaveStyle({ color: palette.white });
+    expect(screen.getByText('Cadastrar')).toHaveStyle({ color: palette.ink });
     expect(google).toBeDisabled();
     expect(screen.getByText('Confirme a leitura do aviso para criar sua conta.')).toBeTruthy();
     await fireEvent.press(register);
@@ -54,6 +54,19 @@ describe('RegisterForm dados pessoais', () => {
     expect(register).toBeEnabled();
     expect(google).toBeDisabled();
     expect(mockSignUp).not.toHaveBeenCalled();
+  });
+
+  it('aplica contraste aos campos e preserva a borda de erro', async () => {
+    const screen = await render(<RegisterForm />);
+    const email = screen.getByLabelText('E-mail');
+
+    expect(email).toHaveProp('placeholderTextColor', palette.inkMuted);
+    expect(email).toHaveStyle({ borderColor: colors.border });
+    expect(screen.getByRole('link', { name: 'Entrar' })).toBeTruthy();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Cadastrar' }));
+    expect(await screen.findByText('Formato de e-mail inválido')).toBeTruthy();
+    expect(email).not.toHaveStyle({ borderColor: colors.border });
   });
 
   it('exige nascimento e celular para cadastrar', async () => {

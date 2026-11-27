@@ -36,7 +36,7 @@ function displayValue(value: string, mode: 'date' | 'time'): string {
   return value;
 }
 
-export function DateTimeField({ label, value, onChange, mode, disabled, error, containerStyle }: DateTimeFieldProps) {
+export function DateTimeField({ label, value, onChange, mode, disabled, error, borderColor, containerStyle }: DateTimeFieldProps) {
   const [visible, setVisible] = useState(false);
   const Icon = mode === 'date' ? CalendarIcon : ClockIcon;
 
@@ -48,9 +48,10 @@ export function DateTimeField({ label, value, onChange, mode, disabled, error, c
         disabled={disabled}
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${displayValue(value, mode)}`}
+        style={!error && borderColor ? { borderColor } : undefined}
         className={`w-full min-h-[48px] flex-row items-center justify-between rounded-xl border bg-white px-3.5 py-3 ${error ? 'border-danger' : 'border-border'}`}
       >
-        <Text className={value ? 'text-base text-ink' : 'text-base text-inkMuted'}>{displayValue(value, mode)}</Text>
+        <Text className={value ? 'text-base text-ink' : 'text-base text-ink-muted'}>{displayValue(value, mode)}</Text>
         <Icon size={20} color={palette.inkMuted} />
       </Pressable>
       {visible && !disabled ? (
